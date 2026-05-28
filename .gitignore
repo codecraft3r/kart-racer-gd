@@ -1,0 +1,22 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+*.translation
+
+# Mono/C# specific ignores
+.mono/
+data_*/
+mono_crash.*
+
+# .NET / C# / MSBuild ignores
+bin/
+obj/
+.vs/
+out/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.userosenv
+*.suo
+*.userprefs
+
