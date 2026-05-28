@@ -1,7 +1,18 @@
 [gd_scene format=3 uid="uid://xhrun7c5qswy"]
 
+[ext_resource type="PackedScene" uid="uid://cjlrpc3gabifw" path="res://kart.tscn" id="1_cegc5"]
+[ext_resource type="Script" uid="uid://c24b6dbw8m32t" path="res://TrackCamera.cs" id="2_de8j7"]
+
 [node name="Node3D" type="Node3D" unique_id=996499407]
 
 [node name="CSGBox3D" type="CSGBox3D" parent="." unique_id=1817987166]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1848145, -0.39111328, 2.7296753)
-size = Vector3(7.369629, 0.21777344, 6.4593506)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.5, -0.39111328, 19.5)
+use_collision = true
+size = Vector3(40, 0.21777344, 40)
+
+[node name="Kart" parent="." unique_id=2048840086 instance=ExtResource("1_cegc5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.73778963, 3)
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1486811080]
+script = ExtResource("2_de8j7")
+TargetVehiclePath = NodePath("../Kart")
