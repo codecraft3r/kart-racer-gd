@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://ckie05svm68du"]
+
+[node name="SubViewportContainer" type="SubViewportContainer" unique_id=459798368]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="ViewportMain" type="Node2D" parent="." unique_id=2000058443]

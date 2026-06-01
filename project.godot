@@ -11,13 +11,9 @@ config_version=5
 [application]
 
 config/name="kart_racer"
-run/main_scene="uid://xhrun7c5qswy"
+run/main_scene="uid://8sk8eoxjx5d3"
 config/features=PackedStringArray("4.6", "C#", "Forward Plus")
 config/icon="res://icon.svg"
-
-[display]
-
-window/stretch/mode="canvas_items"
 
 [dotnet]
 

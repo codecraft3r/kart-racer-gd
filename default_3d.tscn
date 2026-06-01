@@ -1,0 +1,37 @@
+[gd_scene format=3 uid="uid://8sk8eoxjx5d3"]
+
+[ext_resource type="PackedScene" uid="uid://cjlrpc3gabifw" path="res://kart.tscn" id="1_jvk4k"]
+[ext_resource type="Script" uid="uid://c24b6dbw8m32t" path="res://TrackCamera.cs" id="2_ta3w6"]
+[ext_resource type="Shader" uid="uid://oy3tmmm3mumy" path="res://assets/shader/retropostprocessing.gdshader" id="3_4swda"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_erduv"]
+render_priority = 0
+shader = ExtResource("3_4swda")
+shader_parameter/pixel_scale = 0.15
+shader_parameter/color_res = 25.0
+shader_parameter/dither_spread = 0.2
+shader_parameter/dither_size = 2.0
+shader_parameter/target_height = 640.0
+
+[sub_resource type="QuadMesh" id="QuadMesh_de8j7"]
+flip_faces = true
+size = Vector2(2, 2)
+
+[node name="Node3D" type="Node3D" unique_id=996499407]
+
+[node name="CSGBox3D" type="CSGBox3D" parent="." unique_id=1817987166]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.5, -0.39111328, 19.5)
+use_collision = true
+size = Vector3(40, 0.21777344, 40)
+
+[node name="Kart" parent="." unique_id=2048840086 instance=ExtResource("1_jvk4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.73778963, 3)
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1486811080]
+script = ExtResource("2_ta3w6")
+TargetVehiclePath = NodePath("../Kart")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Camera3D" unique_id=551057103]
+material_override = SubResource("ShaderMaterial_erduv")
+extra_cull_margin = 16384.0
+mesh = SubResource("QuadMesh_de8j7")
