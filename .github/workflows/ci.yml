@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  dotnet-build:
+    name: Dotnet Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version-file: global.json
+      - name: Restore
+        run: dotnet restore kart_racer.sln
+      - name: Build
+        run: dotnet build kart_racer.sln --configuration Debug --no-restore

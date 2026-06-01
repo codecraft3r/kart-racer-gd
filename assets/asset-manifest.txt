@@ -1,0 +1,9 @@
+Asset manifest
+---------------
+
+- `assets/kenny_car-kit/Textures/colormap.png`
+  - Source: fetched from Kenney Car Kit package
+    (`https://kenney.nl/assets/car-kit`, direct package file `kenney_car-kit.zip`),
+    via GitHub LFS object referenced in repository history.
+  - Purpose: map texture used by the Kenney car models in `assets/kenny_car-kit/`.
+  - Note: tracked as normal binary (not Git LFS) in this repo.

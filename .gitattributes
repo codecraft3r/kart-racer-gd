@@ -8,6 +8,7 @@
 *.import text eol=lf
 # Binary files
 *.png filter=lfs diff=lfs merge=lfs -text
+assets/kenny_car-kit/Textures/colormap.png -filter -diff -merge -text
 *.jpg filter=lfs diff=lfs merge=lfs -text
 *.jpeg filter=lfs diff=lfs merge=lfs -text
 *.svg binary
