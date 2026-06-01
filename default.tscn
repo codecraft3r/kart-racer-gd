@@ -10,14 +10,16 @@ shader = ExtResource("2_koolx")
 shader_parameter/color_res = 24.0
 shader_parameter/dither_spread = 0.2
 shader_parameter/dither_size = 2.0
+shader_parameter/viewport_texture = SubResource("ViewportTexture_erduv")
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_erduv"]
-viewport_path = NodePath("SubViewportContainer/SubViewport")
+viewport_path = NodePath("SubViewport")
 
 [node name="CanvasLayer" type="CanvasLayer" unique_id=1855862864]
 
 [node name="TextureRect" type="TextureRect" parent="." unique_id=1991361513]
 z_index = -1
+z_as_relative = false
 material = SubResource("ShaderMaterial_koolx")
 anchors_preset = 15
 anchor_right = 1.0
@@ -26,29 +28,21 @@ grow_horizontal = 2
 grow_vertical = 2
 texture = SubResource("ViewportTexture_erduv")
 
-[node name="SubViewportContainer" type="SubViewportContainer" parent="." unique_id=38887204]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-stretch = true
-
-[node name="SubViewport" type="SubViewport" parent="SubViewportContainer" unique_id=1735128838]
+[node name="SubViewport" type="SubViewport" parent="." unique_id=1735128838]
 handle_input_locally = false
 size = Vector2i(1152, 648)
 render_target_update_mode = 4
 
-[node name="Node3D" type="Node3D" parent="SubViewportContainer/SubViewport" unique_id=996499407]
+[node name="Node3D" type="Node3D" parent="SubViewport" unique_id=996499407]
 
-[node name="CSGBox3D" type="CSGBox3D" parent="SubViewportContainer/SubViewport/Node3D" unique_id=1817987166]
+[node name="CSGBox3D" type="CSGBox3D" parent="SubViewport/Node3D" unique_id=1817987166]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.5, -0.39111328, 19.5)
 use_collision = true
 size = Vector3(40, 0.21777344, 40)
 
-[node name="Kart" parent="SubViewportContainer/SubViewport/Node3D" unique_id=2048840086 instance=ExtResource("1_cegc5")]
+[node name="Kart" parent="SubViewport/Node3D" unique_id=2048840086 instance=ExtResource("1_cegc5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.73778963, 3)
 
-[node name="Camera3D" type="Camera3D" parent="SubViewportContainer/SubViewport/Node3D" unique_id=1486811080]
+[node name="Camera3D" type="Camera3D" parent="SubViewport/Node3D" unique_id=1486811080]
 script = ExtResource("2_de8j7")
 TargetVehiclePath = NodePath("../Kart")

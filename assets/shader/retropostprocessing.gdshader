@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded, fog_disabled;
+render_mode unshaded, fog_disabled, cull_disabled, depth_draw_never, depth_test_disabled;
 
 uniform float pixel_scale : hint_range(0.01, 1.0) = 0.15;
 uniform float color_res : hint_range(1.0, 64.0) = 16.0;
@@ -21,10 +21,6 @@ float get_bayer_optimized(vec2 coord) {
     );
     
     return m[index] / 16.0;
-}
-
-void vertex() {
-    POSITION = vec4(VERTEX.xy, 1.0, 1.0);
 }
 
 void fragment() {
@@ -53,4 +49,5 @@ void fragment() {
     color.rgb = floor(color.rgb * color_res) / color_res;
 
     ALBEDO = color.rgb;
+    ALPHA = 1.0;
 }

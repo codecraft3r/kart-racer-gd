@@ -1,13 +1,8 @@
 {
   "profiles": {
     "kart_racer": {
-      "commandName": "Project"
-    },
-    "Profile 1": {
-      "commandName": "Executable",
-      "executablePath": "C:\\Users\\nmitc\\Documents\\Godot_v4.6.3-stable_mono_win64\\Godot_v4.6.3-stable_mono_win64.exe",
-      "workingDirectory": ".",
-      "debugEngines": "managed,native"
+      "commandName": "Project",
+      "nativeDebugging": false
     }
   }
 }

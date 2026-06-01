@@ -1,7 +1,13 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+.godot/imported/
+.godot/mono/
 *.translation
+
+# Optional editor/runtime caches
+export.cfg
+export_credentials.cfg
 
 # Mono/C# specific ignores
 .mono/
@@ -20,3 +26,7 @@ out/
 *.suo
 *.userprefs
 
+# Tool caches / local repos
+.codegraph/
+.idea/
+.vscode/
