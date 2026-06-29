@@ -12,9 +12,12 @@ public partial class Kart : RigidBody3D
     private RayCast3D _groundRay;
     private Node3D _visualContainer;
 
+    // Networked input (server-authoritative)
     private float _forwardInput;
     private float _steeringInput;
     private float _yaw = 0.0f;
+
+    [Export] public bool IsLocalPlayer { get; set; } = false;
 
     public override void _Ready()
     {
@@ -27,13 +30,19 @@ public partial class Kart : RigidBody3D
         AxisLockAngularZ = true;
 
         _yaw = _visualContainer.Rotation.Y;
+
+        // Server is always the authority for physics
+        SetMultiplayerAuthority(1);
     }
 
     public override void _Process(double delta)
     {
-        // 1. Handle inputs (Ensure you map these in Project Settings -> Input Map)
-        _forwardInput = Input.GetAxis("move_backward", "move_forward");
-        _steeringInput = Input.GetAxis("move_left", "move_right");
+        if (IsLocalPlayer && Multiplayer.IsServer() == false)
+        {
+            // Send input to server
+            SendInputRpc(Input.GetAxis("move_backward", "move_forward"),
+                           Input.GetAxis("move_left", "move_right"));
+        }
 
         // 2. Snapping visuals to physics position while decoupling rotation
         _visualContainer.GlobalPosition = GlobalPosition;
@@ -42,28 +51,32 @@ public partial class Kart : RigidBody3D
         AlignVisualsWithGround((float)delta);
     }
 
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Unreliable)]
+    private void SendInputRpc(float forward, float steer)
+    {
+        if (Multiplayer.IsServer())
+        {
+            _forwardInput = forward;
+            _steeringInput = steer;
+        }
+    }
+
     public override void _PhysicsProcess(double delta)
     {
+        if (Multiplayer.IsServer() == false) return; // Only server runs physics
+
         if (_groundRay.IsColliding())
         {
-            // Calculate movement forces relative to where the visual car is facing
             Vector3 forwardDirection = _visualContainer.Transform.Basis.Z;
-
-            // Apply drive force
             ApplyCentralForce(forwardDirection * _forwardInput * Acceleration);
 
-            // Kill lateral velocity to prevent drifting/ice physics (Lateral Friction)
             Vector3 currentVelocity = LinearVelocity;
             Vector3 sideDirection = _visualContainer.Transform.Basis.X;
             float lateralSpeed = currentVelocity.Dot(sideDirection);
-
-            // Apply counter-lateral force to kill sideways slide
             ApplyCentralForce(-sideDirection * lateralSpeed * SideGrip * Mass);
 
-            // Handle steering by adjusting yaw
             if (Mathf.Abs(_steeringInput) > 0.05f)
             {
-                // Reverse steering direction if driving backward
                 float steerDirection = _forwardInput >= 0 ? -_steeringInput : _steeringInput;
                 _yaw += steerDirection * SteeringSpeed * (float)delta;
             }
