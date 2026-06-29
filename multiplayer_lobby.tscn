@@ -1,0 +1,48 @@
+[gd_scene load_steps=2 format=3 uid="uid://multiplayer_lobby"]
+
+[ext_resource type="Script" path="res://MultiplayerLobby.cs" id="1"]
+
+[node name="MultiplayerLobby" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+StatusLabelPath = NodePath("StatusLabel")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100
+offset_top = -80
+offset_right = 100
+offset_bottom = 80
+theme_override_constants/separation = 16
+
+[node name="HBox" type="HBoxContainer" parent="VBox"]
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="HostButton" type="Button" parent="VBox/HBox"]
+text = "Host"
+
+[node name="JoinButton" type="Button" parent="VBox/HBox"]
+text = "Join"
+
+[node name="DisconnectButton" type="Button" parent="VBox"]
+text = "Disconnect"
+
+[node name="StatusLabel" type="Label" parent="."]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -100
+offset_top = -60
+offset_right = 100
+offset_bottom = -40
+text = "Not connected"
+horizontal_alignment = 1
