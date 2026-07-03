@@ -54,7 +54,7 @@ public partial class GameManager : Node
     private void SpawnPlayer(long id)
     {
         var kartScene = GD.Load<PackedScene>(KartScenePath);
-        var kart = kartScene.Instantiate<RigidBody3D>();
+        var kart = kartScene.Instantiate<Kart>();
 
         // Random spawn position on the big platform
         var rng = new RandomNumberGenerator();
@@ -65,13 +65,11 @@ public partial class GameManager : Node
         // Give each player authority over their own kart (for input)
         kart.SetMultiplayerAuthority((int)id);
 
-        // Mark local player
-        if (id == Multiplayer.GetUniqueId())
-        {
-            kart.SetScript(ResourceLoader.Load<Script>("res://Kart.cs"));
-            // The IsLocalPlayer flag is only used client-side for input sending
-            ((Kart)kart).IsLocalPlayer = true;
-        }
+        // In the current single-player scene the baked-in kart reads local input.
+        // Spawned network karts only read local input for the owning peer.
+        bool isLocalPlayer = id == Multiplayer.GetUniqueId();
+        kart.IsLocalPlayer = isLocalPlayer;
+        kart.UseLocalInput = isLocalPlayer;
 
         AddChild(kart);
         _playerKarts[id] = kart;

@@ -3,21 +3,34 @@ using System;
 
 public partial class Kart : RigidBody3D
 {
-    // Tuning parameters visible in the Godot Inspector
-    [Export] public float Acceleration = 2500.0f;
-    [Export] public float SteeringSpeed = 4.0f;
-    [Export] public float VisualRotationSpeed = 10.0f;
-    [Export] public float SideGrip = 10.0f; // Amount of lateral damping (higher = less sliding/ice physics)
+    [ExportGroup("Input")]
+    [Export] public bool UseLocalInput { get; set; } = true;
+    [Export] public bool IsLocalPlayer { get; set; } = false;
+
+    [ExportGroup("Driving")]
+    [Export] public float Acceleration = 4200.0f;
+    [Export] public float ReverseAcceleration = 2600.0f;
+    [Export] public float BrakeForce = 5200.0f;
+    [Export] public float MaxForwardSpeed = 34.0f;
+    [Export] public float MaxReverseSpeed = 13.0f;
+    [Export] public float SteeringSpeed = 3.0f;
+    [Export] public float MinSteeringSpeed = 2.0f;
+    [Export] public float SideGrip = 18.0f;
+    [Export] public float RollingDrag = 1.8f;
+    [Export] public float ExtraGravity = 35.0f;
+
+    [ExportGroup("Visuals")]
+    [Export] public float VisualRotationSpeed = 12.0f;
 
     private RayCast3D _groundRay;
     private Node3D _visualContainer;
 
-    // Networked input (server-authoritative)
     private float _forwardInput;
     private float _steeringInput;
     private float _yaw = 0.0f;
+    private bool _isGrounded;
 
-    [Export] public bool IsLocalPlayer { get; set; } = false;
+    private const float InputDeadzone = 0.05f;
 
     public override void _Ready()
     {
@@ -39,15 +52,14 @@ public partial class Kart : RigidBody3D
     {
         if (IsLocalPlayer && Multiplayer.IsServer() == false)
         {
-            // Send input to server
-            SendInputRpc(Input.GetAxis("move_backward", "move_forward"),
-                           Input.GetAxis("move_left", "move_right"));
+            CaptureLocalInput();
+            RpcId(1, nameof(SendInputRpc), _forwardInput, _steeringInput);
         }
 
-        // 2. Snapping visuals to physics position while decoupling rotation
+        if (_visualContainer == null) return;
+
         _visualContainer.GlobalPosition = GlobalPosition;
 
-        // 3. Smoothly align the car visual mesh with the ground slope
         AlignVisualsWithGround((float)delta);
     }
 
@@ -56,8 +68,8 @@ public partial class Kart : RigidBody3D
     {
         if (Multiplayer.IsServer())
         {
-            _forwardInput = forward;
-            _steeringInput = steer;
+            _forwardInput = Mathf.Clamp(forward, -1.0f, 1.0f);
+            _steeringInput = Mathf.Clamp(steer, -1.0f, 1.0f);
         }
     }
 
@@ -65,45 +77,90 @@ public partial class Kart : RigidBody3D
     {
         if (Multiplayer.IsServer() == false) return; // Only server runs physics
 
-        if (_groundRay.IsColliding())
+        if (UseLocalInput)
         {
-            Vector3 forwardDirection = _visualContainer.Transform.Basis.Z;
-            ApplyCentralForce(forwardDirection * _forwardInput * Acceleration);
+            CaptureLocalInput();
+        }
 
-            Vector3 currentVelocity = LinearVelocity;
-            Vector3 sideDirection = _visualContainer.Transform.Basis.X;
-            float lateralSpeed = currentVelocity.Dot(sideDirection);
-            ApplyCentralForce(-sideDirection * lateralSpeed * SideGrip * Mass);
+        float dt = (float)delta;
+        _groundRay.ForceRaycastUpdate();
+        _isGrounded = _groundRay.IsColliding();
 
-            if (Mathf.Abs(_steeringInput) > 0.05f)
+        if (_isGrounded == false)
+        {
+            ApplyCentralForce(Vector3.Down * ExtraGravity * Mass);
+            return;
+        }
+
+        Vector3 groundNormal = _groundRay.GetCollisionNormal();
+        Vector3 forwardDirection = GetForwardDirection(groundNormal);
+        Vector3 sideDirection = groundNormal.Cross(forwardDirection).Normalized();
+
+        Vector3 planarVelocity = LinearVelocity - groundNormal * LinearVelocity.Dot(groundNormal);
+        float forwardSpeed = planarVelocity.Dot(forwardDirection);
+        float lateralSpeed = planarVelocity.Dot(sideDirection);
+        float planarSpeed = planarVelocity.Length();
+
+        ApplyCentralForce(-sideDirection * lateralSpeed * SideGrip * Mass);
+        ApplyCentralForce(-forwardDirection * forwardSpeed * RollingDrag * Mass);
+
+        if (Mathf.Abs(_forwardInput) > InputDeadzone)
+        {
+            bool braking = Mathf.Abs(forwardSpeed) > 1.0f && Mathf.Sign(_forwardInput) != Mathf.Sign(forwardSpeed);
+            float speedLimit = _forwardInput > 0.0f ? MaxForwardSpeed : MaxReverseSpeed;
+            float driveForce = braking ? BrakeForce : (_forwardInput > 0.0f ? Acceleration : ReverseAcceleration);
+
+            if (braking || Mathf.Abs(forwardSpeed) < speedLimit)
             {
-                float steerDirection = _forwardInput >= 0 ? -_steeringInput : _steeringInput;
-                _yaw += steerDirection * SteeringSpeed * (float)delta;
+                ApplyCentralForce(forwardDirection * _forwardInput * driveForce);
             }
         }
+
+        if (Mathf.Abs(_steeringInput) > InputDeadzone && planarSpeed > 0.1f)
+        {
+            float steeringAuthority = Mathf.Clamp(planarSpeed / MinSteeringSpeed, 0.0f, 1.0f);
+            float highSpeedFade = 1.0f - Mathf.Clamp(planarSpeed / MaxForwardSpeed, 0.0f, 1.0f) * 0.45f;
+            float reverseMultiplier = forwardSpeed >= -0.5f ? 1.0f : -1.0f;
+
+            _yaw -= _steeringInput * reverseMultiplier * SteeringSpeed * steeringAuthority * highSpeedFade * dt;
+        }
+    }
+
+    private void CaptureLocalInput()
+    {
+        _forwardInput = Mathf.Clamp(Input.GetAxis("move_backward", "move_forward"), -1.0f, 1.0f);
+        _steeringInput = Mathf.Clamp(Input.GetAxis("move_left", "move_right"), -1.0f, 1.0f);
     }
 
     private void AlignVisualsWithGround(float delta)
     {
-        if (_groundRay.IsColliding())
+        if (_isGrounded)
         {
             Vector3 groundNormal = _groundRay.GetCollisionNormal();
+            Vector3 visualForward = GetForwardDirection(groundNormal);
+            Vector3 visualRight = groundNormal.Cross(visualForward).Normalized();
 
-            // Calculate forward direction from yaw
-            Vector3 flatForward = new Vector3(Mathf.Sin(_yaw), 0, Mathf.Cos(_yaw)).Normalized();
-
-            // Rebuild visual orientation matrix matching the yaw and ground normal
-            Vector3 visualLeft = groundNormal.Cross(flatForward).Normalized();
-            Vector3 visualForward = visualLeft.Cross(groundNormal).Normalized();
-
-            Basis targetBasis = new Basis(visualLeft, groundNormal, visualForward).Orthonormalized();
-
-            // Slerp (Spherical Linear Interpolation) for smooth transition over bumps
+            Basis targetBasis = new Basis(visualRight, groundNormal, visualForward).Orthonormalized();
             Basis currentBasis = _visualContainer.Transform.Basis.Orthonormalized();
+            float blend = Mathf.Clamp(VisualRotationSpeed * delta, 0.0f, 1.0f);
+
             _visualContainer.Transform = new Transform3D(
-                currentBasis.Slerp(targetBasis, VisualRotationSpeed * delta),
+                currentBasis.Slerp(targetBasis, blend),
                 _visualContainer.Transform.Origin
             );
         }
+    }
+
+    private Vector3 GetForwardDirection(Vector3 groundNormal)
+    {
+        Vector3 forward = new Vector3(Mathf.Sin(_yaw), 0.0f, Mathf.Cos(_yaw));
+        forward -= groundNormal * forward.Dot(groundNormal);
+
+        if (forward.LengthSquared() < 0.0001f)
+        {
+            forward = Vector3.Back - groundNormal * Vector3.Back.Dot(groundNormal);
+        }
+
+        return forward.Normalized();
     }
 }
