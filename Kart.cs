@@ -12,6 +12,9 @@ public partial class Kart : RigidBody3D
     private RayCast3D _groundRay;
     private Node3D _visualContainer;
 
+    // Expose speed to the UI (converting m/s to km/h)
+    public float CurrentSpeedKmh => LinearVelocity.Length() * 3.6f;
+
     private float _forwardInput;
     private float _steeringInput;
     private float _yaw = 0.0f;

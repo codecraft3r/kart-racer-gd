@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://cjlrpc3gabifw" path="res://kart.tscn" id="1_jvk4k"]
 [ext_resource type="Script" uid="uid://c24b6dbw8m32t" path="res://TrackCamera.cs" id="2_ta3w6"]
 [ext_resource type="Shader" uid="uid://oy3tmmm3mumy" path="res://assets/shader/retropostprocessing.gdshader" id="3_4swda"]
+[ext_resource type="PackedScene" path="res://GameUI.tscn" id="4_gameui"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_erduv"]
 render_priority = 0
@@ -35,3 +36,5 @@ TargetVehiclePath = NodePath("../Kart")
 material_override = SubResource("ShaderMaterial_erduv")
 extra_cull_margin = 16384.0
 mesh = SubResource("QuadMesh_de8j7")
+
+[node name="GameUI" parent="." unique_id=646357449 instance=ExtResource("4_gameui")]
