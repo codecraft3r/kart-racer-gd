@@ -6,6 +6,7 @@ public partial class Kart : RigidBody3D
     [ExportGroup("Input")]
     [Export] public bool UseLocalInput { get; set; } = true;
     [Export] public bool IsLocalPlayer { get; set; } = false;
+    [Export] public float TapInputHoldTime = 0.16f;
 
     [ExportGroup("Driving")]
     [Export] public float Acceleration = 4200.0f;
@@ -27,6 +28,10 @@ public partial class Kart : RigidBody3D
 
     private float _forwardInput;
     private float _steeringInput;
+    private float _forwardTapInput;
+    private float _steeringTapInput;
+    private float _forwardTapTimer;
+    private float _steeringTapTimer;
     private float _yaw = 0.0f;
     private bool _isGrounded;
 
@@ -50,7 +55,9 @@ public partial class Kart : RigidBody3D
 
     public override void _Process(double delta)
     {
-        if (IsLocalPlayer && Multiplayer.IsServer() == false)
+        UpdateTapTimers((float)delta);
+
+        if (IsLocalPlayer && IsConnectedClient())
         {
             CaptureLocalInput();
             RpcId(1, nameof(SendInputRpc), _forwardInput, _steeringInput);
@@ -61,6 +68,20 @@ public partial class Kart : RigidBody3D
         _visualContainer.GlobalPosition = GlobalPosition;
 
         AlignVisualsWithGround((float)delta);
+    }
+
+    public override void _Input(InputEvent @event)
+    {
+        if (UseLocalInput == false && IsLocalPlayer == false && IsOffline() == false) return;
+
+        if (@event.IsActionPressed("move_forward"))
+            BufferTapInput(1.0f, 0.0f);
+        else if (@event.IsActionPressed("move_backward"))
+            BufferTapInput(-1.0f, 0.0f);
+        else if (@event.IsActionPressed("move_right"))
+            BufferTapInput(0.0f, 1.0f);
+        else if (@event.IsActionPressed("move_left"))
+            BufferTapInput(0.0f, -1.0f);
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Unreliable)]
@@ -75,9 +96,9 @@ public partial class Kart : RigidBody3D
 
     public override void _PhysicsProcess(double delta)
     {
-        if (Multiplayer.IsServer() == false) return; // Only server runs physics
+        if (ShouldRunPhysics() == false) return;
 
-        if (UseLocalInput)
+        if (UseLocalInput || IsOffline())
         {
             CaptureLocalInput();
         }
@@ -128,8 +149,50 @@ public partial class Kart : RigidBody3D
 
     private void CaptureLocalInput()
     {
-        _forwardInput = Mathf.Clamp(Input.GetAxis("move_backward", "move_forward"), -1.0f, 1.0f);
-        _steeringInput = Mathf.Clamp(Input.GetAxis("move_left", "move_right"), -1.0f, 1.0f);
+        float forwardAxis = Input.GetAxis("move_backward", "move_forward");
+        float steeringAxis = Input.GetAxis("move_left", "move_right");
+
+        _forwardInput = Mathf.Abs(forwardAxis) > InputDeadzone ? forwardAxis : (_forwardTapTimer > 0.0f ? _forwardTapInput : 0.0f);
+        _steeringInput = Mathf.Abs(steeringAxis) > InputDeadzone ? steeringAxis : (_steeringTapTimer > 0.0f ? _steeringTapInput : 0.0f);
+
+        _forwardInput = Mathf.Clamp(_forwardInput, -1.0f, 1.0f);
+        _steeringInput = Mathf.Clamp(_steeringInput, -1.0f, 1.0f);
+    }
+
+    private void BufferTapInput(float forward, float steering)
+    {
+        if (Mathf.Abs(forward) > InputDeadzone)
+        {
+            _forwardTapInput = forward;
+            _forwardTapTimer = TapInputHoldTime;
+        }
+
+        if (Mathf.Abs(steering) > InputDeadzone)
+        {
+            _steeringTapInput = steering;
+            _steeringTapTimer = TapInputHoldTime;
+        }
+    }
+
+    private void UpdateTapTimers(float delta)
+    {
+        _forwardTapTimer = Mathf.Max(0.0f, _forwardTapTimer - delta);
+        _steeringTapTimer = Mathf.Max(0.0f, _steeringTapTimer - delta);
+    }
+
+    private bool ShouldRunPhysics()
+    {
+        return IsOffline() || Multiplayer.IsServer();
+    }
+
+    private bool IsConnectedClient()
+    {
+        return IsOffline() == false && Multiplayer.IsServer() == false;
+    }
+
+    private bool IsOffline()
+    {
+        return Multiplayer.HasMultiplayerPeer() == false;
     }
 
     private void AlignVisualsWithGround(float delta)

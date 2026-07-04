@@ -3,56 +3,86 @@ using System;
 
 public partial class TrackCamera : Camera3D
 {
-    // Assign your car node in the Godot inspector
+    [ExportGroup("Target")]
     [Export] public NodePath TargetVehiclePath;
 
+    [ExportGroup("Follow")]
     [Export] public float FollowSpeed = 10.0f;
     [Export] public float LookAtSpeed = 12.0f;
+    [Export] public float BaseDistance = 5.2f;
+    [Export] public float BaseHeight = 2.1f;
+    [Export] public float SpeedPullback = 2.8f;
+    [Export] public float SpeedLift = 0.8f;
+    [Export] public float LookHeight = 0.75f;
+    [Export] public float LookAheadDistance = 4.5f;
+
+    [ExportGroup("Racing Feel")]
+    [Export] public float MaxReferenceSpeed = 34.0f;
+    [Export] public float MinFov = 63.0f;
+    [Export] public float MaxFov = 78.0f;
+    [Export] public float FovLerpSpeed = 5.0f;
+    [Export] public float MaxRollDegrees = 5.0f;
+    [Export] public float RollResponse = 0.18f;
 
     private Node3D _targetVehicle;
     private Marker3D _cameraTarget;
     private Node3D _visualContainer;
+    private RigidBody3D _targetBody;
 
     public override void _Ready()
     {
-        if (TargetVehiclePath != null)
+        if (TargetVehiclePath == null || string.IsNullOrWhiteSpace(TargetVehiclePath.ToString()))
+            return;
+
+        _targetVehicle = GetNodeOrNull<Node3D>(TargetVehiclePath);
+        if (_targetVehicle == null)
         {
-            _targetVehicle = GetNode<Node3D>(TargetVehiclePath);
-            // Fetch the structural markers we set up in the car prefab
-            _cameraTarget = _targetVehicle.GetNode<Marker3D>("CameraTarget");
-            _visualContainer = _targetVehicle.GetNode<Node3D>("VisualContainer");
+            GD.PushWarning($"TrackCamera target not found: {TargetVehiclePath}");
+            return;
         }
+
+        _cameraTarget = _targetVehicle.GetNodeOrNull<Marker3D>("CameraTarget");
+        _visualContainer = _targetVehicle.GetNodeOrNull<Node3D>("VisualContainer");
+        _targetBody = _targetVehicle as RigidBody3D;
+
+        if (_cameraTarget == null || _visualContainer == null)
+            GD.PushWarning("TrackCamera expects the target vehicle to contain CameraTarget and VisualContainer children.");
     }
 
     public override void _Process(double delta)
     {
-        if (_targetVehicle == null || _cameraTarget == null) return;
+        if (_targetVehicle == null || _cameraTarget == null || _visualContainer == null) return;
 
         float dt = (float)delta;
+        float followBlend = Mathf.Clamp(FollowSpeed * dt, 0.0f, 1.0f);
+        float lookBlend = Mathf.Clamp(LookAtSpeed * dt, 0.0f, 1.0f);
+        float fovBlend = Mathf.Clamp(FovLerpSpeed * dt, 0.0f, 1.0f);
+        float speed = _targetBody?.LinearVelocity.Length() ?? 0.0f;
+        float speedT = Mathf.Clamp(speed / Mathf.Max(1.0f, MaxReferenceSpeed), 0.0f, 1.0f);
 
-        // 1. Smoothly transition camera position toward the target anchor position (in Global space relative to target rotation)
-        Vector3 targetPosition = _cameraTarget.GlobalPosition;
+        Vector3 localOffset = new Vector3(0.0f, BaseHeight + SpeedLift * speedT, -(BaseDistance + SpeedPullback * speedT));
+        Vector3 targetPosition = _visualContainer.GlobalPosition + _visualContainer.GlobalTransform.Basis * localOffset;
+        GlobalPosition = GlobalPosition.Lerp(targetPosition, followBlend);
 
-        // If the CameraTarget is a child of the sphere, it doesn't rotate with the visual mesh.
-        // We can dynamically compute the ideal offset behind the visual container instead.
-        if (_visualContainer != null)
+        Vector3 forward = _visualContainer.GlobalTransform.Basis.Z.Normalized();
+        Vector3 lookTarget = _visualContainer.GlobalPosition + Vector3.Up * LookHeight + forward * LookAheadDistance * speedT;
+
+        float lateralSpeed = 0.0f;
+        if (_targetBody != null)
         {
-            // Calculate back and up offsets based on the visual rotation
-            Vector3 localOffset = new Vector3(0, 1.8f, -4.5f); // 1.8 units up, 4.5 units backward
-            Vector3 rotatedOffset = _visualContainer.GlobalTransform.Basis * localOffset;
-            targetPosition = _visualContainer.GlobalPosition + rotatedOffset;
+            Vector3 right = _visualContainer.GlobalTransform.Basis.X.Normalized();
+            lateralSpeed = _targetBody.LinearVelocity.Dot(right);
         }
 
-        GlobalPosition = GlobalPosition.Lerp(targetPosition, FollowSpeed * dt);
-
-        // 2. Calculate where the camera should look (the center of the visual car mesh)
-        Vector3 lookTarget = _visualContainer.GlobalPosition + Vector3.Up * 0.5f;
-
-        // 3. Smoothly rotate the camera matrix to track the vehicle's face direction
         Transform3D targetTransform = Transform.LookingAt(lookTarget, Vector3.Up);
+        float rollRadians = Mathf.DegToRad(Mathf.Clamp(-lateralSpeed * RollResponse, -MaxRollDegrees, MaxRollDegrees));
+        Basis targetBasis = targetTransform.Basis.Rotated(targetTransform.Basis.Z.Normalized(), rollRadians).Orthonormalized();
+
         Transform = new Transform3D(
-            Transform.Basis.Slerp(targetTransform.Basis, LookAtSpeed * dt),
+            Transform.Basis.Orthonormalized().Slerp(targetBasis, lookBlend).Orthonormalized(),
             GlobalPosition
         );
+
+        Fov = Mathf.Lerp(Fov, Mathf.Lerp(MinFov, MaxFov, speedT), fovBlend);
     }
 }
