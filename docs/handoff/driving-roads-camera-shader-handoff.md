@@ -86,7 +86,15 @@
     - `TrackLightGlow` (equal to `TrackLightCount`)
   - scenery nodes are outside lane-clearance band.
 - Current default values in `default_3d.tscn` for smoke-test alignment:
-  - `RoadSegmentCount=160`, `LaneMarkerCount=40`, `TrackLightCount=18`, `Seed=1337`.
+  - `RoadSegmentCount=160`, `LaneMarkerCount=80`, `TrackLightCount=18`, `Seed=1337`.
+- Follow-up scale pass:
+  - Imported buildings are now normalized to a target footprint range (`BuildingFootprintMin=8.5`, `BuildingFootprintMax=13.5`) and grounded after scaling.
+  - Buildings now use `BuildingSetback=7.0` and `BuildingJitter=5.5` so larger assets do not crowd the road edge.
+  - Decorations are normalized to a smaller target footprint range (`DecorationFootprintMin=3.0`, `DecorationFootprintMax=5.5`).
+  - Generated buildings/decorations receive stable names (`BuildingInner*`, `BuildingOuter*`, `Decoration*`) for debugging and tests.
+  - Lane markers were doubled in the scene and shortened in the generator for better race-track readability.
+  - Curbs are slightly taller/wider for clearer edge scale in the pixelated capture pass.
+- `tests/road_generation_smoke_test.gd` now validates generated building count and that buildings are scaled above raw import size.
 
 ## Visible-launch crash investigation
 - D3D12 visible launch was unstable with the current postprocess/lighting scene, while headless checks passed.

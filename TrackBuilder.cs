@@ -13,7 +13,12 @@ public partial class TrackBuilder : Node3D
     [Export] public int LaneMarkerCount = 36;
     [Export] public int TrackLightCount = 16;
     [Export] public float ShoulderWidth = 7.0f;
+    [Export] public float BuildingSetback = 7.0f;
     [Export] public float BuildingJitter = 4.0f;
+    [Export] public float BuildingFootprintMin = 8.5f;
+    [Export] public float BuildingFootprintMax = 13.5f;
+    [Export] public float DecorationFootprintMin = 3.0f;
+    [Export] public float DecorationFootprintMax = 5.5f;
     [Export] public float TrackLightEnergy = 0.95f;
     [Export] public float TrackLightRange = 16.0f;
     [Export] public int Seed = -1;
@@ -128,7 +133,7 @@ public partial class TrackBuilder : Node3D
     private void GenerateRoadSurface()
     {
         int segmentCount = Math.Max(16, RoadSegmentCount);
-        float segmentLength = Mathf.Tau * TrackRadius / segmentCount * 1.08f;
+        float segmentLength = Mathf.Tau * TrackRadius / segmentCount * 1.02f;
         var roadSegmentMesh = new BoxMesh { Size = new Vector3(segmentLength, 0.04f, TrackWidth) };
 
         for (int i = 0; i < segmentCount; i++)
@@ -150,7 +155,7 @@ public partial class TrackBuilder : Node3D
     {
         int markerCount = Math.Max(8, LaneMarkerCount);
         float angleStep = Mathf.Tau / markerCount;
-        var dashMesh = new BoxMesh { Size = new Vector3(4.2f, 0.035f, 0.22f) };
+        var dashMesh = new BoxMesh { Size = new Vector3(3.0f, 0.035f, 0.24f) };
 
         for (int i = 0; i < markerCount; i += 2)
         {
@@ -173,7 +178,7 @@ public partial class TrackBuilder : Node3D
         float angleStep = Mathf.Tau / curbCount;
         float innerRadius = TrackRadius - TrackWidth * 0.5f - 0.35f;
         float outerRadius = TrackRadius + TrackWidth * 0.5f + 0.35f;
-        var curbMesh = new BoxMesh { Size = new Vector3(3.2f, 0.18f, 0.45f) };
+        var curbMesh = new BoxMesh { Size = new Vector3(3.4f, 0.22f, 0.6f) };
 
         for (int i = 0; i < curbCount; i++)
         {
@@ -258,22 +263,24 @@ public partial class TrackBuilder : Node3D
         {
             float angle = angleStep * i + _rng.RandfRange(-0.05f, 0.05f);
 
-            PlaceBuilding(angle, -1.0f);
-            PlaceBuilding(angle + angleStep * 0.5f, 1.0f);
+            PlaceBuilding(angle, -1.0f, $"BuildingInner{i:000}");
+            PlaceBuilding(angle + angleStep * 0.5f, 1.0f, $"BuildingOuter{i:000}");
         }
     }
 
-    private void PlaceBuilding(float angle, float side)
+    private void PlaceBuilding(float angle, float side, string buildingName)
     {
-        float radius = TrackRadius + side * (TrackWidth * 0.5f + ShoulderWidth + _rng.RandfRange(0.0f, BuildingJitter));
+        float radius = TrackRadius + side * (TrackWidth * 0.5f + ShoulderWidth + BuildingSetback + _rng.RandfRange(0.0f, BuildingJitter));
         var scene = _buildingScenes[_rng.RandiRange(0, _buildingScenes.Length - 1)];
         var building = scene.Instantiate<Node3D>();
         Vector3 radial = Radial(angle);
 
         building.Position = radial * radius;
         building.Rotation = new Vector3(0.0f, -angle + Mathf.Pi * 0.5f + _rng.RandfRange(-0.2f, 0.2f), 0.0f);
+        ScaleAndGroundNode(building, RandomRangeOrdered(BuildingFootprintMin, BuildingFootprintMax));
 
         AddChild(building);
+        building.Name = buildingName;
     }
 
     private void PlaceDecorations()
@@ -290,8 +297,97 @@ public partial class TrackBuilder : Node3D
             var deco = scene.Instantiate<Node3D>();
             deco.Position = Radial(angle) * radius;
             deco.RotateY(_rng.RandfRange(0, Mathf.Tau));
+            ScaleAndGroundNode(deco, RandomRangeOrdered(DecorationFootprintMin, DecorationFootprintMax));
             AddChild(deco);
+            deco.Name = $"Decoration{i:000}";
         }
+    }
+
+    private float RandomRangeOrdered(float min, float max)
+    {
+        float orderedMin = Mathf.Min(min, max);
+        float orderedMax = Mathf.Max(min, max);
+        return _rng.RandfRange(orderedMin, orderedMax);
+    }
+
+    private static void ScaleAndGroundNode(Node3D node, float targetFootprint)
+    {
+        if (targetFootprint <= 0.0f) return;
+
+        if (TryGetLocalVisualBounds(node, out Aabb bounds) == false) return;
+
+        float footprint = Mathf.Max(bounds.Size.X, bounds.Size.Z);
+        if (footprint <= 0.001f) return;
+
+        float scale = targetFootprint / footprint;
+        node.Scale *= scale;
+        node.Position += Vector3.Up * -bounds.Position.Y * scale;
+    }
+
+    private static bool TryGetLocalVisualBounds(Node root, out Aabb bounds)
+    {
+        bool hasBounds = false;
+        bounds = new Aabb();
+        AccumulateVisualBounds(root, Transform3D.Identity, ref bounds, ref hasBounds);
+        return hasBounds;
+    }
+
+    private static void AccumulateVisualBounds(Node node, Transform3D parentTransform, ref Aabb bounds, ref bool hasBounds)
+    {
+        Transform3D localTransform = parentTransform;
+        if (node is Node3D node3D)
+            localTransform = parentTransform * node3D.Transform;
+
+        if (node is MeshInstance3D meshInstance && meshInstance.Mesh != null)
+        {
+            Aabb transformedBounds = TransformAabb(localTransform, meshInstance.GetAabb());
+            if (hasBounds)
+                bounds = bounds.Merge(transformedBounds);
+            else
+            {
+                bounds = transformedBounds;
+                hasBounds = true;
+            }
+        }
+
+        foreach (Node child in node.GetChildren())
+            AccumulateVisualBounds(child, localTransform, ref bounds, ref hasBounds);
+    }
+
+    private static Aabb TransformAabb(Transform3D transform, Aabb aabb)
+    {
+        Vector3 start = aabb.Position;
+        Vector3 end = aabb.Position + aabb.Size;
+        Vector3 min = new(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+        Vector3 max = new(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
+
+        for (int x = 0; x <= 1; x++)
+        {
+            for (int y = 0; y <= 1; y++)
+            {
+                for (int z = 0; z <= 1; z++)
+                {
+                    Vector3 point = transform * new Vector3(
+                        x == 0 ? start.X : end.X,
+                        y == 0 ? start.Y : end.Y,
+                        z == 0 ? start.Z : end.Z
+                    );
+
+                    min = new Vector3(
+                        Mathf.Min(min.X, point.X),
+                        Mathf.Min(min.Y, point.Y),
+                        Mathf.Min(min.Z, point.Z)
+                    );
+                    max = new Vector3(
+                        Mathf.Max(max.X, point.X),
+                        Mathf.Max(max.Y, point.Y),
+                        Mathf.Max(max.Z, point.Z)
+                    );
+                }
+            }
+        }
+
+        return new Aabb(min, max - min);
     }
 
     private static Vector3 Radial(float angle)

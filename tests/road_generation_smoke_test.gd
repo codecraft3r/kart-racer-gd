@@ -26,7 +26,9 @@ func _run() -> void:
 	var curb_markers := _count_children_with_prefix(track_builder, "CurbMarker")
 	var track_light_glows := _count_children_with_prefix(track_builder, "TrackLightGlow")
 	var scenery_nodes := _get_scenery_nodes(track_builder)
+	var building_nodes := _get_children_with_prefix(track_builder, "Building")
 
+	var building_count := int(track_builder.get("BuildingCount"))
 	var road_segment_count := int(track_builder.get("RoadSegmentCount"))
 	var lane_marker_count := int(track_builder.get("LaneMarkerCount"))
 	var track_light_count := int(track_builder.get("TrackLightCount"))
@@ -42,6 +44,8 @@ func _run() -> void:
 	_expect(track_light_glows == track_light_count, "track light count: expected %d, got %d" % [track_light_count, track_light_glows])
 	_expect(scenery_nodes.size() > 0, "scenery nodes generated")
 	_expect(_scenery_clear_of_lane(scenery_nodes, track_radius, track_width, shoulder_width), "scenery kept outside the drivable lane")
+	_expect(building_nodes.size() == building_count, "building count: expected %d, got %d" % [building_count, building_nodes.size()])
+	_expect(_nodes_scaled_above_import_size(building_nodes, 1.1), "buildings scaled above raw import size")
 
 	if get_meta("failed", false):
 		quit(1)
@@ -61,6 +65,13 @@ func _count_children_with_prefix(parent: Node, child_prefix: String) -> int:
 		if child.name.begins_with(child_prefix):
 			count += 1
 	return count
+
+func _get_children_with_prefix(parent: Node, child_prefix: String) -> Array[Node3D]:
+	var result: Array[Node3D] = []
+	for child in parent.get_children():
+		if child is Node3D and child.name.begins_with(child_prefix):
+			result.append(child)
+	return result
 
 func _get_scenery_nodes(parent: Node) -> Array[Node3D]:
 	var result: Array[Node3D] = []
@@ -84,6 +95,14 @@ func _expect(condition: bool, message: String) -> void:
 		print("PASS: %s" % message)
 	else:
 		_fail(message)
+
+func _nodes_scaled_above_import_size(nodes: Array[Node3D], minimum_scale: float) -> bool:
+	for node in nodes:
+		var uniform_scale: float = min(node.scale.x, min(node.scale.y, node.scale.z))
+		if uniform_scale < minimum_scale:
+			push_error("Node %s is still near raw import scale: %.2f" % [node.name, uniform_scale])
+			return false
+	return true
 
 func _fail(message: String) -> void:
 	push_error("FAIL: %s" % message)
