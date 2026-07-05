@@ -71,30 +71,32 @@
 - Risk to track: camera is still a single-node local target (`../Kart`) and requires multiplayer-aware retargeting later.
 
 ## Road-generation smoke test status
-- Track geometry + ambience generation happens in `TrackBuilder._Ready()`, with randomization controlled by `Seed`:
-  - Track surface segments: `RoadSegment*`
-  - Dashed lane markers: `LaneMarker*`
-  - Curbs: `CurbMarkerInner*` and `CurbMarkerOuter*`
-  - Lighting props: `TrackLightPole*`, `TrackLightHead*`, `TrackLightGlow*`
-  - Environment decor/buildings from `assets/kenney_industrial` via helper methods.
+- Track geometry + ambience generation happens in `TrackBuilder._Ready()`, with randomization controlled by `Seed`.
+- The current layout is now a seeded city grid, not a circular track:
+  - City blocks: `CityColumns`, `CityRows`, `CityBlockSize`, and `CityBlockSizeJitter`.
+  - Street hierarchy: primary avenues use `MainAvenueWidthMultiplier`; side streets use `SideStreetMinWidthMultiplier`/`SideStreetMaxWidthMultiplier`.
+  - Street panels: `RoadSegmentHorizontal*` and `RoadSegmentVertical*`.
+  - Intersections/turns: `Intersection*` plus `Crosswalk*`.
+  - Dashed lane markers: `LaneMarker*`.
+  - Curbs with open intersections: `CurbMarkerHorizontal*` and `CurbMarkerVertical*`.
+  - Lighting props: `TrackLightPole*`, `TrackLightHead*`, `TrackLightGlow*`.
+  - Buildings/decorations are placed inside block lots from `assets/kenney_industrial`.
 - `tests/road_generation_smoke_test.gd` checks:
-  - `TrackBuilder` node exists
-  - expected counts for:
-    - `RoadSegment`
-    - `LaneMarker` (half of `LaneMarkerCount`)
-    - `CurbMarker` (max(24, `RoadSegmentCount/2`) x 2)
-    - `TrackLightGlow` (equal to `TrackLightCount`)
-  - scenery nodes are outside lane-clearance band.
+  - `TrackBuilder` node exists.
+  - expected counts for road panels, intersections, curbs, crosswalks, track lights, buildings, and decorations.
+  - lane markers are generated across the city street network.
+  - street widths include both wider avenues and narrower side streets.
+  - generated buildings stay inside block lots and out of road bands.
 - Current default values in `default_3d.tscn` for smoke-test alignment:
-  - `RoadSegmentCount=160`, `LaneMarkerCount=80`, `TrackLightCount=18`, `Seed=1337`.
+  - `CityColumns=6`, `CityRows=4`, `CityBlockSize=27`, `TrackWidth=15`, `TrackLightCount=64`, `BuildingCount=88`, `Seed=1337`.
 - Follow-up scale pass:
-  - Imported buildings are now normalized to a target footprint range (`BuildingFootprintMin=8.5`, `BuildingFootprintMax=13.5`) and grounded after scaling.
-  - Buildings now use `BuildingSetback=7.0` and `BuildingJitter=5.5` so larger assets do not crowd the road edge.
+  - Imported buildings are now normalized to a target footprint range (`BuildingFootprintMin=7.5`, `BuildingFootprintMax=13.0`) and grounded after scaling.
+  - Buildings now use block-relative slot offsets plus `BuildingSetback=7.0` and `BuildingJitter=5.5` so larger assets do not crowd the road edge.
   - Decorations are normalized to a smaller target footprint range (`DecorationFootprintMin=3.0`, `DecorationFootprintMax=5.5`).
-  - Generated buildings/decorations receive stable names (`BuildingInner*`, `BuildingOuter*`, `Decoration*`) for debugging and tests.
-  - Lane markers were doubled in the scene and shortened in the generator for better race-track readability.
-  - Curbs are slightly taller/wider for clearer edge scale in the pixelated capture pass.
-- `tests/road_generation_smoke_test.gd` now validates generated building count and that buildings are scaled above raw import size.
+  - Generated buildings/decorations receive stable names (`BuildingBlock*`, `Decoration*`) for debugging and tests.
+  - Lane markers are generated per street and skip intersection bands.
+  - Curbs are segmented between intersections so turns stay visually open.
+- `tests/road_generation_smoke_test.gd` now validates city road panels, intersections, lane markers, curb segments, crosswalks, lights, building/decor counts, building scale, street width hierarchy, and buildings staying out of road bands.
 
 ## Visible-launch crash investigation
 - D3D12 visible launch was unstable with the current postprocess/lighting scene, while headless checks passed.

@@ -5,14 +5,18 @@ using System.Linq;
 
 public partial class TrackBuilder : Node3D
 {
-    [Export] public int BuildingCount = 40;
-    [Export] public float TrackRadius = 50.0f;
+    [Export] public int CityColumns = 5;
+    [Export] public int CityRows = 4;
+    [Export] public float CityBlockSize = 30.0f;
+    [Export] public float CityBlockSizeJitter = 5.0f;
+    [Export] public float MainAvenueWidthMultiplier = 1.35f;
+    [Export] public float SideStreetMinWidthMultiplier = 0.82f;
+    [Export] public float SideStreetMaxWidthMultiplier = 1.05f;
+    [Export] public int BuildingCount = 72;
+    [Export] public int BuildingsPerBlockMax = 4;
     [Export] public float TrackWidth = 14.0f;
-    [Export] public int RoadSegmentCount = 128;
     [Export] public int DecorationCount = 22;
-    [Export] public int LaneMarkerCount = 36;
     [Export] public int TrackLightCount = 16;
-    [Export] public float ShoulderWidth = 7.0f;
     [Export] public float BuildingSetback = 7.0f;
     [Export] public float BuildingJitter = 4.0f;
     [Export] public float BuildingFootprintMin = 8.5f;
@@ -32,6 +36,14 @@ public partial class TrackBuilder : Node3D
     private StandardMaterial3D _curbWhiteMaterial;
     private StandardMaterial3D _lightPoleMaterial;
     private StandardMaterial3D _lightHeadMaterial;
+    private StandardMaterial3D _intersectionMaterial;
+    private StandardMaterial3D _crosswalkMaterial;
+    private float[] _verticalStreetCenters = Array.Empty<float>();
+    private float[] _horizontalStreetCenters = Array.Empty<float>();
+    private float[] _verticalStreetWidths = Array.Empty<float>();
+    private float[] _horizontalStreetWidths = Array.Empty<float>();
+    private float[] _blockWidths = Array.Empty<float>();
+    private float[] _blockDepths = Array.Empty<float>();
 
     public override void _Ready()
     {
@@ -41,9 +53,12 @@ public partial class TrackBuilder : Node3D
             _rng.Randomize();
 
         CreateMaterials();
+        BuildCityLayout();
         GenerateRoadSurface();
+        GenerateIntersections();
         GenerateLaneMarkers();
         GenerateCurbs();
+        GenerateCrosswalks();
         GenerateTrackLights();
 
         LoadBuildingScenes();
@@ -128,79 +143,153 @@ public partial class TrackBuilder : Node3D
             AlbedoColor = new Color(1.0f, 0.84f, 0.42f),
             Roughness = 0.35f
         };
+
+        _intersectionMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.032f, 0.034f, 0.04f),
+            Roughness = 0.9f
+        };
+
+        _crosswalkMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.88f, 0.84f, 0.72f),
+            Roughness = 0.82f
+        };
     }
 
     private void GenerateRoadSurface()
     {
-        int segmentCount = Math.Max(16, RoadSegmentCount);
-        float segmentLength = Mathf.Tau * TrackRadius / segmentCount * 1.02f;
-        var roadSegmentMesh = new BoxMesh { Size = new Vector3(segmentLength, 0.04f, TrackWidth) };
+        int columns = CityColumnCount();
+        int rows = CityRowCount();
 
-        for (int i = 0; i < segmentCount; i++)
+        for (int row = 0; row <= rows; row++)
         {
-            float angle = Mathf.Tau * i / segmentCount;
-            var segment = new MeshInstance3D
+            var roadMesh = new BoxMesh { Size = new Vector3(CityWidth(), 0.04f, HorizontalStreetWidth(row)) };
+            var road = new MeshInstance3D
             {
-                Mesh = roadSegmentMesh,
+                Mesh = roadMesh,
                 MaterialOverride = _roadMaterial,
-                Transform = TrackTransform(TrackRadius, angle, 0.025f)
+                Position = new Vector3(CityCenterX(), 0.025f, HorizontalStreetCoordinate(row))
             };
 
-            AddChild(segment);
-            segment.Name = $"RoadSegment{i:000}";
+            AddChild(road);
+            road.Name = $"RoadSegmentHorizontal{row:000}";
+        }
+
+        for (int column = 0; column <= columns; column++)
+        {
+            var roadMesh = new BoxMesh { Size = new Vector3(VerticalStreetWidth(column), 0.045f, CityDepth()) };
+            var road = new MeshInstance3D
+            {
+                Mesh = roadMesh,
+                MaterialOverride = _roadMaterial,
+                Position = new Vector3(VerticalStreetCoordinate(column), 0.03f, CityCenterZ())
+            };
+
+            AddChild(road);
+            road.Name = $"RoadSegmentVertical{column:000}";
+        }
+    }
+
+    private void GenerateIntersections()
+    {
+        int columns = CityColumnCount();
+        int rows = CityRowCount();
+
+        for (int column = 0; column <= columns; column++)
+        {
+            for (int row = 0; row <= rows; row++)
+            {
+                var intersectionMesh = new BoxMesh { Size = new Vector3(VerticalStreetWidth(column) * 1.08f, 0.055f, HorizontalStreetWidth(row) * 1.08f) };
+                var intersection = new MeshInstance3D
+                {
+                    Mesh = intersectionMesh,
+                    MaterialOverride = _intersectionMaterial,
+                    Position = new Vector3(VerticalStreetCoordinate(column), 0.06f, HorizontalStreetCoordinate(row))
+                };
+
+                AddChild(intersection);
+                intersection.Name = $"Intersection{column:00}_{row:00}";
+            }
         }
     }
 
     private void GenerateLaneMarkers()
     {
-        int markerCount = Math.Max(8, LaneMarkerCount);
-        float angleStep = Mathf.Tau / markerCount;
-        var dashMesh = new BoxMesh { Size = new Vector3(3.0f, 0.035f, 0.24f) };
+        int columns = CityColumnCount();
+        int rows = CityRowCount();
+        int markerIndex = 0;
 
-        for (int i = 0; i < markerCount; i += 2)
+        foreach (float z in _horizontalStreetCenters)
         {
-            float angle = angleStep * i;
-            var dash = new MeshInstance3D
-            {
-                Mesh = dashMesh,
-                MaterialOverride = _laneMarkerMaterial,
-                Transform = TrackTransform(TrackRadius, angle, 0.065f)
-            };
+            AddLaneDashes(true, z, CityMinX(), CityMaxX(), _verticalStreetCenters, _verticalStreetWidths, ref markerIndex);
+        }
 
-            AddChild(dash);
-            dash.Name = $"LaneMarker{i:000}";
+        foreach (float x in _verticalStreetCenters)
+        {
+            AddLaneDashes(false, x, CityMinZ(), CityMaxZ(), _horizontalStreetCenters, _horizontalStreetWidths, ref markerIndex);
         }
     }
 
     private void GenerateCurbs()
     {
-        int curbCount = Math.Max(24, RoadSegmentCount / 2);
-        float angleStep = Mathf.Tau / curbCount;
-        float innerRadius = TrackRadius - TrackWidth * 0.5f - 0.35f;
-        float outerRadius = TrackRadius + TrackWidth * 0.5f + 0.35f;
-        var curbMesh = new BoxMesh { Size = new Vector3(3.4f, 0.22f, 0.6f) };
+        int columns = CityColumnCount();
+        int rows = CityRowCount();
+        int curbIndex = 0;
 
-        for (int i = 0; i < curbCount; i++)
+        for (int row = 0; row <= rows; row++)
         {
-            float angle = angleStep * i;
-            var material = i % 2 == 0 ? _curbWhiteMaterial : _curbRedMaterial;
+            float z = HorizontalStreetCoordinate(row);
+            float streetHalfWidth = HorizontalStreetWidth(row) * 0.5f;
+            for (int column = 0; column < columns; column++)
+            {
+                float x0 = VerticalStreetCoordinate(column) + VerticalStreetWidth(column) * 0.5f + 0.25f;
+                float x1 = VerticalStreetCoordinate(column + 1) - VerticalStreetWidth(column + 1) * 0.5f - 0.25f;
+                float length = Mathf.Max(0.1f, x1 - x0);
+                float centerX = (x0 + x1) * 0.5f;
 
-            AddCurb(curbMesh, material, innerRadius, angle, $"CurbMarkerInner{i:000}");
-            AddCurb(curbMesh, material, outerRadius, angle, $"CurbMarkerOuter{i:000}");
+                AddCurbSegment(new Vector3(length, 0.22f, 0.6f), new Vector3(centerX, 0.105f, z - streetHalfWidth - 0.35f), $"CurbMarkerHorizontal{curbIndex++:000}");
+                AddCurbSegment(new Vector3(length, 0.22f, 0.6f), new Vector3(centerX, 0.105f, z + streetHalfWidth + 0.35f), $"CurbMarkerHorizontal{curbIndex++:000}");
+            }
+        }
+
+        for (int column = 0; column <= columns; column++)
+        {
+            float x = VerticalStreetCoordinate(column);
+            float streetHalfWidth = VerticalStreetWidth(column) * 0.5f;
+            for (int row = 0; row < rows; row++)
+            {
+                float z0 = HorizontalStreetCoordinate(row) + HorizontalStreetWidth(row) * 0.5f + 0.25f;
+                float z1 = HorizontalStreetCoordinate(row + 1) - HorizontalStreetWidth(row + 1) * 0.5f - 0.25f;
+                float length = Mathf.Max(0.1f, z1 - z0);
+                float centerZ = (z0 + z1) * 0.5f;
+
+                AddCurbSegment(new Vector3(0.6f, 0.22f, length), new Vector3(x - streetHalfWidth - 0.35f, 0.105f, centerZ), $"CurbMarkerVertical{curbIndex++:000}");
+                AddCurbSegment(new Vector3(0.6f, 0.22f, length), new Vector3(x + streetHalfWidth + 0.35f, 0.105f, centerZ), $"CurbMarkerVertical{curbIndex++:000}");
+            }
         }
     }
 
-    private void AddCurb(BoxMesh curbMesh, Material material, float radius, float angle, string markerName)
+    private void GenerateCrosswalks()
     {
-        var curb = new MeshInstance3D
-        {
-            Mesh = curbMesh,
-            MaterialOverride = material,
-            Transform = TrackTransform(radius, angle, 0.105f)
-        };
+        int columns = CityColumnCount();
+        int rows = CityRowCount();
+        int crosswalkIndex = 0;
 
-        AddChild(curb);
-        curb.Name = markerName;
+        for (int column = 0; column <= columns; column++)
+        {
+            float x = VerticalStreetCoordinate(column);
+            float verticalHalfWidth = VerticalStreetWidth(column) * 0.5f;
+            for (int row = 0; row <= rows; row++)
+            {
+                float z = HorizontalStreetCoordinate(row);
+                float horizontalHalfWidth = HorizontalStreetWidth(row) * 0.5f;
+                AddCrosswalk(new Vector3(0.18f, 0.03f, HorizontalStreetWidth(row) * 0.75f), new Vector3(x - verticalHalfWidth * 0.72f, 0.09f, z), $"Crosswalk{crosswalkIndex++:000}");
+                AddCrosswalk(new Vector3(0.18f, 0.03f, HorizontalStreetWidth(row) * 0.75f), new Vector3(x + verticalHalfWidth * 0.72f, 0.09f, z), $"Crosswalk{crosswalkIndex++:000}");
+                AddCrosswalk(new Vector3(VerticalStreetWidth(column) * 0.75f, 0.03f, 0.18f), new Vector3(x, 0.09f, z - horizontalHalfWidth * 0.72f), $"Crosswalk{crosswalkIndex++:000}");
+                AddCrosswalk(new Vector3(VerticalStreetWidth(column) * 0.75f, 0.03f, 0.18f), new Vector3(x, 0.09f, z + horizontalHalfWidth * 0.72f), $"Crosswalk{crosswalkIndex++:000}");
+            }
+        }
     }
 
     private void GenerateTrackLights()
@@ -208,18 +297,34 @@ public partial class TrackBuilder : Node3D
         int lightCount = Math.Max(0, TrackLightCount);
         if (lightCount == 0) return;
 
-        float angleStep = Mathf.Tau / lightCount;
-        float radius = TrackRadius + TrackWidth * 0.5f + ShoulderWidth * 0.55f;
+        int columns = CityColumnCount();
+        int rows = CityRowCount();
         var poleMesh = new BoxMesh { Size = new Vector3(0.22f, 5.2f, 0.22f) };
         var headMesh = new BoxMesh { Size = new Vector3(1.1f, 0.3f, 0.55f) };
+        var candidates = new List<LightCandidate>();
+
+        for (int column = 0; column <= columns; column++)
+        {
+            float x = VerticalStreetCoordinate(column);
+            float xOffset = VerticalStreetWidth(column) * 0.5f + 1.5f;
+            for (int row = 0; row <= rows; row++)
+            {
+                float z = HorizontalStreetCoordinate(row);
+                float zOffset = HorizontalStreetWidth(row) * 0.5f + 1.5f;
+                AddLightCandidate(candidates, new Vector3(x - xOffset, 0.0f, z - zOffset), new Vector3(1.0f, 0.0f, 1.0f));
+                AddLightCandidate(candidates, new Vector3(x + xOffset, 0.0f, z - zOffset), new Vector3(-1.0f, 0.0f, 1.0f));
+                AddLightCandidate(candidates, new Vector3(x - xOffset, 0.0f, z + zOffset), new Vector3(1.0f, 0.0f, -1.0f));
+                AddLightCandidate(candidates, new Vector3(x + xOffset, 0.0f, z + zOffset), new Vector3(-1.0f, 0.0f, -1.0f));
+            }
+        }
 
         for (int i = 0; i < lightCount; i++)
         {
-            float angle = angleStep * i;
-            Vector3 radial = Radial(angle);
-            Vector3 position = radial * radius;
-            Vector3 tangent = new Vector3(-Mathf.Sin(angle), 0.0f, Mathf.Cos(angle));
-            Basis basis = new Basis(tangent, Vector3.Up, -radial).Orthonormalized();
+            LightCandidate candidate = candidates[Mathf.Clamp(i * candidates.Count / lightCount, 0, candidates.Count - 1)];
+            Vector3 position = candidate.Position;
+            Vector3 forward = candidate.Forward.Normalized();
+            Vector3 right = Vector3.Up.Cross(forward).Normalized();
+            Basis basis = new Basis(right, Vector3.Up, forward).Orthonormalized();
 
             var pole = new MeshInstance3D
             {
@@ -234,7 +339,7 @@ public partial class TrackBuilder : Node3D
             {
                 Mesh = headMesh,
                 MaterialOverride = _lightHeadMaterial,
-                Transform = new Transform3D(basis, position + Vector3.Up * 5.35f - radial * 0.85f)
+                Transform = new Transform3D(basis, position + Vector3.Up * 5.35f + forward * 0.85f)
             };
             AddChild(head);
             head.Name = $"TrackLightHead{i:000}";
@@ -245,7 +350,7 @@ public partial class TrackBuilder : Node3D
                 LightEnergy = TrackLightEnergy,
                 OmniRange = TrackLightRange,
                 ShadowEnabled = false,
-                Position = position + Vector3.Up * 4.9f - radial * 1.6f
+                Position = position + Vector3.Up * 4.9f + forward * 1.6f
             };
             AddChild(light);
             light.Name = $"TrackLightGlow{i:000}";
@@ -256,51 +361,339 @@ public partial class TrackBuilder : Node3D
     {
         if (_buildingScenes.Length == 0) return;
 
-        int perSideCount = Math.Max(1, BuildingCount / 2);
-        float angleStep = Mathf.Tau / perSideCount;
+        int columns = CityColumnCount();
+        int rows = CityRowCount();
+        int slotsPerBlock = Math.Max(1, BuildingsPerBlockMax);
+        int maxBuildings = columns * rows * slotsPerBlock;
+        int targetBuildingCount = Mathf.Min(Math.Max(0, BuildingCount), maxBuildings);
+        int buildingIndex = 0;
 
-        for (int i = 0; i < perSideCount; i++)
+        for (int row = 0; row < rows && buildingIndex < targetBuildingCount; row++)
         {
-            float angle = angleStep * i + _rng.RandfRange(-0.05f, 0.05f);
-
-            PlaceBuilding(angle, -1.0f, $"BuildingInner{i:000}");
-            PlaceBuilding(angle + angleStep * 0.5f, 1.0f, $"BuildingOuter{i:000}");
+            for (int column = 0; column < columns && buildingIndex < targetBuildingCount; column++)
+            {
+                for (int slot = 0; slot < slotsPerBlock && buildingIndex < targetBuildingCount; slot++)
+                {
+                    PlaceBuildingInBlock(column, row, slot, buildingIndex);
+                    buildingIndex++;
+                }
+            }
         }
     }
 
-    private void PlaceBuilding(float angle, float side, string buildingName)
+    private void PlaceBuildingInBlock(int column, int row, int slot, int buildingIndex)
     {
-        float radius = TrackRadius + side * (TrackWidth * 0.5f + ShoulderWidth + BuildingSetback + _rng.RandfRange(0.0f, BuildingJitter));
         var scene = _buildingScenes[_rng.RandiRange(0, _buildingScenes.Length - 1)];
         var building = scene.Instantiate<Node3D>();
-        Vector3 radial = Radial(angle);
+        Vector3 blockCenter = BlockCenter(column, row);
+        Vector3 localOffset = BuildingSlotOffset(column, row, slot);
 
-        building.Position = radial * radius;
-        building.Rotation = new Vector3(0.0f, -angle + Mathf.Pi * 0.5f + _rng.RandfRange(-0.2f, 0.2f), 0.0f);
+        building.Position = blockCenter + localOffset;
+        building.Rotation = new Vector3(0.0f, OrthogonalRotation() + _rng.RandfRange(-0.06f, 0.06f), 0.0f);
         ScaleAndGroundNode(building, RandomRangeOrdered(BuildingFootprintMin, BuildingFootprintMax));
 
         AddChild(building);
-        building.Name = buildingName;
+        building.Name = $"BuildingBlock{column:00}_{row:00}_{slot:00}_{buildingIndex:000}";
     }
 
     private void PlaceDecorations()
     {
         if (_decorationScenes.Length == 0) return;
+        int columns = CityColumnCount();
+        int rows = CityRowCount();
 
         for (int i = 0; i < DecorationCount; i++)
         {
-            float angle = _rng.RandfRange(0, Mathf.Tau);
-            float side = _rng.RandfRange(0, 1) > 0.5f ? 1.0f : -1.0f;
-            float radius = TrackRadius + side * _rng.RandfRange(TrackWidth * 0.5f + ShoulderWidth + 6.0f, TrackWidth * 0.5f + ShoulderWidth + 22.0f);
+            int column = _rng.RandiRange(0, columns - 1);
+            int row = _rng.RandiRange(0, rows - 1);
+            Vector3 blockCenter = BlockCenter(column, row);
+            Vector2 blockSize = BlockInteriorSize(column, row);
 
             var scene = _decorationScenes[_rng.RandiRange(0, _decorationScenes.Length - 1)];
             var deco = scene.Instantiate<Node3D>();
-            deco.Position = Radial(angle) * radius;
-            deco.RotateY(_rng.RandfRange(0, Mathf.Tau));
+            deco.Position = blockCenter + new Vector3(
+                _rng.RandfRange(-blockSize.X * 0.34f, blockSize.X * 0.34f),
+                0.0f,
+                _rng.RandfRange(-blockSize.Y * 0.34f, blockSize.Y * 0.34f)
+            );
+            deco.Rotation = new Vector3(0.0f, OrthogonalRotation() + _rng.RandfRange(-0.12f, 0.12f), 0.0f);
             ScaleAndGroundNode(deco, RandomRangeOrdered(DecorationFootprintMin, DecorationFootprintMax));
             AddChild(deco);
             deco.Name = $"Decoration{i:000}";
         }
+    }
+
+    private void BuildCityLayout()
+    {
+        int columns = CityColumnCount();
+        int rows = CityRowCount();
+
+        _blockWidths = BuildBlockSizes(columns);
+        _blockDepths = BuildBlockSizes(rows);
+        _verticalStreetWidths = BuildStreetWidths(columns + 1, columns);
+        _horizontalStreetWidths = BuildStreetWidths(rows + 1, rows);
+        _verticalStreetCenters = BuildStreetCenters(_blockWidths, _verticalStreetWidths);
+        _horizontalStreetCenters = BuildStreetCenters(_blockDepths, _horizontalStreetWidths);
+    }
+
+    private float[] BuildBlockSizes(int blockCount)
+    {
+        var sizes = new float[blockCount];
+        float jitter = Mathf.Max(0.0f, CityBlockSizeJitter);
+
+        for (int i = 0; i < blockCount; i++)
+        {
+            float centerBias = 1.0f - 0.08f * DowntownWeight(i, blockCount);
+            sizes[i] = Mathf.Max(16.0f, CityBlockSize * centerBias + _rng.RandfRange(-jitter, jitter));
+        }
+
+        return sizes;
+    }
+
+    private float[] BuildStreetWidths(int streetCount, int blockCount)
+    {
+        var widths = new float[streetCount];
+        float sideMin = Mathf.Min(SideStreetMinWidthMultiplier, SideStreetMaxWidthMultiplier);
+        float sideMax = Mathf.Max(SideStreetMinWidthMultiplier, SideStreetMaxWidthMultiplier);
+
+        for (int i = 0; i < streetCount; i++)
+        {
+            bool isPerimeter = i == 0 || i == streetCount - 1;
+            bool isMainAvenue = IsPrimaryAvenue(i, blockCount);
+            float multiplier = isMainAvenue
+                ? MainAvenueWidthMultiplier
+                : _rng.RandfRange(sideMin, sideMax);
+
+            if (isPerimeter)
+                multiplier = Mathf.Max(multiplier, 1.05f);
+
+            widths[i] = Mathf.Max(8.0f, TrackWidth * multiplier);
+        }
+
+        return widths;
+    }
+
+    private static float[] BuildStreetCenters(float[] blockSizes, float[] streetWidths)
+    {
+        var centers = new float[streetWidths.Length];
+
+        for (int i = 1; i < streetWidths.Length; i++)
+        {
+            centers[i] = centers[i - 1]
+                + streetWidths[i - 1] * 0.5f
+                + blockSizes[i - 1]
+                + streetWidths[i] * 0.5f;
+        }
+
+        float minEdge = centers[0] - streetWidths[0] * 0.5f;
+        float maxEdge = centers[^1] + streetWidths[^1] * 0.5f;
+        float centerOffset = (minEdge + maxEdge) * 0.5f;
+
+        for (int i = 0; i < centers.Length; i++)
+            centers[i] -= centerOffset;
+
+        return centers;
+    }
+
+    private bool IsPrimaryAvenue(int streetIndex, int blockCount)
+    {
+        float cityMid = blockCount * 0.5f;
+        return Mathf.Abs(streetIndex - cityMid) < 0.75f;
+    }
+
+    private float DowntownWeight(int index, int count)
+    {
+        if (count <= 1) return 1.0f;
+
+        float center = (count - 1) * 0.5f;
+        float distance = Mathf.Abs(index - center) / Mathf.Max(1.0f, center);
+        return 1.0f - Mathf.Clamp(distance, 0.0f, 1.0f);
+    }
+
+    private void AddLaneDashes(bool horizontal, float fixedCoordinate, float start, float end, float[] crossingCenters, float[] crossingWidths, ref int markerIndex)
+    {
+        float dashSpacing = 8.0f;
+        float dashLength = horizontal ? 3.2f : 3.0f;
+
+        for (float position = start + dashSpacing * 0.5f; position < end; position += dashSpacing)
+        {
+            if (IsNearIntersection(position, crossingCenters, crossingWidths))
+                continue;
+
+            var dash = new MeshInstance3D
+            {
+                Mesh = new BoxMesh { Size = horizontal ? new Vector3(dashLength, 0.035f, 0.24f) : new Vector3(0.24f, 0.035f, dashLength) },
+                MaterialOverride = _laneMarkerMaterial,
+                Position = horizontal
+                    ? new Vector3(position, 0.085f, fixedCoordinate)
+                    : new Vector3(fixedCoordinate, 0.085f, position)
+            };
+
+            AddChild(dash);
+            dash.Name = $"LaneMarker{markerIndex++:000}";
+        }
+    }
+
+    private static bool IsNearIntersection(float position, float[] crossingCenters, float[] crossingWidths)
+    {
+        for (int i = 0; i < crossingCenters.Length; i++)
+        {
+            if (Mathf.Abs(position - crossingCenters[i]) < crossingWidths[i] * 0.62f)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void AddCurbSegment(Vector3 size, Vector3 position, string name)
+    {
+        var curb = new MeshInstance3D
+        {
+            Mesh = new BoxMesh { Size = size },
+            MaterialOverride = StableNameIndex(name) % 2 == 0 ? _curbWhiteMaterial : _curbRedMaterial,
+            Position = position
+        };
+
+        AddChild(curb);
+        curb.Name = name;
+    }
+
+    private void AddCrosswalk(Vector3 size, Vector3 position, string name)
+    {
+        var crosswalk = new MeshInstance3D
+        {
+            Mesh = new BoxMesh { Size = size },
+            MaterialOverride = _crosswalkMaterial,
+            Position = position
+        };
+
+        AddChild(crosswalk);
+        crosswalk.Name = name;
+    }
+
+    private static void AddLightCandidate(List<LightCandidate> candidates, Vector3 position, Vector3 forward)
+    {
+        candidates.Add(new LightCandidate(position, forward.Normalized()));
+    }
+
+    private Vector3 BlockCenter(int column, int row)
+    {
+        float x0 = VerticalStreetCoordinate(column) + VerticalStreetWidth(column) * 0.5f;
+        float x1 = VerticalStreetCoordinate(column + 1) - VerticalStreetWidth(column + 1) * 0.5f;
+        float z0 = HorizontalStreetCoordinate(row) + HorizontalStreetWidth(row) * 0.5f;
+        float z1 = HorizontalStreetCoordinate(row + 1) - HorizontalStreetWidth(row + 1) * 0.5f;
+        return new Vector3((x0 + x1) * 0.5f, 0.0f, (z0 + z1) * 0.5f);
+    }
+
+    private Vector2 BlockInteriorSize(int column, int row)
+    {
+        float x0 = VerticalStreetCoordinate(column) + VerticalStreetWidth(column) * 0.5f;
+        float x1 = VerticalStreetCoordinate(column + 1) - VerticalStreetWidth(column + 1) * 0.5f;
+        float z0 = HorizontalStreetCoordinate(row) + HorizontalStreetWidth(row) * 0.5f;
+        float z1 = HorizontalStreetCoordinate(row + 1) - HorizontalStreetWidth(row + 1) * 0.5f;
+        return new Vector2(Mathf.Max(2.0f, x1 - x0), Mathf.Max(2.0f, z1 - z0));
+    }
+
+    private Vector3 BuildingSlotOffset(int column, int row, int slot)
+    {
+        Vector2 blockSize = BlockInteriorSize(column, row);
+        float xSign = slot % 2 == 0 ? -1.0f : 1.0f;
+        float zSign = slot / 2 % 2 == 0 ? -1.0f : 1.0f;
+        float marginX = Mathf.Max(2.0f, Mathf.Min(BuildingSetback, blockSize.X * 0.2f));
+        float marginZ = Mathf.Max(2.0f, Mathf.Min(BuildingSetback, blockSize.Y * 0.2f));
+
+        return new Vector3(
+            xSign * Mathf.Max(0.0f, blockSize.X * 0.25f - marginX * 0.25f) + _rng.RandfRange(-BuildingJitter, BuildingJitter) * 0.35f,
+            0.0f,
+            zSign * Mathf.Max(0.0f, blockSize.Y * 0.25f - marginZ * 0.25f) + _rng.RandfRange(-BuildingJitter, BuildingJitter) * 0.35f
+        );
+    }
+
+    private float OrthogonalRotation()
+    {
+        return _rng.RandiRange(0, 3) * Mathf.Pi * 0.5f;
+    }
+
+    private static int StableNameIndex(string name)
+    {
+        int result = 0;
+        for (int i = 0; i < name.Length; i++)
+        {
+            if (char.IsDigit(name[i]))
+                result = result * 10 + name[i] - '0';
+        }
+
+        return result;
+    }
+
+    private int CityColumnCount()
+    {
+        return Math.Max(1, CityColumns);
+    }
+
+    private int CityRowCount()
+    {
+        return Math.Max(1, CityRows);
+    }
+
+    private float VerticalStreetCoordinate(int column)
+    {
+        return _verticalStreetCenters[Mathf.Clamp(column, 0, _verticalStreetCenters.Length - 1)];
+    }
+
+    private float HorizontalStreetCoordinate(int row)
+    {
+        return _horizontalStreetCenters[Mathf.Clamp(row, 0, _horizontalStreetCenters.Length - 1)];
+    }
+
+    private float VerticalStreetWidth(int column)
+    {
+        return _verticalStreetWidths[Mathf.Clamp(column, 0, _verticalStreetWidths.Length - 1)];
+    }
+
+    private float HorizontalStreetWidth(int row)
+    {
+        return _horizontalStreetWidths[Mathf.Clamp(row, 0, _horizontalStreetWidths.Length - 1)];
+    }
+
+    private float CityMinX()
+    {
+        return _verticalStreetCenters[0] - _verticalStreetWidths[0] * 0.5f;
+    }
+
+    private float CityMaxX()
+    {
+        return _verticalStreetCenters[^1] + _verticalStreetWidths[^1] * 0.5f;
+    }
+
+    private float CityMinZ()
+    {
+        return _horizontalStreetCenters[0] - _horizontalStreetWidths[0] * 0.5f;
+    }
+
+    private float CityMaxZ()
+    {
+        return _horizontalStreetCenters[^1] + _horizontalStreetWidths[^1] * 0.5f;
+    }
+
+    private float CityCenterX()
+    {
+        return (CityMinX() + CityMaxX()) * 0.5f;
+    }
+
+    private float CityCenterZ()
+    {
+        return (CityMinZ() + CityMaxZ()) * 0.5f;
+    }
+
+    private float CityWidth()
+    {
+        return CityMaxX() - CityMinX();
+    }
+
+    private float CityDepth()
+    {
+        return CityMaxZ() - CityMinZ();
     }
 
     private float RandomRangeOrdered(float min, float max)
@@ -390,15 +783,5 @@ public partial class TrackBuilder : Node3D
         return new Aabb(min, max - min);
     }
 
-    private static Vector3 Radial(float angle)
-    {
-        return new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle));
-    }
-
-    private static Transform3D TrackTransform(float radius, float angle, float y)
-    {
-        Vector3 radial = Radial(angle);
-        Vector3 tangent = new Vector3(-Mathf.Sin(angle), 0.0f, Mathf.Cos(angle));
-        return new Transform3D(new Basis(tangent, Vector3.Up, radial), radial * radius + Vector3.Up * y);
-    }
+    private readonly record struct LightCandidate(Vector3 Position, Vector3 Forward);
 }

@@ -78,45 +78,47 @@ func _add_hud() -> void:
 	layer.add_child(hud_label)
 
 func _apply_frame(frame: int) -> void:
-	var track_radius := float(track_builder.get("TrackRadius"))
+	var city_columns := int(track_builder.get("CityColumns"))
+	var city_rows := int(track_builder.get("CityRows"))
+	var city_block_size := float(track_builder.get("CityBlockSize"))
 	var track_width := float(track_builder.get("TrackWidth"))
-	var shoulder_width := float(track_builder.get("ShoulderWidth"))
+	var city_width := _city_width(city_columns, city_block_size, track_width)
+	var city_depth := _city_width(city_rows, city_block_size, track_width)
+	var city_span: float = max(city_width, city_depth)
 
 	if frame < 75:
-		_place_camera(Vector3(0.0, 132.0, 0.0), Vector3.ZERO, 54.0, Vector3.FORWARD)
-		_set_label("TOP SCALE | radius %.0fm  road %.0fm  shoulder %.0fm" % [track_radius, track_width, shoulder_width])
+		_place_camera(Vector3(0.0, city_span * 0.95, 0.0), Vector3.ZERO, 58.0, Vector3.FORWARD)
+		_set_label("CITY PLAN | %dx%d blocks  road %.0fm" % [city_columns, city_rows, track_width])
 	elif frame < 150:
 		var t: float = _phase_t(frame, 75, 150)
-		var angle: float = lerpf(-PI * 0.5, PI * 1.5, t)
-		var radial: Vector3 = _radial(angle)
-		_place_camera(radial * 72.0 + Vector3.UP * 16.0, radial * track_radius + Vector3.UP * 1.0, 42.0)
-		_set_label("ROAD WIDTH ORBIT | curbs and lane markers")
+		var z: float = lerpf(-city_depth * 0.43, city_depth * 0.35, t)
+		_place_camera(Vector3(track_width * 1.4, 15.0, z - 34.0), Vector3(0.0, 1.0, z + 20.0), 43.0)
+		_set_label("MAIN AVENUE | varied street widths and long sightline")
 	elif frame < 225:
 		var t: float = _phase_t(frame, 150, 225)
-		var angle: float = lerpf(-PI * 0.72, -PI * 0.28, t)
-		var radial: Vector3 = _radial(angle)
-		_place_camera(radial * (track_radius + track_width * 0.5 + 7.0) + Vector3.UP * 4.2, radial * track_radius + Vector3.UP * 0.65, 48.0)
-		_set_label("CURB CROSS-SECTION | edge height and overlap")
+		var angle: float = lerpf(-PI * 0.25, PI * 0.8, t)
+		var offset := Vector3(cos(angle) * 34.0, 13.0, sin(angle) * 34.0)
+		_place_camera(offset, Vector3.ZERO + Vector3.UP * 1.1, 47.0)
+		_set_label("INTERSECTION | turns, crosswalks, curbs")
 	elif frame < 300:
 		var t: float = _phase_t(frame, 225, 300)
-		var angle: float = lerpf(PI * 0.1, PI * 1.1, t)
-		var radial: Vector3 = _radial(angle)
-		_place_camera(radial * 86.0 + Vector3.UP * 22.0, radial * (track_radius + 12.0) + Vector3.UP * 4.0, 45.0)
-		_set_label("ROADSIDE SCALE | buildings and track lights")
+		var x: float = lerpf(-city_width * 0.35, city_width * 0.28, t)
+		_place_camera(Vector3(x, 24.0, -city_depth * 0.18), Vector3(x + 15.0, 3.0, city_depth * 0.08), 44.0)
+		_set_label("CITY BLOCKS | buildings placed inside lots")
 	else:
 		var t: float = _phase_t(frame, 300, TOTAL_FRAMES)
-		_set_kart_reference_pose()
+		_set_kart_reference_pose(city_depth)
 		var angle: float = lerpf(-PI * 0.15, PI * 0.18, t)
 		var kart_position: Vector3 = kart.global_position
 		var offset := Vector3(sin(angle) * 4.5, 2.35, 6.4 + cos(angle) * 1.2)
 		_place_camera(kart_position + offset, kart_position + Vector3.UP * 0.95, 57.0)
-		_set_label("KART SCALE | vehicle vs 16m road")
+		_set_label("KART SCALE | vehicle on city avenue")
 
-func _set_kart_reference_pose() -> void:
-	kart.global_position = Vector3(0.0, 0.5, -50.0)
+func _set_kart_reference_pose(city_depth: float) -> void:
+	kart.global_position = Vector3(0.0, 0.5, -city_depth * 0.32)
 	if visual_container != null:
 		visual_container.global_position = kart.global_position
-		visual_container.rotation = Vector3(0.0, PI * 0.5, 0.0)
+		visual_container.rotation = Vector3.ZERO
 
 func _place_camera(position: Vector3, target: Vector3, fov: float, up: Vector3 = Vector3.UP) -> void:
 	camera.global_position = position
@@ -126,8 +128,8 @@ func _place_camera(position: Vector3, target: Vector3, fov: float, up: Vector3 =
 func _phase_t(frame: int, start: int, end: int) -> float:
 	return clamp(float(frame - start) / max(1.0, float(end - start - 1)), 0.0, 1.0)
 
-func _radial(angle: float) -> Vector3:
-	return Vector3(cos(angle), 0.0, sin(angle))
+func _city_width(block_count: int, block_size: float, road_width: float) -> float:
+	return block_count * block_size + (block_count + 1) * road_width
 
 func _set_label(text: String) -> void:
 	if hud_label != null:
@@ -149,8 +151,9 @@ func _prepare_capture_dir() -> void:
 		push_warning("Unable to create capture directory %s: %s" % [absolute_dir, error_string(error)])
 
 func _print_capture_context() -> void:
-	print("Scale capture context: radius=%s width=%s lights=%s seed=%s" % [
-		track_builder.get("TrackRadius"),
+	print("Scale capture context: columns=%s rows=%s width=%s lights=%s seed=%s" % [
+		track_builder.get("CityColumns"),
+		track_builder.get("CityRows"),
 		track_builder.get("TrackWidth"),
 		track_builder.get("TrackLightCount"),
 		track_builder.get("Seed")

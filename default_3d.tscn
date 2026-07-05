@@ -46,30 +46,34 @@ omni_range = 90.0
 [node name="Ground" type="CSGBox3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 use_collision = true
-size = Vector3(260, 1, 260)
+size = Vector3(620, 1, 460)
 
 [node name="TrackBuilder" type="Node3D" parent="."]
 script = ExtResource("4_tb")
-BuildingCount = 50
-TrackRadius = 50.0
-TrackWidth = 16.0
-RoadSegmentCount = 160
-DecorationCount = 24
-LaneMarkerCount = 80
-TrackLightCount = 18
-ShoulderWidth = 8.0
+CityColumns = 6
+CityRows = 4
+CityBlockSize = 27.0
+CityBlockSizeJitter = 5.0
+MainAvenueWidthMultiplier = 1.35
+SideStreetMinWidthMultiplier = 0.82
+SideStreetMaxWidthMultiplier = 1.05
+BuildingCount = 88
+BuildingsPerBlockMax = 4
+TrackWidth = 15.0
+DecorationCount = 36
+TrackLightCount = 64
 BuildingSetback = 7.0
 BuildingJitter = 5.5
-BuildingFootprintMin = 8.5
-BuildingFootprintMax = 13.5
+BuildingFootprintMin = 7.5
+BuildingFootprintMax = 13.0
 DecorationFootprintMin = 3.0
 DecorationFootprintMax = 5.5
 TrackLightEnergy = 0.95
-TrackLightRange = 19.0
+TrackLightRange = 20.0
 Seed = 1337
 
 [node name="Kart" parent="." instance=ExtResource("1_jvk4k")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -45)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -72)
 
 [node name="Camera3D" type="Camera3D" parent="."]
 script = ExtResource("2_ta3w6")
