@@ -7,6 +7,7 @@
 .mono/
 data_*/
 mono_crash.*
+captures/
 
 # .NET / C# / MSBuild ignores
 bin/
@@ -19,4 +20,3 @@ out/
 *.userosenv
 *.suo
 *.userprefs
-

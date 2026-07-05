@@ -1,10 +1,36 @@
 # Handoff: Driving, Roads, Camera, and Shader
 
 ## Scope / branch
-- Working branch: `HUSSEIN-DRIVING-and-roads` (HEAD `4a3bc4d`, message: `Add arcade driving and road builder`).
-- This handoff is scoped to `docs/handoff/` only.
+- Working branch: `HUSSEIN-DRIVING-and-roads`.
 - `TrackBuilder.cs`, `TrackCamera.cs`, `Kart.cs`, `assets/shader/retropostprocessing.gdshader`, `kart.tscn`, and `default_3d.tscn` contain in-progress visuals, camera, and road-generation tuning work.
 - `tests/road_generation_smoke_test.gd` exists for deterministic validation.
+- `tests/scale_capture_driver.gd` and `tools/record_scale_review.ps1` now provide the deterministic object-scale capture pass.
+
+## Deterministic scale video workflow
+- Generate the current audit video with:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\record_scale_review.ps1`
+- Output artifacts are ignored by git under `captures/`:
+  - `captures/road_scale_review.avi`
+  - `captures/scale_capture_000.png`
+  - `captures/scale_capture_075.png`
+  - `captures/scale_capture_150.png`
+  - `captures/scale_capture_225.png`
+  - `captures/scale_capture_300.png`
+- The capture script loads `res://default_3d.tscn`, detaches the live chase camera script for deterministic framing, and records:
+  1. top-down full track scale,
+  2. road-width orbit,
+  3. curb cross-section,
+  4. roadside building/light scale,
+  5. close kart-vs-road pass.
+- Current video smoke result: `road_scale_review.avi` recorded 362 frames at 30 FPS, about 12 seconds, with five still frames saved successfully.
+- Wide capture revealed the world floor needed more visual buffer, so `default_3d.tscn` ground size is now `Vector3(260, 1, 260)`.
+
+## Interactive control workflow
+- Launch visible game for Windows-control testing:
+  - `"<Godot4.6.3MonoPath>\Godot_v4.6.3-stable_mono_win64.exe" --path "C:\Users\Windows\Documents\kart-racer-gd" --scene res://default_3d.tscn --resolution 854x480 --position 120,120`
+- Target the window titled `kart_racer (DEBUG)`, click the game viewport, then send repeated `w`, `a`, `s`, and `d` key taps.
+- `project.godot` now binds both physical and virtual W/A/S/D key events so Windows automation taps are recognized.
+- Verified through Computer Use: baseline screenshot showed the kart on the road; after repeated `w` and `d` taps, the camera/kart moved to a different course position.
 
 ## Shader work and screenshot tuning goal
 - Goal of this continuation pass is to finalize a stable retro look while keeping scene clarity for track visibility and input readability.
@@ -74,6 +100,10 @@
   - `dotnet build "C:\Users\Windows\Documents\kart-racer-gd\kart_racer.csproj"`
 - Headless road smoke test:
   - `"<Godot4.6.3MonoPath>\\Godot_v4.6.3-stable_mono_win64.exe" --headless --path "C:\Users\Windows\Documents\kart-racer-gd" --script "res://tests/road_generation_smoke_test.gd"`
+- Headless scale-capture script validation:
+  - `"<Godot4.6.3MonoPath>\\Godot_v4.6.3-stable_mono_win64_console.exe" --headless --fixed-fps 30 --path "C:\Users\Windows\Documents\kart-racer-gd" --script "res://tests/scale_capture_driver.gd"`
+- Deterministic scale video:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\record_scale_review.ps1`
 - Visible run (baseline behavior check):
   - `"<Godot4.6.3MonoPath>\\Godot_v4.6.3-stable_mono_win64.exe" --path "C:\Users\Windows\Documents\kart-racer-gd" --verbose`
   - Current branch should launch visibly without extra renderer flags because `project.godot` now uses OpenGL3 compatibility mode.
