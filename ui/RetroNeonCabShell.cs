@@ -797,20 +797,63 @@ public partial class RetroNeonCabShell : CanvasLayer
         int scoreValue = Mathf.RoundToInt((float)_score);
         int mph = Mathf.RoundToInt(speedMetersPerSecond * 2.23694f);
 
-        if (_scoreLabel != null && !IsNetworked())
-            _scoreLabel.Text = $"SCORE: {scoreValue:000,000}";
+        int peerId = IsNetworked() ? Multiplayer.GetUniqueId() : 1;
+        int cash = GameManager.Instance != null ? GameManager.Instance.GetPlayerMoney(peerId) : 0;
+        int health = GameManager.Instance != null ? GameManager.Instance.GetPlayerHealth(peerId) : 100;
+
+        if (_scoreLabel != null)
+            _scoreLabel.Text = $"CASH: ${cash}";
         if (_boostLabel != null)
-            _boostLabel.Text = "BOOST: READY";
+            _boostLabel.Text = $"HP: {health}%";
         if (_speedLabel != null)
             _speedLabel.Text = $"SPEED: {mph:000} MPH";
         if (_timerLabel != null && !IsNetworked())
             _timerLabel.Text = "TIME: SOLO";
         if (_rankLabel != null && !IsNetworked())
             _rankLabel.Text = "RANK: --";
-        if (_checkpointLabel != null && !IsNetworked())
-            _checkpointLabel.Text = "CHECKPOINT: --";
-        if (_driftMetersLabel != null)
-            _driftMetersLabel.Text = $"{Mathf.RoundToInt((float)_driftMeters):N0}m";
+
+        if (_kart != null && GodotObject.IsInstanceValid(_kart))
+        {
+            if (_kart.ActivePassenger.HasValue)
+            {
+                var passenger = _kart.ActivePassenger.Value;
+                int panic = Mathf.RoundToInt(_kart.PanicMeter);
+
+                if (_checkpointLabel != null)
+                    _checkpointLabel.Text = $"PANIC: {panic}%";
+
+                if (_driftMetersLabel != null)
+                {
+                    string distStr = passenger.Distance.ToString().ToUpperInvariant();
+                    string wealthStr = new string('$', (int)passenger.Wealth + 1);
+                    _driftMetersLabel.Text = $"FARE: {distStr} ({wealthStr})";
+                }
+            }
+            else
+            {
+                if (_kart.BoardingProgress > 0.0f)
+                {
+                    int boardingPercent = Mathf.RoundToInt(_kart.BoardingProgress * 100.0f);
+                    if (_checkpointLabel != null)
+                        _checkpointLabel.Text = $"LOADING: {boardingPercent}%";
+                }
+                else
+                {
+                    if (_checkpointLabel != null)
+                        _checkpointLabel.Text = "FARE: SEARCHING...";
+                }
+
+                if (_driftMetersLabel != null)
+                    _driftMetersLabel.Text = "NO PASSENGER";
+            }
+        }
+        else
+        {
+            if (_checkpointLabel != null && !IsNetworked())
+                _checkpointLabel.Text = "CHECKPOINT: --";
+            if (_driftMetersLabel != null)
+                _driftMetersLabel.Text = $"{Mathf.RoundToInt((float)_driftMeters):N0}m";
+        }
     }
 
     private void UpdatePauseStats()
@@ -880,12 +923,12 @@ public partial class RetroNeonCabShell : CanvasLayer
 
     private void WireModeEvents()
     {
-        if (_modeEventsWired || CheckpointRushMode.Instance == null)
+        if (_modeEventsWired || TaxiMode.Instance == null)
             return;
 
-        CheckpointRushMode.Instance.MatchStateChanged += OnMatchStateChanged;
-        CheckpointRushMode.Instance.ScoreboardChanged += OnScoreboardChanged;
-        CheckpointRushMode.Instance.CheckpointChanged += OnCheckpointChanged;
+        TaxiMode.Instance.MatchStateChanged += OnMatchStateChanged;
+        TaxiMode.Instance.ScoreboardChanged += OnScoreboardChanged;
+        TaxiMode.Instance.CheckpointChanged += OnCheckpointChanged;
         _modeEventsWired = true;
     }
 
@@ -914,19 +957,19 @@ public partial class RetroNeonCabShell : CanvasLayer
 
     private void OnScoreboardChanged(int peerId, int score, int rank)
     {
-        if (peerId != Multiplayer.GetUniqueId())
+        int uniqueId = IsNetworked() ? Multiplayer.GetUniqueId() : 1;
+        if (peerId != uniqueId)
             return;
 
         if (_scoreLabel != null)
-            _scoreLabel.Text = $"SCORE: {score:000}";
+            _scoreLabel.Text = $"CASH: ${score}";
         if (_rankLabel != null)
             _rankLabel.Text = $"RANK: {rank}";
     }
 
     private void OnCheckpointChanged(int index, Vector3 position)
     {
-        if (_checkpointLabel != null)
-            _checkpointLabel.Text = $"CHECKPOINT: {index + 1:00}";
+        // Handled dynamically in UpdateGameplayStats every frame
     }
 
     private void SetConnectionStatus(string text, bool isError)

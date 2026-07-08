@@ -5,6 +5,8 @@ using System.Linq;
 
 public partial class TrackBuilder : Node3D
 {
+    public static TrackBuilder Instance { get; private set; }
+
     [Export] public int CityColumns = 5;
     [Export] public int CityRows = 4;
     [Export] public float CityBlockSize = 30.0f;
@@ -44,13 +46,36 @@ public partial class TrackBuilder : Node3D
     private float[] _horizontalStreetWidths = Array.Empty<float>();
     private float[] _blockWidths = Array.Empty<float>();
     private float[] _blockDepths = Array.Empty<float>();
+    private readonly List<Vector3> _intersectionPositions = new();
+
+    public IReadOnlyList<Vector3> IntersectionPositions => _intersectionPositions;
+
+
+    public override void _ExitTree()
+    {
+        if (Instance == this)
+            Instance = null;
+    }
 
     public override void _Ready()
     {
-        if (Seed >= 0)
+        Instance = this;
+        bool isNetworked = Multiplayer.HasMultiplayerPeer() && Multiplayer.MultiplayerPeer is not OfflineMultiplayerPeer;
+        if (isNetworked && MultiplayerManager.Instance != null)
+        {
+            _rng.Seed = (ulong)MultiplayerManager.Instance.SyncedSeed;
+            GD.Print($"TrackBuilder: Seeding generation with synced seed: {MultiplayerManager.Instance.SyncedSeed}");
+        }
+        else if (Seed >= 0)
+        {
             _rng.Seed = (ulong)Seed;
+            GD.Print($"TrackBuilder: Seeding generation with inspector seed: {Seed}");
+        }
         else
+        {
             _rng.Randomize();
+            GD.Print($"TrackBuilder: Seeding generation with random seed: {_rng.Seed}");
+        }
 
         CreateMaterials();
         BuildCityLayout();
@@ -195,21 +220,24 @@ public partial class TrackBuilder : Node3D
     {
         int columns = CityColumnCount();
         int rows = CityRowCount();
+        _intersectionPositions.Clear();
 
         for (int column = 0; column <= columns; column++)
         {
             for (int row = 0; row <= rows; row++)
             {
+                Vector3 pos = new Vector3(VerticalStreetCoordinate(column), 0.06f, HorizontalStreetCoordinate(row));
                 var intersectionMesh = new BoxMesh { Size = new Vector3(VerticalStreetWidth(column) * 1.08f, 0.055f, HorizontalStreetWidth(row) * 1.08f) };
                 var intersection = new MeshInstance3D
                 {
                     Mesh = intersectionMesh,
                     MaterialOverride = _intersectionMaterial,
-                    Position = new Vector3(VerticalStreetCoordinate(column), 0.06f, HorizontalStreetCoordinate(row))
+                    Position = pos
                 };
 
                 AddChild(intersection);
                 intersection.Name = $"Intersection{column:00}_{row:00}";
+                _intersectionPositions.Add(pos);
             }
         }
     }

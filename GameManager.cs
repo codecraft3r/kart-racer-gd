@@ -62,7 +62,7 @@ public partial class GameManager : Node
         foreach (int peerId in Multiplayer.GetPeers())
             SendExistingPlayersTo(peerId);
 
-        CheckpointRushMode.Instance?.StartMatch();
+        TaxiMode.Instance?.StartMatch();
     }
 
     public void ResetNetworkSession()
@@ -137,7 +137,7 @@ public partial class GameManager : Node
 
     private void OnPeerDisconnected(long id)
     {
-        CheckpointRushMode.Instance?.RemovePlayer((int)id);
+        TaxiMode.Instance?.RemovePlayer((int)id);
         if (Multiplayer.IsServer())
             RemovePlayerForPeer((int)id);
     }
@@ -160,8 +160,8 @@ public partial class GameManager : Node
 
         SendExistingPlayersTo(senderId);
         SpawnPlayerForPeer(senderId);
-        CheckpointRushMode.Instance?.RegisterPlayer(senderId);
-        CheckpointRushMode.Instance?.SyncToPeer(senderId);
+        TaxiMode.Instance?.RegisterPlayer(senderId);
+        TaxiMode.Instance?.SyncToPeer(senderId);
     }
 
     private void SpawnPlayerForPeer(int id)
@@ -341,12 +341,87 @@ public partial class GameManager : Node
     {
         if (!_playerKarts.TryGetValue(id, out Kart kart)) return;
 
-        // TODO: Replace with actual depot marker position from scene
         kart.Position = new Vector3(0, 5, 0);
         kart.LinearVelocity = Vector3.Zero;
 
-        // Reset health/score logic here later
-        GD.Print($"Respawned peer {id} at depot");
+        if (_playerStates.TryGetValue(id, out var state))
+        {
+            state.Health = 100;
+            state.Money = Mathf.Max(0, state.Money - 50);
+            SyncPlayerState(id, state.Score, state.Money, state.Health);
+        }
+
+        TaxiMode.Instance?.ClearActiveFare(id);
+        GD.Print($"Respawned peer {id} at depot with penalty.");
+    }
+
+    public int GetPlayerHealth(int id)
+    {
+        return _playerStates.TryGetValue(id, out var state) ? state.Health : 100;
+    }
+
+    public int GetPlayerScore(int id)
+    {
+        return _playerStates.TryGetValue(id, out var state) ? state.Score : 0;
+    }
+
+    public int GetPlayerMoney(int id)
+    {
+        return _playerStates.TryGetValue(id, out var state) ? state.Money : 0;
+    }
+
+    public void ApplyVehicleDamage(int id, int damage)
+    {
+        if (_playerStates.TryGetValue(id, out var state))
+        {
+            state.Health = Mathf.Max(0, state.Health - damage);
+            SyncPlayerState(id, state.Score, state.Money, state.Health);
+
+            if (state.Health <= 0)
+            {
+                RespawnAtDepot(id);
+            }
+        }
+    }
+
+    public void NotifyBailout(int id)
+    {
+        if (_playerStates.TryGetValue(id, out var state))
+        {
+            SyncPlayerState(id, state.Score, state.Money, state.Health);
+        }
+        GD.Print($"Passenger bailed out for peer {id}!");
+    }
+
+    public void AwardFarePayout(int id)
+    {
+        if (!_playerKarts.TryGetValue(id, out Kart kart) || !kart.ActivePassenger.HasValue) return;
+
+        var passenger = kart.ActivePassenger.Value;
+
+        int basePayout = 50;
+        if (passenger.Distance == CustomerDistance.Moderate)
+            basePayout = 150;
+        else if (passenger.Distance == CustomerDistance.Far)
+            basePayout = 300;
+
+        int groupSize = passenger.GroupSize;
+        int scoreYield = basePayout * groupSize;
+
+        float panicFactor = kart.PanicMeter / 100.0f;
+        int damagePenalty = Mathf.RoundToInt(scoreYield * 0.4f * panicFactor);
+        int finalPayout = Mathf.Max(10, scoreYield - damagePenalty);
+
+        if (_playerStates.TryGetValue(id, out var state))
+        {
+            state.Money += finalPayout;
+            state.Score += finalPayout;
+            SyncPlayerState(id, state.Score, state.Money, state.Health);
+
+            TaxiMode.Instance?.AddCashScore(id, finalPayout);
+        }
+
+        GD.Print($"Peer {id} completed taxi run! Payout: {finalPayout} (Base: {scoreYield}, Penalty: {damagePenalty})");
     }
 
     public class PlayerState
@@ -360,12 +435,13 @@ public partial class GameManager : Node
     [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = true)]
     public void SyncPlayerState(int id, int score, int money, int health)
     {
-        if (_playerStates.TryGetValue(id, out var state))
-        {
-            state.Score = score;
-            state.Money = money;
-            state.Health = health;
-        }
+        if (!_playerStates.ContainsKey(id))
+            _playerStates[id] = new PlayerState();
+
+        var state = _playerStates[id];
+        state.Score = score;
+        state.Money = money;
+        state.Health = health;
     }
 
     // --- Phase 2 scaffolding: Pickup zone + customer data structures ---
@@ -412,7 +488,8 @@ public partial class GameManager : Node
         if (_playerStates.TryGetValue(id, out var state))
         {
             state.Money += amount;
-            state.Score += amount; // simplistic
+            state.Score += amount;
+            SyncPlayerState(id, state.Score, state.Money, state.Health);
         }
     }
 
@@ -422,6 +499,7 @@ public partial class GameManager : Node
         {
             state.Money -= cost;
             state.Health = 100;
+            SyncPlayerState(id, state.Score, state.Money, state.Health);
             return true;
         }
         return false;
@@ -432,7 +510,8 @@ public partial class GameManager : Node
         if (_playerStates.TryGetValue(id, out var state) && state.Money >= cost && w != null)
         {
             state.Money -= cost;
-            w.Ammo = 10; // reset
+            w.Ammo = 10;
+            SyncPlayerState(id, state.Score, state.Money, state.Health);
             return true;
         }
         return false;

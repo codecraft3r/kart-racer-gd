@@ -24,7 +24,9 @@ public partial class MultiplayerManager : Node
     private bool _signalsConnected;
     private ConnectionState _state = ConnectionState.Offline;
     private string _pendingJoinAddress = DefaultIp;
+    private int _syncedSeed = 1337;
 
+    public int SyncedSeed => _syncedSeed;
     public ConnectionState State => _state;
 
     public override void _Ready()
@@ -76,12 +78,13 @@ public partial class MultiplayerManager : Node
 
     public Error Host()
     {
+        _syncedSeed = new System.Random().Next(1, 1000000);
         var peer = new ENetMultiplayerPeer();
         Error err = peer.CreateServer(Port, MaxClients);
         if (err != Error.Ok) return err;
 
         Multiplayer.MultiplayerPeer = peer;
-        GD.Print($"Hosting on port {Port}");
+        GD.Print($"Hosting on port {Port} with seed {_syncedSeed}");
         SetState(ConnectionState.Hosting, $"Hosting on port {Port}");
         CallDeferred(nameof(LoadMatchScene));
         return Error.Ok;
@@ -110,6 +113,17 @@ public partial class MultiplayerManager : Node
     private void OnPeerConnected(long id)
     {
         GD.Print($"Peer connected: {id}");
+        if (Multiplayer.IsServer())
+        {
+            RpcId(id, nameof(SyncSeedRpc), _syncedSeed);
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void SyncSeedRpc(int seed)
+    {
+        GD.Print($"Received seed from server: {seed}");
+        _syncedSeed = seed;
     }
 
     private void OnPeerDisconnected(long id)

@@ -6,7 +6,7 @@
 [ext_resource type="Script" path="res://TrackBuilder.cs" id="4_tb"]
 [ext_resource type="PackedScene" path="res://ui/RetroNeonCabShell.tscn" id="5_vrua2"]
 [ext_resource type="Script" path="res://GameManager.cs" id="6_game_manager"]
-[ext_resource type="Script" path="res://modes/CheckpointRushMode.cs" id="7_checkpoint"]
+[ext_resource type="Script" path="res://modes/TaxiMode.cs" id="7_checkpoint"]
 
 [sub_resource type="Environment" id="Environment_race"]
 background_mode = 1
@@ -80,7 +80,7 @@ script = ExtResource("6_game_manager")
 
 [node name="Modes" type="Node3D" parent="."]
 
-[node name="CheckpointRushMode" type="Node3D" parent="Modes"]
+[node name="TaxiMode" type="Node3D" parent="Modes"]
 script = ExtResource("7_checkpoint")
 
 [node name="Kart" parent="." instance=ExtResource("1_jvk4k")]
