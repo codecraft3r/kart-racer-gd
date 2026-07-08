@@ -34,13 +34,18 @@ public partial class TrackCamera : Camera3D
         if (TargetVehiclePath == null || string.IsNullOrWhiteSpace(TargetVehiclePath.ToString()))
             return;
 
-        _targetVehicle = GetNodeOrNull<Node3D>(TargetVehiclePath);
-        if (_targetVehicle == null)
+        SetTarget(GetNodeOrNull<Node3D>(TargetVehiclePath));
+    }
+
+    public void SetTarget(Node3D targetVehicle)
+    {
+        if (targetVehicle == null || !GodotObject.IsInstanceValid(targetVehicle))
         {
-            GD.PushWarning($"TrackCamera target not found: {TargetVehiclePath}");
+            ClearTarget();
             return;
         }
 
+        _targetVehicle = targetVehicle;
         _cameraTarget = _targetVehicle.GetNodeOrNull<Marker3D>("CameraTarget");
         _visualContainer = _targetVehicle.GetNodeOrNull<Node3D>("VisualContainer");
         _targetBody = _targetVehicle as RigidBody3D;
@@ -51,7 +56,7 @@ public partial class TrackCamera : Camera3D
 
     public override void _Process(double delta)
     {
-        if (_targetVehicle == null || _cameraTarget == null || _visualContainer == null) return;
+        if (HasValidTarget() == false) return;
 
         float dt = (float)delta;
         float followBlend = Mathf.Clamp(FollowSpeed * dt, 0.0f, 1.0f);
@@ -84,5 +89,29 @@ public partial class TrackCamera : Camera3D
         );
 
         Fov = Mathf.Lerp(Fov, Mathf.Lerp(MinFov, MaxFov, speedT), fovBlend);
+    }
+
+    private bool HasValidTarget()
+    {
+        if (_targetVehicle == null || !GodotObject.IsInstanceValid(_targetVehicle) ||
+            _cameraTarget == null || !GodotObject.IsInstanceValid(_cameraTarget) ||
+            _visualContainer == null || !GodotObject.IsInstanceValid(_visualContainer))
+        {
+            ClearTarget();
+            return false;
+        }
+
+        if (_targetBody != null && !GodotObject.IsInstanceValid(_targetBody))
+            _targetBody = null;
+
+        return true;
+    }
+
+    private void ClearTarget()
+    {
+        _targetVehicle = null;
+        _cameraTarget = null;
+        _visualContainer = null;
+        _targetBody = null;
     }
 }

@@ -4,6 +4,7 @@ using System;
 public partial class Kart : RigidBody3D
 {
     [ExportGroup("Input")]
+    [Export] public int OwnerPeerId { get; set; } = 1;
     [Export] public bool UseLocalInput { get; set; } = true;
     [Export] public bool IsLocalPlayer { get; set; } = false;
     [Export] public float TapInputHoldTime = 0.16f;
@@ -49,7 +50,7 @@ public partial class Kart : RigidBody3D
 
         _yaw = _visualContainer.Rotation.Y;
 
-        // Server is always the authority for physics
+        // Server is always the authority for physics; OwnerPeerId only identifies who may send input.
         SetMultiplayerAuthority(1);
     }
 
@@ -66,6 +67,12 @@ public partial class Kart : RigidBody3D
         if (_visualContainer == null) return;
 
         _visualContainer.GlobalPosition = GlobalPosition;
+        if (ShouldRunPhysics() == false)
+        {
+            _yaw = Rotation.Y;
+            _groundRay.ForceRaycastUpdate();
+            _isGrounded = _groundRay.IsColliding();
+        }
 
         AlignVisualsWithGround((float)delta);
     }
@@ -89,6 +96,13 @@ public partial class Kart : RigidBody3D
     {
         if (Multiplayer.IsServer())
         {
+            int senderId = Multiplayer.GetRemoteSenderId();
+            if (senderId != OwnerPeerId)
+            {
+                GD.PushWarning($"Rejected kart input from peer {senderId}; kart belongs to peer {OwnerPeerId}.");
+                return;
+            }
+
             _forwardInput = Mathf.Clamp(forward, -1.0f, 1.0f);
             _steeringInput = Mathf.Clamp(steer, -1.0f, 1.0f);
         }
@@ -110,6 +124,7 @@ public partial class Kart : RigidBody3D
         if (_isGrounded == false)
         {
             ApplyCentralForce(Vector3.Down * ExtraGravity * Mass);
+            SyncYawToBodyRotation();
             return;
         }
 
@@ -145,6 +160,24 @@ public partial class Kart : RigidBody3D
 
             _yaw -= _steeringInput * reverseMultiplier * SteeringSpeed * steeringAuthority * highSpeedFade * dt;
         }
+
+        SyncYawToBodyRotation();
+    }
+
+    public void ApplyNetworkSnapshot(Vector3 position, Vector3 rotation, Vector3 velocity)
+    {
+        if (ShouldRunPhysics())
+            return;
+
+        GlobalPosition = position;
+        Rotation = rotation;
+        LinearVelocity = velocity;
+        _yaw = rotation.Y;
+    }
+
+    private void SyncYawToBodyRotation()
+    {
+        Rotation = new Vector3(Rotation.X, _yaw, Rotation.Z);
     }
 
     private void CaptureLocalInput()
@@ -192,7 +225,7 @@ public partial class Kart : RigidBody3D
 
     private bool IsOffline()
     {
-        return Multiplayer.HasMultiplayerPeer() == false;
+        return Multiplayer.HasMultiplayerPeer() == false || Multiplayer.MultiplayerPeer is OfflineMultiplayerPeer;
     }
 
     private void AlignVisualsWithGround(float delta)

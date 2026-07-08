@@ -1,9 +1,12 @@
-[gd_scene load_steps=6 format=3 uid="uid://8sk8eoxjx5d3"]
+[gd_scene load_steps=9 format=3 uid="uid://8sk8eoxjx5d3"]
 
 [ext_resource type="PackedScene" uid="uid://cjlrpc3gabifw" path="res://kart.tscn" id="1_jvk4k"]
 [ext_resource type="Script" uid="uid://c24b6dbw8m32t" path="res://TrackCamera.cs" id="2_ta3w6"]
 [ext_resource type="Shader" uid="uid://oy3tmmm3mumy" path="res://assets/shader/retropostprocessing.gdshader" id="3_4swda"]
 [ext_resource type="Script" path="res://TrackBuilder.cs" id="4_tb"]
+[ext_resource type="PackedScene" path="res://ui/RetroNeonCabShell.tscn" id="5_vrua2"]
+[ext_resource type="Script" path="res://GameManager.cs" id="6_game_manager"]
+[ext_resource type="Script" path="res://modes/CheckpointRushMode.cs" id="7_checkpoint"]
 
 [sub_resource type="Environment" id="Environment_race"]
 background_mode = 1
@@ -72,6 +75,14 @@ TrackLightEnergy = 0.95
 TrackLightRange = 20.0
 Seed = 1337
 
+[node name="GameManager" type="Node" parent="."]
+script = ExtResource("6_game_manager")
+
+[node name="Modes" type="Node3D" parent="."]
+
+[node name="CheckpointRushMode" type="Node3D" parent="Modes"]
+script = ExtResource("7_checkpoint")
+
 [node name="Kart" parent="." instance=ExtResource("1_jvk4k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -72)
 
@@ -89,3 +100,8 @@ MaxFov = 82.0
 material_override = SubResource("ShaderMaterial_erduv")
 extra_cull_margin = 16384.0
 mesh = SubResource("QuadMesh_de8j7")
+
+[node name="RetroNeonCabShell" parent="." instance=ExtResource("5_vrua2")]
+KartPath = NodePath("../Kart")
+PostProcessMeshPath = NodePath("../Camera3D/MeshInstance3D")
+DefaultPixelation = 4
