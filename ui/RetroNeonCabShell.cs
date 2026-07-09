@@ -32,11 +32,8 @@ public partial class RetroNeonCabShell : CanvasLayer
     private RetroVignetteOverlay _crtOverlay;
 
     private Label _scoreLabel;
-    private Label _boostLabel;
-    private Label _speedLabel;
+    private RetroSpeedometer _speedometer;
     private Label _timerLabel;
-    private Label _rankLabel;
-    private Label _checkpointLabel;
     private Label _connectionStatusLabel;
     private LineEdit _joinAddressField;
     private LineEdit _playerNameField;
@@ -69,6 +66,7 @@ public partial class RetroNeonCabShell : CanvasLayer
     private bool _crtEnabled = true;
     private double _score;
     private double _driftMeters;
+    private double _playTime;
 
     public override void _Ready()
     {
@@ -127,7 +125,9 @@ public partial class RetroNeonCabShell : CanvasLayer
 
         float speed = GetKartSpeedMetersPerSecond();
         if (!IsNetworked())
-            _score += delta * (45.0 + speed * 6.0);
+        {
+            _playTime += delta;
+        }
         _driftMeters += speed * delta;
 
         UpdateGameplayStats(speed);
@@ -144,6 +144,13 @@ public partial class RetroNeonCabShell : CanvasLayer
         _pendingStartRun = false;
         _score = 0.0;
         _driftMeters = 0.0;
+        _playTime = 0.0;
+
+        if (!IsNetworked() && CheckpointRushMode.Instance != null)
+        {
+            CheckpointRushMode.Instance.ResetScores();
+        }
+
         UpdateGameplayStats(GetKartSpeedMetersPerSecond());
         ShowScreen(ShellScreen.Gameplay);
     }
@@ -536,34 +543,32 @@ public partial class RetroNeonCabShell : CanvasLayer
         hudRow.AnchorTop = 0.0f;
         hudRow.OffsetLeft = 16.0f;
         hudRow.OffsetTop = 16.0f;
-        hudRow.OffsetRight = 930.0f;
+        hudRow.OffsetRight = 830.0f;
         hudRow.OffsetBottom = 62.0f;
-        hudRow.AddThemeConstantOverride("separation", 14);
+        hudRow.AddThemeConstantOverride("separation", 10);
         screen.AddChild(hudRow);
-
-        _scoreLabel = MakeLabel("SCORE: 000,000", _fontBody, 25, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("ScorePill", _scoreLabel, Hex("fcd34d")));
-
-        _boostLabel = MakeLabel("BOOST: READY", _fontBody, 25, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("BoostPill", _boostLabel, Hex("ff007f")));
-
-        _speedLabel = MakeLabel("SPEED: 000 MPH", _fontBody, 25, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("SpeedPill", _speedLabel, Hex("00f0ff")));
-
-        _timerLabel = MakeLabel("TIME: 03:00", _fontBody, 25, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("TimerPill", _timerLabel, Hex("7bb374")));
-
-        _rankLabel = MakeLabel("RANK: --", _fontBody, 25, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("RankPill", _rankLabel, Hex("fcd34d")));
-
-        _checkpointLabel = MakeLabel("CHECKPOINT: --", _fontBody, 25, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("CheckpointPill", _checkpointLabel, Hex("ff007f")));
 
         Button pause = MakePixelButton("PAUSE [ESC]", true, 154.0f, 42.0f);
         pause.Name = "PauseButton";
-        AnchorTopRight(pause, 24.0f, 16.0f, 154.0f, 42.0f);
         pause.Pressed += TogglePause;
-        screen.AddChild(pause);
+        hudRow.AddChild(pause);
+
+        _scoreLabel = MakeLabel("SCORE: 000,000", _fontBody, 22, Colors.White, HorizontalAlignment.Center);
+        hudRow.AddChild(WrapPill("ScorePill", _scoreLabel, Hex("fcd34d")));
+
+        _timerLabel = MakeLabel("TIME: 03:00", _fontBody, 22, Colors.White, HorizontalAlignment.Center);
+        hudRow.AddChild(WrapPill("TimerPill", _timerLabel, Hex("7bb374")));
+
+        _speedometer = new RetroSpeedometer(_fontBody, _fontPixel) { Name = "SpeedometerGauge" };
+        _speedometer.AnchorLeft = 1.0f;
+        _speedometer.AnchorRight = 1.0f;
+        _speedometer.AnchorTop = 1.0f;
+        _speedometer.AnchorBottom = 1.0f;
+        _speedometer.OffsetLeft = -220.0f;
+        _speedometer.OffsetRight = -20.0f;
+        _speedometer.OffsetTop = -220.0f;
+        _speedometer.OffsetBottom = -20.0f;
+        screen.AddChild(_speedometer);
 
         return screen;
     }
@@ -799,16 +804,17 @@ public partial class RetroNeonCabShell : CanvasLayer
 
         if (_scoreLabel != null && !IsNetworked())
             _scoreLabel.Text = $"SCORE: {scoreValue:000,000}";
-        if (_boostLabel != null)
-            _boostLabel.Text = "BOOST: READY";
-        if (_speedLabel != null)
-            _speedLabel.Text = $"SPEED: {mph:000} MPH";
+        if (_speedometer != null)
+        {
+            _speedometer.CurrentSpeed = mph;
+            _speedometer.QueueRedraw();
+        }
         if (_timerLabel != null && !IsNetworked())
-            _timerLabel.Text = "TIME: SOLO";
-        if (_rankLabel != null && !IsNetworked())
-            _rankLabel.Text = "RANK: --";
-        if (_checkpointLabel != null && !IsNetworked())
-            _checkpointLabel.Text = "CHECKPOINT: --";
+        {
+            int minutes = Mathf.FloorToInt((float)_playTime / 60.0f);
+            int seconds = Mathf.FloorToInt((float)_playTime % 60.0f);
+            _timerLabel.Text = $"TIME: {minutes:00}:{seconds:00}";
+        }
         if (_driftMetersLabel != null)
             _driftMetersLabel.Text = $"{Mathf.RoundToInt((float)_driftMeters):N0}m";
     }
@@ -917,16 +923,15 @@ public partial class RetroNeonCabShell : CanvasLayer
         if (peerId != Multiplayer.GetUniqueId())
             return;
 
+        if (!IsNetworked())
+            _score = score;
+
         if (_scoreLabel != null)
             _scoreLabel.Text = $"SCORE: {score:000}";
-        if (_rankLabel != null)
-            _rankLabel.Text = $"RANK: {rank}";
     }
 
     private void OnCheckpointChanged(int index, Vector3 position)
     {
-        if (_checkpointLabel != null)
-            _checkpointLabel.Text = $"CHECKPOINT: {index + 1:00}";
     }
 
     private void SetConnectionStatus(string text, bool isError)
@@ -1037,7 +1042,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         PanelContainer panel = new()
         {
             Name = name,
-            CustomMinimumSize = new Vector2(146, 42),
+            CustomMinimumSize = new Vector2(126, 42),
             MouseFilter = Control.MouseFilterEnum.Ignore
         };
         panel.AddThemeStyleboxOverride("panel", MakePillStyle());
@@ -1346,9 +1351,6 @@ internal partial class RetroVignetteOverlay : Control
     {
         Vector2 size = Size;
         DrawRect(new Rect2(0, 0, size.X, 70), new Color(0, 0, 0, 0.25f));
-        DrawRect(new Rect2(0, size.Y - 120, size.X, 120), new Color(0, 0, 0, 0.45f));
-        DrawRect(new Rect2(0, 0, 90, size.Y), new Color(0, 0, 0, 0.35f));
-        DrawRect(new Rect2(size.X - 90, 0, 90, size.Y), new Color(0, 0, 0, 0.35f));
     }
 
     public override void _Notification(int what)
@@ -1445,5 +1447,95 @@ internal partial class RetroCheckerboardOverlay : Control
     {
         if (what == NotificationResized)
             QueueRedraw();
+    }
+}
+
+internal partial class RetroSpeedometer : Control
+{
+    private readonly FontFile _fontBody;
+    private readonly FontFile _fontPixel;
+    
+    public float CurrentSpeed { get; set; } = 0.0f;
+    public float MaxSpeed { get; set; } = 100.0f;
+
+    public RetroSpeedometer(FontFile fontBody, FontFile fontPixel)
+    {
+        _fontBody = fontBody;
+        _fontPixel = fontPixel;
+        MouseFilter = MouseFilterEnum.Ignore;
+    }
+
+    public override void _Draw()
+    {
+        Vector2 size = Size;
+        Vector2 center = size * 0.5f;
+        float radius = Mathf.Min(size.X, size.Y) * 0.45f;
+
+        // 1. Draw dark background circle with a neon-tinted background color
+        DrawCircle(center, radius, new Color(0.06f, 0.02f, 0.12f, 0.70f));
+
+        // 2. Draw circular border ring (glow style using neon cyan)
+        Color ringColor = Color.FromHtml("#00f0ff");
+        float startAngleRad = Mathf.DegToRad(135.0f);
+        float endAngleRad = Mathf.DegToRad(405.0f);
+        DrawArc(center, radius - 4.0f, startAngleRad, endAngleRad, 64, ringColor, 3.0f);
+
+        // 3. Draw tick marks and values
+        for (int s = 0; s <= 100; s += 10)
+        {
+            float t = s / 100.0f;
+            float angleDeg = 135.0f + t * 270.0f;
+            float angleRad = Mathf.DegToRad(angleDeg);
+            Vector2 dir = new Vector2(Mathf.Cos(angleRad), Mathf.Sin(angleRad));
+
+            bool isMajor = s % 20 == 0;
+            float tickStart = radius - (isMajor ? 16.0f : 10.0f);
+            float tickEnd = radius - 6.0f;
+
+            Color tickColor = isMajor ? Color.FromHtml("#fcd34d") : Color.FromHtml("#efeff5");
+            DrawLine(center + dir * tickStart, center + dir * tickEnd, tickColor, isMajor ? 2.5f : 1.5f);
+
+            // Draw numbers for major ticks
+            if (isMajor)
+            {
+                float textDist = radius - 30.0f;
+                Vector2 textPos = center + dir * textDist;
+                string valStr = s.ToString();
+                Vector2 stringSize = _fontPixel.GetStringSize(valStr, HorizontalAlignment.Center, -1, 10);
+                DrawString(_fontPixel, textPos + new Vector2(0, stringSize.Y * 0.35f), valStr, HorizontalAlignment.Center, -1, 10, Color.FromHtml("#fcd34d"));
+            }
+        }
+
+        // 4. Draw digital display box framing the speed numbers (centered slightly above pivot)
+        Vector2 boxPos = center + new Vector2(-40.0f, -42.0f);
+        Vector2 boxSize = new Vector2(80.0f, 32.0f);
+        DrawRect(new Rect2(boxPos, boxSize), new Color(0.0f, 0.0f, 0.0f, 0.5f), true);
+        DrawRect(new Rect2(boxPos, boxSize), Color.FromHtml("#00f0ff"), false, 1.5f);
+
+        // 5. Draw digital speed value inside the frame
+        string speedStr = Mathf.RoundToInt(CurrentSpeed).ToString("000");
+        DrawString(_fontBody, center + new Vector2(0, -18.0f), speedStr, HorizontalAlignment.Center, -1, 26, Colors.White);
+
+        // 6. Draw speed unit text ("MPH") below the center pin
+        string unitStr = "MPH";
+        DrawString(_fontPixel, center + new Vector2(0, 36.0f), unitStr, HorizontalAlignment.Center, -1, 11, Color.FromHtml("#7bb374"));
+
+        // 7. Draw tapered neon needle pointing to current speed
+        float clampedSpeed = Mathf.Clamp(CurrentSpeed, 0.0f, MaxSpeed);
+        float needleAngleDeg = 135.0f + (clampedSpeed / MaxSpeed) * 270.0f;
+        float needleAngleRad = Mathf.DegToRad(needleAngleDeg);
+        Vector2 needleDir = new Vector2(Mathf.Cos(needleAngleRad), Mathf.Sin(needleAngleRad));
+        float needleLength = radius - 14.0f;
+        
+        Color needleColor = Color.FromHtml("#ff007f"); // neon pink/red
+        Vector2 perp = new Vector2(-needleDir.Y, needleDir.X);
+        Vector2 p1 = center + perp * 3.5f;
+        Vector2 p2 = center - perp * 3.5f;
+        Vector2 p3 = center + needleDir * needleLength;
+        DrawPolygon(new Vector2[] { p1, p2, p3 }, new Color[] { needleColor, needleColor, needleColor });
+
+        // 8. Center Pin (layered circles)
+        DrawCircle(center, 9.0f, Color.FromHtml("#ff007f"));
+        DrawCircle(center, 4.0f, Color.FromHtml("#fcd34d"));
     }
 }

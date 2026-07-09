@@ -83,6 +83,14 @@ public partial class CheckpointRushMode : Node3D
         BroadcastFullState();
     }
 
+    public void ResetScores()
+    {
+        _scores.Clear();
+        foreach (int peerId in GetConnectedPeerIds())
+            _scores[peerId] = 0;
+        PublishLocalEvents();
+    }
+
     public void RegisterPlayer(int peerId)
     {
         if (!Multiplayer.IsServer())
@@ -167,9 +175,17 @@ public partial class CheckpointRushMode : Node3D
         _checkpointVisual.AddChild(light);
     }
 
+    private bool IsNetworked()
+    {
+        return Multiplayer.HasMultiplayerPeer() && Multiplayer.MultiplayerPeer is not OfflineMultiplayerPeer;
+    }
+
     private void OnCheckpointBodyEntered(Node body)
     {
-        if (!Multiplayer.IsServer() || !_matchActive)
+        if (IsNetworked() && !_matchActive)
+            return;
+
+        if (!Multiplayer.IsServer())
             return;
 
         if (body is not Kart kart)
@@ -182,7 +198,7 @@ public partial class CheckpointRushMode : Node3D
         _scores.TryAdd(peerId, 0);
         _scores[peerId]++;
 
-        if (_scores[peerId] >= WinningScore)
+        if (IsNetworked() && _scores[peerId] >= WinningScore)
             EndMatch(peerId);
         else
             PickNextCheckpoint(_activeCheckpointIndex);
