@@ -23,20 +23,19 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16278207, 0)
 [node name="VisualContainer" type="Node3D" parent="." unique_id=33970799]
 
 [node name="ambulance" parent="VisualContainer" unique_id=1295122356 instance=ExtResource("2_fhxd7")]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
 
-[node name="HeadlightLeft" type="SpotLight3D" parent="VisualContainer"]
+[node name="HeadlightLeft" type="SpotLight3D" parent="VisualContainer" unique_id=120295979]
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -0.42, 0.55, 1.15)
 light_color = Color(1, 0.9, 0.68, 1)
 light_energy = 2.4
-shadow_enabled = false
 spot_range = 28.0
 spot_angle = 24.0
 
-[node name="HeadlightRight" type="SpotLight3D" parent="VisualContainer"]
+[node name="HeadlightRight" type="SpotLight3D" parent="VisualContainer" unique_id=950004020]
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0.42, 0.55, 1.15)
 light_color = Color(1, 0.9, 0.68, 1)
 light_energy = 2.4
-shadow_enabled = false
 spot_range = 28.0
 spot_angle = 24.0
 

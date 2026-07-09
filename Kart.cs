@@ -11,21 +11,12 @@ public partial class Kart : RigidBody3D
 
     [ExportGroup("Driving")]
     [Export] public float Acceleration = 4200.0f;
-    [Export] public float ReverseAcceleration = 2600.0f;
-    [Export] public float BrakeForce = 5200.0f;
-    [Export] public float MaxForwardSpeed = 34.0f;
-    [Export] public float MaxReverseSpeed = 13.0f;
+    [Export] public float MaxSpeed = 34.0f;
+    [Export] public float CoastDeceleration = 30.0f;
     [Export] public float SteeringSpeed = 3.0f;
-    [Export] public float MinSteeringSpeed = 2.0f;
-    [Export] public float SideGrip = 18.0f;
-    [Export] public float RollingDrag = 1.8f;
     [Export] public float ExtraGravity = 35.0f;
 
-    [ExportGroup("Visuals")]
-    [Export] public float VisualRotationSpeed = 12.0f;
-
     private RayCast3D _groundRay;
-    private Node3D _visualContainer;
 
     private float _forwardInput;
     private float _steeringInput;
@@ -41,16 +32,13 @@ public partial class Kart : RigidBody3D
     public override void _Ready()
     {
         _groundRay = GetNode<RayCast3D>("GroundRay");
-        _visualContainer = GetNode<Node3D>("VisualContainer");
 
-        // Prevent the physics sphere from naturally rolling and tilting on its own axes
         AxisLockAngularX = true;
         AxisLockAngularY = true;
         AxisLockAngularZ = true;
 
-        _yaw = _visualContainer.Rotation.Y;
+        _yaw = Rotation.Y;
 
-        // Server is always the authority for physics; OwnerPeerId only identifies who may send input.
         SetMultiplayerAuthority(1);
     }
 
@@ -64,17 +52,12 @@ public partial class Kart : RigidBody3D
             RpcId(1, nameof(SendInputRpc), _forwardInput, _steeringInput);
         }
 
-        if (_visualContainer == null) return;
-
-        _visualContainer.GlobalPosition = GlobalPosition;
         if (ShouldRunPhysics() == false)
         {
             _yaw = Rotation.Y;
             _groundRay.ForceRaycastUpdate();
             _isGrounded = _groundRay.IsColliding();
         }
-
-        AlignVisualsWithGround((float)delta);
     }
 
     public override void _Input(InputEvent @event)
@@ -113,55 +96,53 @@ public partial class Kart : RigidBody3D
         if (ShouldRunPhysics() == false) return;
 
         if (UseLocalInput || IsOffline())
-        {
             CaptureLocalInput();
-        }
 
-        float dt = (float)delta;
+        var dt = (float)delta;
         _groundRay.ForceRaycastUpdate();
         _isGrounded = _groundRay.IsColliding();
 
-        if (_isGrounded == false)
+        if (!_isGrounded)
         {
             ApplyCentralForce(Vector3.Down * ExtraGravity * Mass);
             SyncYawToBodyRotation();
             return;
         }
 
+        // Steer: rotate the body. With angular axes locked, modifying Rotation.Y is the only
+        // free rotation degree.
+        if (Mathf.Abs(_steeringInput) > InputDeadzone)
+            _yaw -= _steeringInput * SteeringSpeed * dt;
+
+        // Force all planar momentum to lie along the body's local +Z axis. The kart can
+        // never carry lateral velocity -- collisions and ramps redirect it forward.
         Vector3 groundNormal = _groundRay.GetCollisionNormal();
-        Vector3 forwardDirection = GetForwardDirection(groundNormal);
-        Vector3 sideDirection = groundNormal.Cross(forwardDirection).Normalized();
+        Vector3 forwardOnGround = GetForwardDirection(groundNormal);
+        Vector3 rightOnGround = groundNormal.Cross(forwardOnGround).Normalized();
+        Basis alignedBasis = new Basis(rightOnGround, groundNormal, forwardOnGround).Orthonormalized();
+        Rotation = alignedBasis.GetEuler();
+        Vector3 bodyForward = GlobalTransform.Basis.Z;
+        Vector3 planarVel = LinearVelocity - groundNormal * LinearVelocity.Dot(groundNormal);
+        LinearVelocity = bodyForward * planarVel.Dot(bodyForward) + groundNormal * LinearVelocity.Dot(groundNormal);
 
-        Vector3 planarVelocity = LinearVelocity - groundNormal * LinearVelocity.Dot(groundNormal);
-        float forwardSpeed = planarVelocity.Dot(forwardDirection);
-        float lateralSpeed = planarVelocity.Dot(sideDirection);
-        float planarSpeed = planarVelocity.Length();
-
-        ApplyCentralForce(-sideDirection * lateralSpeed * SideGrip * Mass);
-        ApplyCentralForce(-forwardDirection * forwardSpeed * RollingDrag * Mass);
-
+        // Throttle: accelerate along body local +Z, clamped to MaxSpeed.
         if (Mathf.Abs(_forwardInput) > InputDeadzone)
         {
-            bool braking = Mathf.Abs(forwardSpeed) > 1.0f && Mathf.Sign(_forwardInput) != Mathf.Sign(forwardSpeed);
-            float speedLimit = _forwardInput > 0.0f ? MaxForwardSpeed : MaxReverseSpeed;
-            float driveForce = braking ? BrakeForce : (_forwardInput > 0.0f ? Acceleration : ReverseAcceleration);
-
-            if (braking || Mathf.Abs(forwardSpeed) < speedLimit)
+            ApplyCentralForce(bodyForward * Acceleration * _forwardInput);
+            float newForwardSpeed = (LinearVelocity - groundNormal * LinearVelocity.Dot(groundNormal)).Dot(bodyForward);
+            float clamped = Mathf.Clamp(newForwardSpeed, -MaxSpeed, MaxSpeed);
+            LinearVelocity = bodyForward * clamped + groundNormal * LinearVelocity.Dot(groundNormal);
+        }
+        // Coast: bleed off forward speed when throttle is released.
+        else
+        {
+            float currentForwardSpeed = (LinearVelocity - groundNormal * LinearVelocity.Dot(groundNormal)).Dot(bodyForward);
+            if (Mathf.Abs(currentForwardSpeed) > 0.0f)
             {
-                ApplyCentralForce(forwardDirection * _forwardInput * driveForce);
+                float slowed = Mathf.MoveToward(currentForwardSpeed, 0.0f, CoastDeceleration * dt);
+                LinearVelocity = bodyForward * slowed + groundNormal * LinearVelocity.Dot(groundNormal);
             }
         }
-
-        if (Mathf.Abs(_steeringInput) > InputDeadzone && planarSpeed > 0.1f)
-        {
-            float steeringAuthority = Mathf.Clamp(planarSpeed / MinSteeringSpeed, 0.0f, 1.0f);
-            float highSpeedFade = 1.0f - Mathf.Clamp(planarSpeed / MaxForwardSpeed, 0.0f, 1.0f) * 0.45f;
-            float reverseMultiplier = forwardSpeed >= -0.5f ? 1.0f : -1.0f;
-
-            _yaw -= _steeringInput * reverseMultiplier * SteeringSpeed * steeringAuthority * highSpeedFade * dt;
-        }
-
-        SyncYawToBodyRotation();
     }
 
     public void ApplyNetworkSnapshot(Vector3 position, Vector3 rotation, Vector3 velocity)
@@ -177,7 +158,7 @@ public partial class Kart : RigidBody3D
 
     private void SyncYawToBodyRotation()
     {
-        Rotation = new Vector3(Rotation.X, _yaw, Rotation.Z);
+        _yaw = Rotation.Y;
     }
 
     private void CaptureLocalInput()
@@ -226,25 +207,6 @@ public partial class Kart : RigidBody3D
     private bool IsOffline()
     {
         return Multiplayer.HasMultiplayerPeer() == false || Multiplayer.MultiplayerPeer is OfflineMultiplayerPeer;
-    }
-
-    private void AlignVisualsWithGround(float delta)
-    {
-        if (_isGrounded)
-        {
-            Vector3 groundNormal = _groundRay.GetCollisionNormal();
-            Vector3 visualForward = GetForwardDirection(groundNormal);
-            Vector3 visualRight = groundNormal.Cross(visualForward).Normalized();
-
-            Basis targetBasis = new Basis(visualRight, groundNormal, visualForward).Orthonormalized();
-            Basis currentBasis = _visualContainer.Transform.Basis.Orthonormalized();
-            float blend = Mathf.Clamp(VisualRotationSpeed * delta, 0.0f, 1.0f);
-
-            _visualContainer.Transform = new Transform3D(
-                currentBasis.Slerp(targetBasis, blend),
-                _visualContainer.Transform.Origin
-            );
-        }
     }
 
     private Vector3 GetForwardDirection(Vector3 groundNormal)
