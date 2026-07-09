@@ -1,40 +1,107 @@
-[gd_scene format=3 uid="uid://8sk8eoxjx5d3"]
+[gd_scene load_steps=9 format=3 uid="uid://8sk8eoxjx5d3"]
 
 [ext_resource type="PackedScene" uid="uid://cjlrpc3gabifw" path="res://kart.tscn" id="1_jvk4k"]
 [ext_resource type="Script" uid="uid://c24b6dbw8m32t" path="res://TrackCamera.cs" id="2_ta3w6"]
 [ext_resource type="Shader" uid="uid://oy3tmmm3mumy" path="res://assets/shader/retropostprocessing.gdshader" id="3_4swda"]
-[ext_resource type="PackedScene" path="res://GameUI.tscn" id="4_gameui"]
+[ext_resource type="Script" path="res://TrackBuilder.cs" id="4_tb"]
+[ext_resource type="PackedScene" path="res://ui/RetroNeonCabShell.tscn" id="5_vrua2"]
+[ext_resource type="Script" path="res://GameManager.cs" id="6_game_manager"]
+[ext_resource type="Script" path="res://modes/CheckpointRushMode.cs" id="7_checkpoint"]
+
+[sub_resource type="Environment" id="Environment_race"]
+background_mode = 1
+background_color = Color(0.055, 0.068, 0.095, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.22, 0.27, 0.36, 1)
+ambient_light_energy = 0.46
+tonemap_mode = 2
+glow_enabled = false
+fog_enabled = true
+fog_light_color = Color(0.25, 0.3, 0.42, 1)
+fog_density = 0.0022
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_erduv"]
-render_priority = 0
+render_priority = -1
 shader = ExtResource("3_4swda")
-shader_parameter/pixel_scale = 0.15
-shader_parameter/color_res = 25.0
-shader_parameter/dither_spread = 0.2
-shader_parameter/dither_size = 2.0
-shader_parameter/target_height = 640.0
+shader_parameter/pixel_size = 3
 
 [sub_resource type="QuadMesh" id="QuadMesh_de8j7"]
 flip_faces = true
 size = Vector2(2, 2)
 
-[node name="Node3D" type="Node3D" unique_id=996499407]
+[node name="Node3D" type="Node3D"]
 
-[node name="CSGBox3D" type="CSGBox3D" parent="." unique_id=1817987166]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.5, -0.39111328, 19.5)
+[node name="RaceWorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_race")
+
+[node name="RaceSun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.82, -0.55, 0)
+light_color = Color(1, 0.78, 0.52, 1)
+light_energy = 1.25
+shadow_enabled = false
+
+[node name="PaddockFillLight" type="OmniLight3D" parent="."]
+position = Vector3(0, 10, -18)
+light_color = Color(0.45, 0.56, 0.85, 1)
+light_energy = 0.35
+omni_range = 90.0
+
+[node name="Ground" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 use_collision = true
-size = Vector3(40, 0.21777344, 40)
+size = Vector3(620, 1, 460)
 
-[node name="Kart" parent="." unique_id=2048840086 instance=ExtResource("1_jvk4k")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.73778963, 3)
+[node name="TrackBuilder" type="Node3D" parent="."]
+script = ExtResource("4_tb")
+CityColumns = 6
+CityRows = 4
+CityBlockSize = 27.0
+CityBlockSizeJitter = 5.0
+MainAvenueWidthMultiplier = 1.35
+SideStreetMinWidthMultiplier = 0.82
+SideStreetMaxWidthMultiplier = 1.05
+BuildingCount = 88
+BuildingsPerBlockMax = 4
+TrackWidth = 15.0
+DecorationCount = 36
+TrackLightCount = 64
+BuildingSetback = 7.0
+BuildingJitter = 5.5
+BuildingFootprintMin = 7.5
+BuildingFootprintMax = 13.0
+DecorationFootprintMin = 3.0
+DecorationFootprintMax = 5.5
+TrackLightEnergy = 0.95
+TrackLightRange = 20.0
+Seed = 1337
 
-[node name="Camera3D" type="Camera3D" parent="." unique_id=1486811080]
+[node name="GameManager" type="Node" parent="."]
+script = ExtResource("6_game_manager")
+
+[node name="Modes" type="Node3D" parent="."]
+
+[node name="CheckpointRushMode" type="Node3D" parent="Modes"]
+script = ExtResource("7_checkpoint")
+
+[node name="Kart" parent="." instance=ExtResource("1_jvk4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -72)
+
+[node name="Camera3D" type="Camera3D" parent="."]
 script = ExtResource("2_ta3w6")
 TargetVehiclePath = NodePath("../Kart")
+BaseDistance = 6.0
+BaseHeight = 2.65
+SpeedPullback = 3.4
+LookAheadDistance = 6.2
+MinFov = 62.0
+MaxFov = 82.0
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Camera3D" unique_id=551057103]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Camera3D"]
 material_override = SubResource("ShaderMaterial_erduv")
 extra_cull_margin = 16384.0
 mesh = SubResource("QuadMesh_de8j7")
 
-[node name="GameUI" parent="." unique_id=646357449 instance=ExtResource("4_gameui")]
+[node name="RetroNeonCabShell" parent="." instance=ExtResource("5_vrua2")]
+KartPath = NodePath("../Kart")
+PostProcessMeshPath = NodePath("../Camera3D/MeshInstance3D")
+DefaultPixelation = 4
