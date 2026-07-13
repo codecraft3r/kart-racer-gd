@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3 uid="uid://cjlrpc3gabifw"]
 
 [ext_resource type="Script" uid="uid://c4m2hae0cs0xk" path="res://Kart.cs" id="1_o4efj"]
-[ext_resource type="PackedScene" uid="uid://du37n2b05d6kq" path="res://assets/kenny_car-kit/ambulance.glb" id="2_fhxd7"]
+[ext_resource type="PackedScene" path="res://assets/neon-cab/neon_cab_game.tscn" id="2_neon_cab"]
 [ext_resource type="Script" path="res://audio/VehicleAudioController.cs" id="3_vehicle_audio"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_6vfav"]
@@ -45,7 +45,7 @@ script = ExtResource("3_vehicle_audio")
 
 [node name="VisualContainer" type="Node3D" parent="." unique_id=33970799]
 
-[node name="ambulance" parent="VisualContainer" unique_id=1295122356 instance=ExtResource("2_fhxd7")]
+[node name="NeonCabVisual" parent="VisualContainer" instance=ExtResource("2_neon_cab")]
 
 [node name="HeadlightLeft" type="SpotLight3D" parent="VisualContainer"]
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -0.42, 0.55, 1.15)

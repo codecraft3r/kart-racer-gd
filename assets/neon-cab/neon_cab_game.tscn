@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/neon-cab/neon_cab.glb" id="1_neon_cab"]
+
+[node name="NeonCabVisual" type="Node3D"]
+
+[node name="NeonCabSource" parent="." instance=ExtResource("1_neon_cab")]
+position = Vector3(0, -0.42, 0)
+rotation = Vector3(0, -1.5707963, 0)
+scale = Vector3(0.58, 0.58, 0.58)
