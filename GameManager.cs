@@ -307,10 +307,9 @@ public partial class GameManager : Node
         bool isLocalPlayer = id == Multiplayer.GetUniqueId();
         kart.IsLocalPlayer = isLocalPlayer;
         kart.UseLocalInput = !hasNetworkPeer || (Multiplayer.IsServer() && isLocalPlayer);
-        if (hasNetworkPeer && !isLocalPlayer)
-        {
-            kart.Freeze = true;
-        }
+        // The server owns every simulated rigid body. Clients keep replicas frozen,
+        // including their local kart; local processing remains active to send input.
+        kart.Freeze = hasNetworkPeer && !Multiplayer.IsServer();
 
         AddChild(kart, true);
         _playerKarts[id] = kart;
@@ -452,6 +451,7 @@ public partial class GameManager : Node
         }
 
         TaxiMode.Instance?.ClearActiveFare(id);
+        kart.BroadcastRespawnAudio();
         GD.Print($"Respawned peer {id} at depot with penalty.");
     }
 
@@ -479,6 +479,7 @@ public partial class GameManager : Node
 
             if (state.Health <= 0)
             {
+                _playerKarts.GetValueOrDefault(id)?.BroadcastDestroyedAudio();
                 RespawnAtDepot(id);
             }
         }
@@ -490,6 +491,7 @@ public partial class GameManager : Node
         {
             SyncPlayerState(id, state.Score, state.Money, state.Health);
         }
+        _playerKarts.GetValueOrDefault(id)?.BroadcastPassengerBailoutAudio();
         GD.Print($"Passenger bailed out for peer {id}!");
     }
 
@@ -521,6 +523,7 @@ public partial class GameManager : Node
             TaxiMode.Instance?.AddCashScore(id, finalPayout);
         }
 
+        kart.BroadcastFareCompletedAudio();
         GD.Print($"Peer {id} completed taxi run! Payout: {finalPayout} (Base: {scoreYield}, Penalty: {damagePenalty})");
     }
 

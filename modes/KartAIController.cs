@@ -133,17 +133,20 @@ public partial class KartAIController : Node
         // Slow down to stop when close to target
         if (distToTarget < (hasPassenger ? 10.0f : 8.0f))
         {
-            float stoppingSpeed = _kart.LinearVelocity.Length();
+            Vector3 stoppingVelocity = _kart.LinearVelocity;
+            stoppingVelocity.Y = 0.0f;
+            float stoppingSpeed = stoppingVelocity.Length();
             forward = distToTarget < 4.0f ? (stoppingSpeed > 0.8f ? -0.35f : 0.0f) : 0.25f;
         }
 
         // 3. Stuck recovery system
-        float speed = _kart.LinearVelocity.Length();
+        Vector3 planarVelocity = _kart.LinearVelocity;
+        planarVelocity.Y = 0.0f;
+        float speed = planarVelocity.Length();
         if (_reverseTimer > 0.0f)
         {
             _reverseTimer -= dt;
             forward = -0.8f;
-            steer = -steer;
         }
         else
         {

@@ -121,6 +121,7 @@ public partial class RetroNeonCabShell : CanvasLayer
     {
         if (@event.IsActionPressed("ui_cancel"))
         {
+            AudioManager.Instance?.PlayUiBack();
             if (_currentScreen == ShellScreen.Gameplay)
                 TogglePause();
             else if (_currentScreen == ShellScreen.Paused)
@@ -894,7 +895,9 @@ public partial class RetroNeonCabShell : CanvasLayer
         scroll.AddChild(crew);
         AddCredit(crew, "GAME DIRECTOR", "Pixel Taxi Driver");
         AddCredit(crew, "UI DESIGNER", "Synthwave Artist");
-        AddCredit(crew, "MUSIC & SYNTH", "Procedural WebAudio");
+        AddCredit(crew, "MUSIC & SYNTH", "Original PAIN TAXI soundtrack");
+        AddCredit(crew, "SOUND EFFECTS", "Kenney • rubberduck • OpenGameArt contributors");
+        AddCredit(crew, "TIRE SKID", "audible-edge (Tom Haigh), CC BY 3.0");
         AddCredit(crew, "SPECIAL THANKS", "Based on Retro 80's Mood Board Assets");
         stack.AddChild(WrapDarkBox("CreditsScrollBox", scroll));
 
@@ -921,6 +924,22 @@ public partial class RetroNeonCabShell : CanvasLayer
         _creditsScreen.Visible = screen == ShellScreen.Credits;
         _resultsScreen.Visible = screen == ShellScreen.Results;
         _audioButton.Visible = screen == ShellScreen.Main || screen == ShellScreen.Multiplayer || screen == ShellScreen.Settings || screen == ShellScreen.Credits;
+
+        bool gameplayAudio = screen == ShellScreen.Gameplay ||
+            screen == ShellScreen.Paused ||
+            (screen == ShellScreen.Settings && _previousScreen == ShellScreen.Paused);
+        AudioManager.Instance?.SetGameplayMix(gameplayAudio);
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.MusicContext musicContext = screen == ShellScreen.Multiplayer
+                ? AudioManager.MusicContext.Lobby
+                : gameplayAudio
+                    ? AudioManager.MusicContext.Gameplay
+                    : screen == ShellScreen.Results
+                        ? AudioManager.MusicContext.Results
+                        : AudioManager.MusicContext.Menu;
+            AudioManager.Instance.SetMusicContext(musicContext);
+        }
 
         bool gameplayActive = screen == ShellScreen.Gameplay;
         if (GetTree() != null)
@@ -1102,6 +1121,9 @@ public partial class RetroNeonCabShell : CanvasLayer
         int busIndex = AudioServer.GetBusIndex("Master");
         if (busIndex >= 0)
             AudioServer.SetBusMute(busIndex, !_audioEnabled);
+
+        if (_audioEnabled)
+            AudioManager.Instance?.PlayUiToggle();
 
         _audioButton.Text = _audioEnabled ? "FX: ON" : "FX: OFF";
         ApplyPixelButtonStyle(_audioButton, _audioEnabled);
@@ -1369,6 +1391,9 @@ public partial class RetroNeonCabShell : CanvasLayer
         button.AddThemeFontOverride("font", _fontPixel);
         button.AddThemeFontSizeOverride("font_size", 13);
         button.AddThemeColorOverride("font_focus_color", Hex("100a20"));
+        button.MouseEntered += () => AudioManager.Instance?.PlayUiHover();
+        button.FocusEntered += () => AudioManager.Instance?.PlayUiHover();
+        button.Pressed += () => AudioManager.Instance?.PlayUiConfirm();
         ApplyPixelButtonStyle(button, green);
         return button;
     }

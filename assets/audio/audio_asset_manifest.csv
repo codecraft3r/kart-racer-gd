@@ -1,0 +1,38 @@
+local_path,source_page,creator,license,original_file,required_credit,download_date,notes
+assets/audio/ui/hover.ogg,https://kenney.nl/assets/ui-audio,Kenney,CC0,rollover2.ogg,None,2026-07-12,Renamed only
+assets/audio/ui/confirm.ogg,https://kenney.nl/assets/ui-audio,Kenney,CC0,click3.ogg,None,2026-07-12,Renamed only
+assets/audio/ui/back.ogg,https://kenney.nl/assets/ui-audio,Kenney,CC0,switch6.ogg,None,2026-07-12,Renamed only
+assets/audio/ui/toggle.ogg,https://kenney.nl/assets/ui-audio,Kenney,CC0,switch17.ogg,None,2026-07-12,Renamed only
+assets/audio/gameplay/boarding_tick.ogg,https://kenney.nl/assets/ui-audio,Kenney,CC0,click5.ogg,None,2026-07-12,Renamed only
+assets/audio/gameplay/countdown_tick.ogg,https://kenney.nl/assets/digital-audio,Kenney,CC0,highUp.ogg,None,2026-07-12,Renamed only
+assets/audio/gameplay/countdown_go.ogg,https://kenney.nl/assets/digital-audio,Kenney,CC0,powerUp5.ogg,None,2026-07-12,Renamed only
+assets/audio/gameplay/pickup_enter.ogg,https://kenney.nl/assets/digital-audio,Kenney,CC0,twoTone2.ogg,None,2026-07-12,Renamed only
+assets/audio/gameplay/fare_complete.ogg,https://kenney.nl/assets/digital-audio,Kenney,CC0,powerUp8.ogg,None,2026-07-12,Renamed only
+assets/audio/gameplay/passenger_bailout.ogg,https://kenney.nl/assets/digital-audio,Kenney,CC0,lowDown.ogg,None,2026-07-12,Renamed only
+assets/audio/gameplay/respawn.ogg,https://kenney.nl/assets/digital-audio,Kenney,CC0,phaseJump2.ogg,None,2026-07-12,Renamed only
+assets/audio/gameplay/warning.ogg,https://kenney.nl/assets/digital-audio,Kenney,CC0,highDown.ogg,None,2026-07-12,Renamed only
+assets/audio/gameplay/match_win.ogg,https://kenney.nl/assets/music-jingles,Kenney,CC0,jingles_NES04.ogg,None,2026-07-12,Renamed only
+assets/audio/gameplay/match_lose.ogg,https://kenney.nl/assets/music-jingles,Kenney,CC0,jingles_NES10.ogg,None,2026-07-12,Renamed only
+assets/audio/gameplay/cash.ogg,https://kenney.nl/assets/casino-audio,Kenney,CC0,chips-collide-2.ogg,None,2026-07-12,Renamed only
+assets/audio/gameplay/passenger_board.ogg,https://opengameart.org/content/100-cc0-sfx-2,rubberduck,CC0,sfx100v2_door_03.ogg,None,2026-07-12,Renamed only
+assets/audio/vehicles/engine_idle.wav,https://opengameart.org/content/racing-car-engine-sound-loops,domasx2,CC0,loop_0.wav,None,2026-07-12,Public-domain source remade by uploader
+assets/audio/vehicles/engine_drive.wav,https://opengameart.org/content/racing-car-engine-sound-loops,domasx2,CC0,loop_5.wav,None,2026-07-12,Public-domain source remade by uploader
+assets/audio/vehicles/engine_start.wav,https://opengameart.org/content/car-engine-start-01,looneybits,CC0,generic_car_startengine.wav,None,2026-07-12,Renamed only
+assets/audio/vehicles/tire_skid.wav,https://opengameart.org/content/car-tire-squeal-skid-loop,audible-edge (Tom Haigh),CC BY 3.0,tires_squal_loop.wav,"Car tire squeal skid loop by audible-edge (Tom Haigh), CC BY 3.0",2026-07-12,Renamed only
+assets/audio/vehicles/collision_light.ogg,https://opengameart.org/content/crash-collision,qubodup,CC0,qubodup-crash.ogg,None,2026-07-12,Renamed only
+assets/audio/vehicles/collision_medium_01.ogg,https://kenney.nl/assets/impact-sounds,Kenney,CC0,impactMetal_medium_000.ogg,None,2026-07-12,Renamed only
+assets/audio/vehicles/collision_medium_02.ogg,https://kenney.nl/assets/impact-sounds,Kenney,CC0,impactMetal_medium_001.ogg,None,2026-07-12,Renamed only
+assets/audio/vehicles/collision_medium_03.ogg,https://kenney.nl/assets/impact-sounds,Kenney,CC0,impactMetal_medium_002.ogg,None,2026-07-12,Renamed only
+assets/audio/vehicles/collision_heavy_01.ogg,https://kenney.nl/assets/impact-sounds,Kenney,CC0,impactMetal_heavy_000.ogg,None,2026-07-12,Renamed only
+assets/audio/vehicles/collision_heavy_02.ogg,https://kenney.nl/assets/impact-sounds,Kenney,CC0,impactMetal_heavy_001.ogg,None,2026-07-12,Renamed only
+assets/audio/vehicles/collision_heavy_03.ogg,https://kenney.nl/assets/impact-sounds,Kenney,CC0,impactMetal_heavy_002.ogg,None,2026-07-12,Renamed only
+assets/audio/vehicles/destroyed.ogg,https://kenney.nl/assets/impact-sounds,Kenney,CC0,impactBell_heavy_000.ogg,None,2026-07-12,Renamed only
+assets/audio/ambience/city_traffic.ogg,https://opengameart.org/content/high-traffic-road-sounds,IgnasD,CC0,gatve Varniu.ogg,None,2026-07-12,Renamed only
+assets/audio/ambience/neon_city.ogg,https://opengameart.org/content/scifi-city-ambient-loop,TinyWorlds,CC0,busy_cyberworld.ogg,None,2026-07-12,Renamed only
+assets/audio/ambience/rain.ogg,https://opengameart.org/content/amb-rain-loop-1,Kresiek The Furry,CC0,amb_rain_loop_1.ogg,None,2026-07-12,Renamed only and staged for weather
+assets/audio/ambience/industrial_machine.ogg,https://opengameart.org/content/100-cc0-sfx-2,rubberduck,CC0,sfx100v2_loop_machine_02.ogg,None,2026-07-12,Renamed only
+assets/audio/ambience/construction.ogg,https://opengameart.org/content/100-cc0-sfx-2,rubberduck,CC0,sfx100v2_loop_construction_site.ogg,None,2026-07-12,Renamed only and staged for district emitters
+assets/audio/weapons/assault_fire.ogg,https://kenney.nl/assets/digital-audio,Kenney,CC0,laser3.ogg,None,2026-07-12,Renamed and staged for weapon implementation
+assets/audio/weapons/rocket_launch.ogg,https://kenney.nl/assets/digital-audio,Kenney,CC0,phaserUp1.ogg,None,2026-07-12,Renamed and staged for weapon implementation
+assets/audio/weapons/explosion_arcade.ogg,https://kenney.nl/assets/digital-audio,Kenney,CC0,spaceTrash2.ogg,None,2026-07-12,Renamed and layered with destruction cue
+assets/audio/weapons/pickup.ogg,https://kenney.nl/assets/digital-audio,Kenney,CC0,powerUp7.ogg,None,2026-07-12,Renamed and staged for weapon implementation

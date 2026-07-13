@@ -98,14 +98,22 @@ script = ExtResource("7_checkpoint")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -72)
 
 [node name="Camera3D" type="Camera3D" parent="."]
+current = true
 script = ExtResource("2_ta3w6")
 TargetVehiclePath = NodePath("../Kart")
-BaseDistance = 6.0
-BaseHeight = 2.65
-SpeedPullback = 3.4
-LookAheadDistance = 6.2
-MinFov = 62.0
-MaxFov = 82.0
+FollowSpeed = 7.0
+LookAtSpeed = 11.0
+BaseDistance = 5.4
+BaseHeight = 2.05
+SpeedPullback = 1.8
+SpeedLift = 0.45
+LookHeight = 0.8
+LookAheadDistance = 8.0
+MinFov = 64.0
+MaxFov = 86.0
+FovLerpSpeed = 6.5
+MaxRollDegrees = 3.5
+RollResponse = 0.22
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Camera3D"]
 material_override = SubResource("ShaderMaterial_erduv")

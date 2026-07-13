@@ -102,6 +102,7 @@ public partial class PickupZone : Area3D
             if (!_overlappingKarts.Contains(kart))
             {
                 _overlappingKarts.Add(kart);
+                kart.PlayPickupEnterAudio();
                 GD.Print($"PickupZone: Kart {kart.Name} entered zone.");
             }
         }

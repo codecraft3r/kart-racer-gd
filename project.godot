@@ -27,6 +27,7 @@ project/assembly_name="kart_racer"
 
 [autoload]
 
+AudioManager="*res://audio/AudioManager.cs"
 MultiplayerManager="*res://MultiplayerManager.cs"
 
 [input]
@@ -62,6 +63,7 @@ move_backward={
 
 [physics]
 
+common/physics_interpolation=true
 3d/physics_engine="Jolt Physics"
 
 [rendering]

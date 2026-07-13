@@ -1,24 +1,47 @@
-[gd_scene format=3 uid="uid://cjlrpc3gabifw"]
+[gd_scene load_steps=5 format=3 uid="uid://cjlrpc3gabifw"]
 
 [ext_resource type="Script" uid="uid://c4m2hae0cs0xk" path="res://Kart.cs" id="1_o4efj"]
 [ext_resource type="PackedScene" uid="uid://du37n2b05d6kq" path="res://assets/kenny_car-kit/ambulance.glb" id="2_fhxd7"]
+[ext_resource type="Script" path="res://audio/VehicleAudioController.cs" id="3_vehicle_audio"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_6vfav"]
 friction = 0.0
 
-[sub_resource type="SphereShape3D" id="SphereShape3D_37pdu"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_37pdu"]
+size = Vector3(1.45, 0.78, 2.7)
 
 [node name="Kart" type="RigidBody3D" unique_id=2048840086]
 mass = 150.0
+continuous_cd = true
 physics_material_override = SubResource("PhysicsMaterial_6vfav")
 script = ExtResource("1_o4efj")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=828546667]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.21488011, 0)
-shape = SubResource("SphereShape3D_37pdu")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
+shape = SubResource("BoxShape3D_37pdu")
 
 [node name="GroundRay" type="RayCast3D" parent="." unique_id=823055731]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16278207, 0)
+position = Vector3(0, 0.35, 0)
+target_position = Vector3(0, -0.8, 0)
+
+[node name="GroundRayFrontLeft" type="RayCast3D" parent="."]
+position = Vector3(-0.45, 0.35, 0.85)
+target_position = Vector3(0, -0.8, 0)
+
+[node name="GroundRayFrontRight" type="RayCast3D" parent="."]
+position = Vector3(0.45, 0.35, 0.85)
+target_position = Vector3(0, -0.8, 0)
+
+[node name="GroundRayRearLeft" type="RayCast3D" parent="."]
+position = Vector3(-0.45, 0.35, -0.85)
+target_position = Vector3(0, -0.8, 0)
+
+[node name="GroundRayRearRight" type="RayCast3D" parent="."]
+position = Vector3(0.45, 0.35, -0.85)
+target_position = Vector3(0, -0.8, 0)
+
+[node name="VehicleAudio" type="Node3D" parent="."]
+script = ExtResource("3_vehicle_audio")
 
 [node name="VisualContainer" type="Node3D" parent="." unique_id=33970799]
 
