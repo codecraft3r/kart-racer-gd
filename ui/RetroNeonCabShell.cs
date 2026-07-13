@@ -8,7 +8,7 @@ public partial class RetroNeonCabShell : CanvasLayer
     [Export] public NodePath PostProcessMeshPath { get; set; } = "../Camera3D/MeshInstance3D";
     [Export] public int DefaultPixelation { get; set; } = 4;
 
-    private const string VersionText = "v1.86 - PVP DRIFT EDITION";
+    private const string VersionText = "v1.86 - PAIN TAXI EDITION";
 
     private enum ShellScreen
     {
@@ -17,7 +17,8 @@ public partial class RetroNeonCabShell : CanvasLayer
         Gameplay,
         Paused,
         Settings,
-        Credits
+        Credits,
+        Results
     }
 
     private Control _shellRoot;
@@ -28,15 +29,25 @@ public partial class RetroNeonCabShell : CanvasLayer
     private Control _pauseScreen;
     private Control _settingsScreen;
     private Control _creditsScreen;
+    private Control _resultsScreen;
     private RetroScanlineOverlay _scanlineOverlay;
     private RetroVignetteOverlay _crtOverlay;
 
     private Label _scoreLabel;
     private Label _boostLabel;
-    private Label _speedLabel;
+    private RetroSpeedometer _speedometer;
     private Label _timerLabel;
     private Label _rankLabel;
+    private double _playTime;
+    private Button _hostButton;
+    private Button _joinButton;
+    private Label _pauseRivalsLabel;
     private Label _checkpointLabel;
+    private Label _countdownLabel;
+    private Label _objectiveLabel;
+    private Label _resultTitleLabel;
+    private Label _resultSummaryLabel;
+    private Label _resultStandingsLabel;
     private Label _connectionStatusLabel;
     private LineEdit _joinAddressField;
     private LineEdit _playerNameField;
@@ -97,6 +108,13 @@ public partial class RetroNeonCabShell : CanvasLayer
 
         if (GetTree() != null)
             GetTree().Paused = false;
+
+        if (_modeEventsWired && TaxiMode.Instance != null)
+        {
+            TaxiMode.Instance.MatchStateChanged -= OnMatchStateChanged;
+            TaxiMode.Instance.ScoreboardChanged -= OnScoreboardChanged;
+            TaxiMode.Instance.CheckpointChanged -= OnCheckpointChanged;
+        }
     }
 
     public override void _Input(InputEvent @event)
@@ -113,6 +131,8 @@ public partial class RetroNeonCabShell : CanvasLayer
                 CloseCredits();
             else if (_currentScreen == ShellScreen.Multiplayer)
                 ShowScreen(ShellScreen.Main);
+            else if (_currentScreen == ShellScreen.Results)
+                ExitToMainMenu();
 
             GetViewport().SetInputAsHandled();
         }
@@ -126,8 +146,11 @@ public partial class RetroNeonCabShell : CanvasLayer
             return;
 
         float speed = GetKartSpeedMetersPerSecond();
-        if (!IsNetworked())
+        if (!IsNetworked() && TaxiMode.Instance?.Phase == TaxiMode.MatchPhase.Active)
+        {
             _score += delta * (45.0 + speed * 6.0);
+            _playTime += delta;
+        }
         _driftMeters += speed * delta;
 
         UpdateGameplayStats(speed);
@@ -143,9 +166,18 @@ public partial class RetroNeonCabShell : CanvasLayer
 
         _pendingStartRun = false;
         _score = 0.0;
+        _playTime = 0.0;
         _driftMeters = 0.0;
+        WireModeEvents();
+        if (_objectiveLabel != null && TaxiMode.Instance != null)
+            _objectiveLabel.Text = $"EARN ${TaxiMode.Instance.WinningCashTarget}  //  STOP IN A GLOWING PICKUP ZONE";
         UpdateGameplayStats(GetKartSpeedMetersPerSecond());
         ShowScreen(ShellScreen.Gameplay);
+
+        if (!IsNetworked())
+        {
+            GameManager.Instance?.StartSoloSession();
+        }
     }
 
     public void HostRush()
@@ -218,6 +250,8 @@ public partial class RetroNeonCabShell : CanvasLayer
     {
         if (IsNetworked())
             MultiplayerManager.Instance?.Disconnect();
+        else
+            GameManager.Instance?.ResetSoloSession();
         ResetKart();
         ShowScreen(ShellScreen.Main);
     }
@@ -333,6 +367,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         _pauseScreen = BuildPauseScreen();
         _settingsScreen = BuildSettingsScreen();
         _creditsScreen = BuildCreditsScreen();
+        _resultsScreen = BuildResultsScreen();
 
         _crtWarp.AddChild(_mainMenuScreen);
         _crtWarp.AddChild(_multiplayerScreen);
@@ -340,6 +375,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         _crtWarp.AddChild(_pauseScreen);
         _crtWarp.AddChild(_settingsScreen);
         _crtWarp.AddChild(_creditsScreen);
+        _crtWarp.AddChild(_resultsScreen);
 
         _audioButton = MakePixelButton("FX: ON", true, 112.0f, 34.0f);
         _audioButton.Name = "AudioToggleButton";
@@ -397,7 +433,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         titleStack.AddThemeConstantOverride("separation", -8);
         screen.AddChild(titleStack);
 
-        Label scriptLabel = MakeLabel("80's", _fontScript, 88, Hex("ff2d7a"), HorizontalAlignment.Center);
+        Label scriptLabel = MakeLabel("PAIN", _fontScript, 88, Hex("ff2d7a"), HorizontalAlignment.Center);
         scriptLabel.Name = "EightiesLabel";
         scriptLabel.RotationDegrees = -10.0f;
         scriptLabel.AddThemeColorOverride("font_shadow_color", Hex("ff0055"));
@@ -405,7 +441,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         scriptLabel.AddThemeConstantOverride("shadow_offset_y", 4);
         titleStack.AddChild(scriptLabel);
 
-        Label title = MakeLabel("NEON CAB", _fontOrbitron, 82, Hex("00f0ff"), HorizontalAlignment.Center);
+        Label title = MakeLabel("TAXI", _fontOrbitron, 82, Hex("00f0ff"), HorizontalAlignment.Center);
         title.Name = "ChromeOverdriveTitle";
         title.AddThemeColorOverride("font_outline_color", Hex("003366"));
         title.AddThemeConstantOverride("outline_size", 4);
@@ -415,8 +451,10 @@ public partial class RetroNeonCabShell : CanvasLayer
         title.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         titleStack.AddChild(title);
 
-        Label subtitle = MakeLabel("PRESS START TO DRIFT", _fontBody, 30, Hex("00f0ff"), HorizontalAlignment.Center);
+        Label subtitle = MakeLabel("DOWNTOWN NEVER SLEEPS", _fontBody, 30, Hex("f5c451"), HorizontalAlignment.Center);
         subtitle.Name = "Subtitle";
+        subtitle.AddThemeColorOverride("font_outline_color", Hex("10031f"));
+        subtitle.AddThemeConstantOverride("outline_size", 6);
         titleStack.AddChild(subtitle);
 
         VBoxContainer menuButtons = new()
@@ -435,7 +473,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         menuButtons.AddThemeConstantOverride("separation", 14);
         screen.AddChild(menuButtons);
 
-        Button start = MakePixelButton("START RUN", true, 360.0f, 58.0f);
+        Button start = MakePixelButton("START DOWNTOWN SHIFT", true, 360.0f, 58.0f);
         start.Name = "StartRunButton";
         start.Pressed += StartRun;
         menuButtons.AddChild(start);
@@ -484,7 +522,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         stack.AddThemeConstantOverride("separation", 14);
         panel.AddChild(stack);
 
-        stack.AddChild(MakeLabel("NEON CHECKPOINT RUSH", _fontBody, 42, Hex("00f0ff"), HorizontalAlignment.Center));
+        stack.AddChild(MakeLabel("PAIN TAXI MULTIPLAYER", _fontBody, 42, Hex("00f0ff"), HorizontalAlignment.Center));
         stack.AddChild(MakeLabel("HOST OR JOIN A UDP 7000 ENET MATCH", _fontBody, 20, Hex("ff007f"), HorizontalAlignment.Center));
 
         _playerNameField = MakeLineEdit("Driver name", "PLAYER");
@@ -500,15 +538,15 @@ public partial class RetroNeonCabShell : CanvasLayer
         };
         row.AddThemeConstantOverride("separation", 12);
 
-        Button host = MakePixelButton("HOST RUSH", true, 250.0f, 52.0f);
-        host.Name = "HostRushButton";
-        host.Pressed += HostRush;
-        row.AddChild(host);
+        _hostButton = MakePixelButton("HOST RUSH", true, 250.0f, 52.0f);
+        _hostButton.Name = "HostRushButton";
+        _hostButton.Pressed += HostRush;
+        row.AddChild(_hostButton);
 
-        Button join = MakePixelButton("JOIN RUSH", true, 250.0f, 52.0f);
-        join.Name = "JoinRushButton";
-        join.Pressed += JoinRush;
-        row.AddChild(join);
+        _joinButton = MakePixelButton("JOIN RUSH", true, 250.0f, 52.0f);
+        _joinButton.Name = "JoinRushButton";
+        _joinButton.Pressed += JoinRush;
+        row.AddChild(_joinButton);
         stack.AddChild(row);
 
         Button back = MakePixelButton("BACK", false, 520.0f, 48.0f);
@@ -534,36 +572,92 @@ public partial class RetroNeonCabShell : CanvasLayer
         };
         hudRow.AnchorLeft = 0.0f;
         hudRow.AnchorTop = 0.0f;
-        hudRow.OffsetLeft = 16.0f;
-        hudRow.OffsetTop = 16.0f;
-        hudRow.OffsetRight = 930.0f;
-        hudRow.OffsetBottom = 62.0f;
-        hudRow.AddThemeConstantOverride("separation", 14);
+        hudRow.OffsetLeft = 12.0f;
+        hudRow.OffsetTop = 12.0f;
+        hudRow.OffsetRight = 902.0f;
+        hudRow.OffsetBottom = 56.0f;
+        hudRow.AddThemeConstantOverride("separation", 6);
         screen.AddChild(hudRow);
 
-        _scoreLabel = MakeLabel("SCORE: 000,000", _fontBody, 25, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("ScorePill", _scoreLabel, Hex("fcd34d")));
+        _scoreLabel = MakeLabel("CASH: $0", _fontBody, 21, Colors.White, HorizontalAlignment.Center);
+        hudRow.AddChild(WrapPill("ScorePill", _scoreLabel, Hex("f5c451"), 118.0f));
 
-        _boostLabel = MakeLabel("BOOST: READY", _fontBody, 25, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("BoostPill", _boostLabel, Hex("ff007f")));
+        _boostLabel = MakeLabel("HP: 100%", _fontBody, 21, Colors.White, HorizontalAlignment.Center);
+        hudRow.AddChild(WrapPill("BoostPill", _boostLabel, Hex("ed3b8b"), 104.0f));
 
-        _speedLabel = MakeLabel("SPEED: 000 MPH", _fontBody, 25, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("SpeedPill", _speedLabel, Hex("00f0ff")));
+        _timerLabel = MakeLabel("TIME: SOLO", _fontBody, 21, Colors.White, HorizontalAlignment.Center);
+        hudRow.AddChild(WrapPill("TimerPill", _timerLabel, Hex("f5c451"), 128.0f));
 
-        _timerLabel = MakeLabel("TIME: 03:00", _fontBody, 25, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("TimerPill", _timerLabel, Hex("7bb374")));
+        _rankLabel = MakeLabel("RANK: SOLO", _fontBody, 21, Colors.White, HorizontalAlignment.Center);
+        hudRow.AddChild(WrapPill("RankPill", _rankLabel, Hex("35e7f2"), 112.0f));
 
-        _rankLabel = MakeLabel("RANK: --", _fontBody, 25, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("RankPill", _rankLabel, Hex("fcd34d")));
+        _checkpointLabel = MakeLabel("FARE: SEARCHING...", _fontBody, 21, Colors.White, HorizontalAlignment.Center);
+        hudRow.AddChild(WrapPill("CheckpointPill", _checkpointLabel, Hex("ed3b8b"), 190.0f));
 
-        _checkpointLabel = MakeLabel("CHECKPOINT: --", _fontBody, 25, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("CheckpointPill", _checkpointLabel, Hex("ff007f")));
+        Label shiftTag = MakeLabel("DOWNTOWN SHIFT // CH 86", _fontPixel, 10, Hex("9ba8d8"), HorizontalAlignment.Left);
+        shiftTag.Name = "ShiftTag";
+        shiftTag.AnchorLeft = 0.0f;
+        shiftTag.AnchorTop = 0.0f;
+        shiftTag.OffsetLeft = 16.0f;
+        shiftTag.OffsetTop = 61.0f;
+        shiftTag.OffsetRight = 290.0f;
+        shiftTag.OffsetBottom = 81.0f;
+        shiftTag.AddThemeColorOverride("font_outline_color", Hex("090717"));
+        shiftTag.AddThemeConstantOverride("outline_size", 4);
+        screen.AddChild(shiftTag);
 
-        Button pause = MakePixelButton("PAUSE [ESC]", true, 154.0f, 42.0f);
+        Button pause = MakePixelButton("PAUSE [ESC]", false, 148.0f, 40.0f);
         pause.Name = "PauseButton";
-        AnchorTopRight(pause, 24.0f, 16.0f, 154.0f, 42.0f);
+        AnchorTopRight(pause, 28.0f, 12.0f, 148.0f, 40.0f);
         pause.Pressed += TogglePause;
         screen.AddChild(pause);
+
+        _countdownLabel = MakeLabel("", _fontOrbitron, 112, Hex("fcd34d"), HorizontalAlignment.Center);
+        _countdownLabel.Name = "CountdownLabel";
+        _countdownLabel.AnchorLeft = 0.5f;
+        _countdownLabel.AnchorRight = 0.5f;
+        _countdownLabel.AnchorTop = 0.5f;
+        _countdownLabel.AnchorBottom = 0.5f;
+        _countdownLabel.OffsetLeft = -180.0f;
+        _countdownLabel.OffsetRight = 180.0f;
+        _countdownLabel.OffsetTop = -90.0f;
+        _countdownLabel.OffsetBottom = 90.0f;
+        _countdownLabel.AddThemeColorOverride("font_outline_color", Hex("0b0214"));
+        _countdownLabel.AddThemeConstantOverride("outline_size", 10);
+        _countdownLabel.Visible = false;
+        screen.AddChild(_countdownLabel);
+
+        PanelContainer objectivePanel = new()
+        {
+            Name = "ObjectivePanel",
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        objectivePanel.AnchorLeft = 0.5f;
+        objectivePanel.AnchorRight = 0.5f;
+        objectivePanel.AnchorTop = 1.0f;
+        objectivePanel.AnchorBottom = 1.0f;
+        objectivePanel.OffsetLeft = -370.0f;
+        objectivePanel.OffsetRight = 370.0f;
+        objectivePanel.OffsetTop = -60.0f;
+        objectivePanel.OffsetBottom = -16.0f;
+        objectivePanel.AddThemeStyleboxOverride("panel", MakePillStyle(Hex("f5c451")));
+        screen.AddChild(objectivePanel);
+
+        _objectiveLabel = MakeLabel("EARN $750  //  STOP IN A GLOWING PICKUP ZONE", _fontBody, 23, Colors.White, HorizontalAlignment.Center);
+        _objectiveLabel.Name = "ObjectiveLabel";
+        _objectiveLabel.AddThemeColorOverride("font_color", Hex("f7f4ff"));
+        objectivePanel.AddChild(_objectiveLabel);
+
+        _speedometer = new RetroSpeedometer(_fontBody, _fontPixel) { Name = "SpeedometerGauge" };
+        _speedometer.AnchorLeft = 1.0f;
+        _speedometer.AnchorRight = 1.0f;
+        _speedometer.AnchorTop = 1.0f;
+        _speedometer.AnchorBottom = 1.0f;
+        _speedometer.OffsetLeft = -202.0f;
+        _speedometer.OffsetRight = -18.0f;
+        _speedometer.OffsetTop = -202.0f;
+        _speedometer.OffsetBottom = -18.0f;
+        screen.AddChild(_speedometer);
 
         return screen;
     }
@@ -609,7 +703,7 @@ public partial class RetroNeonCabShell : CanvasLayer
 
         _pauseDriftLabel = AddStat(stats, "DRIFT METERS", "0m", Hex("7bb374"));
         _pauseSpeedLabel = AddStat(stats, "CURRENT SPEED", "000 MPH", Hex("fcd34d"));
-        AddStat(stats, "RIVALS OUT", "03 / 08", Hex("ff007f"));
+        _pauseRivalsLabel = AddStat(stats, "RIVALS OUT", "00 / 01", Hex("ff007f"));
 
         Button resume = MakePixelButton("RESUME RUN", true, 360.0f, 48.0f);
         resume.Name = "ResumeButton";
@@ -634,6 +728,56 @@ public partial class RetroNeonCabShell : CanvasLayer
 
         Label hint = MakeLabel("PRESS [ESC] AGAIN TO RESUME DIRECTLY", _fontBody, 17, Hex("5a576a"), HorizontalAlignment.Center);
         stack.AddChild(hint);
+
+        return screen;
+    }
+
+    private Control BuildResultsScreen()
+    {
+        Control screen = FullRectControl("ResultsScreen");
+        screen.MouseFilter = Control.MouseFilterEnum.Stop;
+        screen.AddChild(FullRectColor("ResultsBackdrop", new Color(0.035f, 0.012f, 0.067f, 0.97f)));
+
+        RetroGridBackground grid = new() { Name = "ResultsNeonGrid", Modulate = new Color(1, 1, 1, 0.3f) };
+        ConfigureFullRect(grid);
+        screen.AddChild(grid);
+
+        PanelContainer panel = MakePanel("ResultsPanel", 600.0f, 470.0f);
+        AnchorCenter(panel, 600.0f, 470.0f);
+        screen.AddChild(panel);
+
+        VBoxContainer stack = new()
+        {
+            Name = "ResultsStack",
+            Alignment = BoxContainer.AlignmentMode.Center
+        };
+        stack.AddThemeConstantOverride("separation", 18);
+        panel.AddChild(stack);
+
+        _resultTitleLabel = MakeLabel("SHIFT COMPLETE", _fontOrbitron, 48, Hex("fcd34d"), HorizontalAlignment.Center);
+        _resultTitleLabel.Name = "ResultTitleLabel";
+        stack.AddChild(_resultTitleLabel);
+
+        _resultSummaryLabel = MakeLabel("DOWNTOWN SHIFT COMPLETE", _fontBody, 28, Colors.White, HorizontalAlignment.Center);
+        _resultSummaryLabel.Name = "ResultSummaryLabel";
+        stack.AddChild(_resultSummaryLabel);
+
+        _resultStandingsLabel = MakeLabel("CASH: $0  •  RANK: 1/3", _fontBody, 30, Hex("00f0ff"), HorizontalAlignment.Center);
+        _resultStandingsLabel.Name = "ResultStandingsLabel";
+        stack.AddChild(WrapDarkBox("ResultStandingsBox", _resultStandingsLabel));
+
+        Label hint = MakeLabel("THE CITY IS READY FOR ANOTHER SHIFT", _fontPixel, 13, Hex("ff007f"), HorizontalAlignment.Center);
+        stack.AddChild(hint);
+
+        Button restart = MakePixelButton("RUN IT AGAIN", true, 380.0f, 54.0f);
+        restart.Name = "ResultRestartButton";
+        restart.Pressed += RestartRun;
+        stack.AddChild(restart);
+
+        Button main = MakePixelButton("BACK TO MAIN", false, 380.0f, 50.0f);
+        main.Name = "ResultMainButton";
+        main.Pressed += ExitToMainMenu;
+        stack.AddChild(main);
 
         return screen;
     }
@@ -775,6 +919,8 @@ public partial class RetroNeonCabShell : CanvasLayer
         _pauseScreen.Visible = screen == ShellScreen.Paused || (screen == ShellScreen.Settings && _previousScreen == ShellScreen.Paused);
         _settingsScreen.Visible = screen == ShellScreen.Settings;
         _creditsScreen.Visible = screen == ShellScreen.Credits;
+        _resultsScreen.Visible = screen == ShellScreen.Results;
+        _audioButton.Visible = screen == ShellScreen.Main || screen == ShellScreen.Multiplayer || screen == ShellScreen.Settings || screen == ShellScreen.Credits;
 
         bool gameplayActive = screen == ShellScreen.Gameplay;
         if (GetTree() != null)
@@ -790,27 +936,48 @@ public partial class RetroNeonCabShell : CanvasLayer
             FocusFirstButton(_settingsScreen);
         else if (screen == ShellScreen.Credits)
             FocusFirstButton(_creditsScreen);
+        else if (screen == ShellScreen.Results)
+            FocusFirstButton(_resultsScreen);
     }
 
     private void UpdateGameplayStats(float speedMetersPerSecond)
     {
-        int scoreValue = Mathf.RoundToInt((float)_score);
         int mph = Mathf.RoundToInt(speedMetersPerSecond * 2.23694f);
 
         int peerId = IsNetworked() ? Multiplayer.GetUniqueId() : 1;
         int cash = GameManager.Instance != null ? GameManager.Instance.GetPlayerMoney(peerId) : 0;
         int health = GameManager.Instance != null ? GameManager.Instance.GetPlayerHealth(peerId) : 100;
+        TaxiMode mode = TaxiMode.Instance;
 
         if (_scoreLabel != null)
             _scoreLabel.Text = $"CASH: ${cash}";
         if (_boostLabel != null)
             _boostLabel.Text = $"HP: {health}%";
-        if (_speedLabel != null)
-            _speedLabel.Text = $"SPEED: {mph:000} MPH";
-        if (_timerLabel != null && !IsNetworked())
-            _timerLabel.Text = "TIME: SOLO";
-        if (_rankLabel != null && !IsNetworked())
-            _rankLabel.Text = "RANK: --";
+        if (_speedometer != null)
+        {
+            _speedometer.CurrentSpeed = mph;
+            _speedometer.QueueRedraw();
+        }
+        if (_timerLabel != null)
+        {
+            if (mode?.Phase == TaxiMode.MatchPhase.Countdown)
+            {
+                _timerLabel.Text = $"START: {Mathf.Max(1, Mathf.CeilToInt((float)mode.CountdownRemaining))}";
+            }
+            else if (mode?.Phase == TaxiMode.MatchPhase.Active)
+            {
+                int totalSeconds = Mathf.Max(0, Mathf.CeilToInt((float)mode.TimeRemaining));
+                int minutes = totalSeconds / 60;
+                int seconds = totalSeconds % 60;
+                _timerLabel.Text = $"TIME: {minutes:00}:{seconds:00}";
+            }
+            else if (mode?.Phase == TaxiMode.MatchPhase.Finished)
+                _timerLabel.Text = "TIME: DONE";
+            else
+                _timerLabel.Text = "TIME: --:--";
+        }
+        if (_rankLabel != null && mode != null)
+            _rankLabel.Text = $"RANK: {mode.GetRank(peerId)}/{Mathf.Max(1, mode.Scores.Count)}";
 
         if (_kart != null && GodotObject.IsInstanceValid(_kart))
         {
@@ -818,9 +985,15 @@ public partial class RetroNeonCabShell : CanvasLayer
             {
                 var passenger = _kart.ActivePassenger.Value;
                 int panic = Mathf.RoundToInt(_kart.PanicMeter);
+                Vector3 destination = mode?.GetPlayerDestination(peerId) ?? Vector3.Zero;
+                if (destination == Vector3.Zero && mode != null)
+                    destination = mode.ActiveDestination;
+                int distance = destination == Vector3.Zero ? 0 : Mathf.RoundToInt(_kart.GlobalPosition.DistanceTo(destination));
 
                 if (_checkpointLabel != null)
-                    _checkpointLabel.Text = $"PANIC: {panic}%";
+                    _checkpointLabel.Text = $"DROPOFF: {distance}m • PANIC {panic}%";
+                if (_objectiveLabel != null)
+                    _objectiveLabel.Text = "DELIVER THE FARE  //  KEEP PANIC BELOW 100%";
 
                 if (_driftMetersLabel != null)
                 {
@@ -840,8 +1013,15 @@ public partial class RetroNeonCabShell : CanvasLayer
                 else
                 {
                     if (_checkpointLabel != null)
-                        _checkpointLabel.Text = "FARE: SEARCHING...";
+                    {
+                        Vector3 pickup = mode?.GetNearestPickupPosition(_kart.GlobalPosition) ?? Vector3.Zero;
+                        int distance = pickup == Vector3.Zero ? 0 : Mathf.RoundToInt(_kart.GlobalPosition.DistanceTo(pickup));
+                        _checkpointLabel.Text = pickup == Vector3.Zero ? "FARE: SEARCHING..." : $"PICKUP: {distance}m";
+                    }
                 }
+
+                if (_objectiveLabel != null && mode != null)
+                    _objectiveLabel.Text = $"EARN ${mode.WinningCashTarget}  //  STOP IN A GLOWING PICKUP ZONE";
 
                 if (_driftMetersLabel != null)
                     _driftMetersLabel.Text = "NO PASSENGER";
@@ -863,6 +1043,19 @@ public partial class RetroNeonCabShell : CanvasLayer
             _pauseDriftLabel.Text = $"{Mathf.RoundToInt((float)_driftMeters):N0}m";
         if (_pauseSpeedLabel != null)
             _pauseSpeedLabel.Text = $"{mph:000} MPH";
+        if (_pauseRivalsLabel != null)
+        {
+            if (IsNetworked())
+            {
+                int rivals = Multiplayer.GetPeers().Length;
+                _pauseRivalsLabel.Text = $"{rivals:02} / {rivals + 1:02}";
+            }
+            else
+            {
+                int drivers = Mathf.Max(1, GameManager.Instance?.GetRegisteredPlayerCount() ?? 1);
+                _pauseRivalsLabel.Text = $"{drivers - 1:00} / {drivers:00}";
+            }
+        }
     }
 
     private float GetKartSpeedMetersPerSecond()
@@ -899,7 +1092,8 @@ public partial class RetroNeonCabShell : CanvasLayer
             _gameplayScreen != null &&
             _pauseScreen != null &&
             _settingsScreen != null &&
-            _creditsScreen != null;
+            _creditsScreen != null &&
+            _resultsScreen != null;
     }
 
     private void ToggleAudio()
@@ -937,22 +1131,73 @@ public partial class RetroNeonCabShell : CanvasLayer
         SetConnectionStatus(message?.ToUpperInvariant() ?? state.ToString().ToUpperInvariant(), state == MultiplayerManager.ConnectionState.Failed);
 
         if (state == MultiplayerManager.ConnectionState.InMatch || state == MultiplayerManager.ConnectionState.Hosting)
+        {
             StartRun();
+            SetMultiplayerButtonsDisabled(false);
+        }
         else if (state == MultiplayerManager.ConnectionState.Disconnected || state == MultiplayerManager.ConnectionState.Failed)
+        {
             ShowScreen(ShellScreen.Multiplayer);
+            SetMultiplayerButtonsDisabled(false);
+        }
+        else if (state == MultiplayerManager.ConnectionState.Connecting)
+        {
+            SetMultiplayerButtonsDisabled(true);
+        }
+    }
+
+    private void SetMultiplayerButtonsDisabled(bool disabled)
+    {
+        if (_hostButton != null)
+            _hostButton.Disabled = disabled;
+        if (_joinButton != null)
+            _joinButton.Disabled = disabled;
     }
 
     private void OnMatchStateChanged(double timeRemaining, bool matchActive, int winnerPeerId)
     {
-        int totalSeconds = Mathf.Max(0, Mathf.RoundToInt((float)timeRemaining));
+        TaxiMode mode = TaxiMode.Instance;
+        int totalSeconds = Mathf.Max(0, Mathf.CeilToInt((float)timeRemaining));
         int minutes = totalSeconds / 60;
         int seconds = totalSeconds % 60;
 
-        if (_timerLabel != null)
-            _timerLabel.Text = matchActive ? $"TIME: {minutes:00}:{seconds:00}" : "TIME: DONE";
+        if (_countdownLabel != null)
+        {
+            bool countingDown = mode?.Phase == TaxiMode.MatchPhase.Countdown;
+            _countdownLabel.Visible = countingDown;
+            _countdownLabel.Text = countingDown
+                ? Mathf.Max(1, Mathf.CeilToInt((float)mode.CountdownRemaining)).ToString()
+                : "";
+        }
 
-        if (!matchActive && winnerPeerId > 0)
-            SetConnectionStatus($"WINNER: DRIVER {winnerPeerId}", false);
+        if (_timerLabel != null && mode?.Phase == TaxiMode.MatchPhase.Active)
+            _timerLabel.Text = $"TIME: {minutes:00}:{seconds:00}";
+
+        if (mode?.Phase == TaxiMode.MatchPhase.Finished && winnerPeerId > 0 && _currentScreen != ShellScreen.Results)
+            ShowResults(winnerPeerId);
+    }
+
+    private void ShowResults(int winnerPeerId)
+    {
+        TaxiMode mode = TaxiMode.Instance;
+        int localPeerId = IsNetworked() ? Multiplayer.GetUniqueId() : 1;
+        int score = mode?.GetScore(localPeerId) ?? 0;
+        int rank = mode?.GetRank(localPeerId) ?? 1;
+        int totalDrivers = Mathf.Max(1, mode?.Scores.Count ?? 1);
+        bool playerWon = winnerPeerId == localPeerId;
+
+        if (_resultTitleLabel != null)
+        {
+            _resultTitleLabel.Text = playerWon ? "SHIFT CRUSHED!" : "SHIFT OVER";
+            _resultTitleLabel.AddThemeColorOverride("font_color", playerWon ? Hex("fcd34d") : Hex("ff007f"));
+        }
+
+        if (_resultSummaryLabel != null)
+            _resultSummaryLabel.Text = playerWon ? "YOU OWNED THE DOWNTOWN SHIFT" : $"DRIVER {winnerPeerId} TOOK THE SHIFT";
+        if (_resultStandingsLabel != null)
+            _resultStandingsLabel.Text = $"CASH: ${score}  •  RANK: {rank}/{totalDrivers}";
+
+        ShowScreen(ShellScreen.Results);
     }
 
     private void OnScoreboardChanged(int peerId, int score, int rank)
@@ -1075,15 +1320,15 @@ public partial class RetroNeonCabShell : CanvasLayer
         parent.AddChild(item);
     }
 
-    private PanelContainer WrapPill(string name, Label label, Color accentColor)
+    private PanelContainer WrapPill(string name, Label label, Color accentColor, float minimumWidth = 126.0f)
     {
         PanelContainer panel = new()
         {
             Name = name,
-            CustomMinimumSize = new Vector2(146, 42),
+            CustomMinimumSize = new Vector2(minimumWidth, 42),
             MouseFilter = Control.MouseFilterEnum.Ignore
         };
-        panel.AddThemeStyleboxOverride("panel", MakePillStyle());
+        panel.AddThemeStyleboxOverride("panel", MakePillStyle(accentColor));
         label.AddThemeColorOverride("font_color", accentColor);
         panel.AddChild(label);
         return panel;
@@ -1123,7 +1368,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         };
         button.AddThemeFontOverride("font", _fontPixel);
         button.AddThemeFontSizeOverride("font_size", 13);
-        button.AddThemeColorOverride("font_focus_color", Colors.White);
+        button.AddThemeColorOverride("font_focus_color", Hex("100a20"));
         ApplyPixelButtonStyle(button, green);
         return button;
     }
@@ -1150,19 +1395,20 @@ public partial class RetroNeonCabShell : CanvasLayer
         if (button == null)
             return;
 
-        Color bg = green ? Hex("7bb374") : Hex("8c89a0");
-        Color hover = green ? Hex("8cc485") : Hex("9d9aac");
-        Color pressed = green ? Hex("4d7c48") : Hex("5a576a");
-        Color text = green ? Hex("122c10") : Hex("efeff5");
+        Color bg = green ? Hex("10142a") : Hex("21152f");
+        Color border = green ? Hex("35e7f2") : Hex("6e5d89");
+        Color hover = green ? Hex("35e7f2") : Hex("342044");
+        Color text = green ? Hex("35e7f2") : Hex("f2efff");
 
-        button.AddThemeStyleboxOverride("normal", MakeButtonStyle(bg, green));
-        button.AddThemeStyleboxOverride("hover", MakeButtonStyle(hover, green));
-        button.AddThemeStyleboxOverride("pressed", MakeButtonStyle(pressed, green));
-        button.AddThemeStyleboxOverride("focus", MakeButtonStyle(hover, green));
+        button.AddThemeStyleboxOverride("normal", MakeButtonStyle(bg, border, Hex("080612")));
+        button.AddThemeStyleboxOverride("hover", MakeButtonStyle(hover, green ? Hex("a9fbff") : Hex("a18abd"), Hex("080612")));
+        button.AddThemeStyleboxOverride("pressed", MakeButtonStyle(Hex("d72676"), Hex("ff7eb6"), Hex("080612")));
+        button.AddThemeStyleboxOverride("focus", MakeButtonStyle(Hex("f5c451"), Hex("fff0a8"), Hex("d72676")));
         button.AddThemeColorOverride("font_color", text);
-        button.AddThemeColorOverride("font_hover_color", text);
+        button.AddThemeColorOverride("font_hover_color", green ? Hex("090717") : Hex("f7f4ff"));
         button.AddThemeColorOverride("font_pressed_color", Colors.White);
-        button.AddThemeColorOverride("font_outline_color", green ? Hex("a2dca0") : Hex("312e40"));
+        button.AddThemeColorOverride("font_focus_color", Hex("090717"));
+        button.AddThemeColorOverride("font_outline_color", Hex("090717"));
         button.AddThemeConstantOverride("outline_size", 1);
     }
 
@@ -1268,8 +1514,8 @@ public partial class RetroNeonCabShell : CanvasLayer
         if (_crtEnabled)
         {
             Vector2 size = GetViewport().GetVisibleRect().Size;
-            _crtWarp.Scale = new Vector2(1.02f, 1.02f);
-            _crtWarp.Position = size * -0.01f;
+            _crtWarp.Scale = new Vector2(1.01f, 1.01f);
+            _crtWarp.Position = size * -0.005f;
         }
         else
         {
@@ -1278,33 +1524,33 @@ public partial class RetroNeonCabShell : CanvasLayer
         }
     }
 
-    private StyleBoxFlat MakeButtonStyle(Color bg, bool green)
+    private StyleBoxFlat MakeButtonStyle(Color bg, Color border, Color shadow)
     {
         StyleBoxFlat style = new()
         {
             BgColor = bg,
-            BorderColor = green ? Colors.Black : Hex("1a1921"),
-            ShadowColor = green ? Hex("4d7c48") : Hex("5a576a"),
-            ShadowSize = 4,
-            ShadowOffset = new Vector2(4, 4)
+            BorderColor = border,
+            ShadowColor = shadow,
+            ShadowSize = 3,
+            ShadowOffset = new Vector2(3, 3)
         };
-        style.SetBorderWidthAll(4);
+        style.SetBorderWidthAll(3);
         style.SetCornerRadiusAll(0);
         style.SetContentMarginAll(8);
         return style;
     }
 
-    private StyleBoxFlat MakePillStyle()
+    private StyleBoxFlat MakePillStyle(Color accentColor)
     {
         StyleBoxFlat style = new()
         {
-            BgColor = new Color(0, 0, 0, 0.62f),
-            BorderColor = Hex("1a1921"),
-            ShadowColor = Colors.Black,
-            ShadowSize = 3,
-            ShadowOffset = new Vector2(3, 3)
+            BgColor = new Color(0.025f, 0.02f, 0.08f, 0.88f),
+            BorderColor = new Color(accentColor.R, accentColor.G, accentColor.B, 0.82f),
+            ShadowColor = new Color(0, 0, 0, 0.70f),
+            ShadowSize = 2,
+            ShadowOffset = new Vector2(2, 2)
         };
-        style.SetBorderWidthAll(4);
+        style.SetBorderWidthAll(2);
         style.SetCornerRadiusAll(0);
         style.SetContentMarginAll(8);
         return style;
@@ -1314,8 +1560,8 @@ public partial class RetroNeonCabShell : CanvasLayer
     {
         StyleBoxFlat style = new()
         {
-            BgColor = Hex("252331"),
-            BorderColor = Colors.Black,
+            BgColor = Hex("171126"),
+            BorderColor = Hex("6e5d89"),
             ShadowColor = Colors.Black,
             ShadowSize = 8,
             ShadowOffset = new Vector2(8, 8)
@@ -1368,7 +1614,7 @@ internal partial class RetroScanlineOverlay : Control
     {
         Vector2 size = Size;
         for (float y = 0.0f; y < size.Y; y += 4.0f)
-            DrawRect(new Rect2(0.0f, y + 2.0f, size.X, 2.0f), new Color(0, 0, 0, 0.25f));
+            DrawRect(new Rect2(0.0f, y + 3.0f, size.X, 1.0f), new Color(0, 0, 0, 0.12f));
     }
 
     public override void _Notification(int what)
@@ -1388,10 +1634,10 @@ internal partial class RetroVignetteOverlay : Control
     public override void _Draw()
     {
         Vector2 size = Size;
-        DrawRect(new Rect2(0, 0, size.X, 70), new Color(0, 0, 0, 0.25f));
-        DrawRect(new Rect2(0, size.Y - 120, size.X, 120), new Color(0, 0, 0, 0.45f));
-        DrawRect(new Rect2(0, 0, 90, size.Y), new Color(0, 0, 0, 0.35f));
-        DrawRect(new Rect2(size.X - 90, 0, 90, size.Y), new Color(0, 0, 0, 0.35f));
+        DrawRect(new Rect2(0, 0, size.X, 58), new Color(0, 0, 0, 0.12f));
+        DrawRect(new Rect2(0, size.Y - 90, size.X, 90), new Color(0, 0, 0, 0.20f));
+        DrawRect(new Rect2(0, 0, 58, size.Y), new Color(0, 0, 0, 0.16f));
+        DrawRect(new Rect2(size.X - 58, 0, 58, size.Y), new Color(0, 0, 0, 0.16f));
     }
 
     public override void _Notification(int what)
@@ -1412,20 +1658,20 @@ internal partial class RetroGridBackground : Control
     {
         Vector2 size = Size;
         float horizon = size.Y * 0.50f;
-        Color lineColor = new(1.0f, 0.0f, 0.50f, 0.40f);
+        Color lineColor = new(1.0f, 0.0f, 0.50f, 0.24f);
 
         for (int i = -12; i <= 12; i++)
         {
             float topX = size.X * 0.5f + i * 23.0f;
             float bottomX = size.X * 0.5f + i * 96.0f;
-            DrawLine(new Vector2(topX, horizon), new Vector2(bottomX, size.Y), lineColor, 2.0f);
+            DrawLine(new Vector2(topX, horizon), new Vector2(bottomX, size.Y), lineColor, 1.0f);
         }
 
         for (int i = 0; i < 14; i++)
         {
             float t = i / 13.0f;
             float y = Mathf.Lerp(horizon, size.Y, t * t);
-            DrawLine(new Vector2(0, y), new Vector2(size.X, y), lineColor, 2.0f);
+            DrawLine(new Vector2(0, y), new Vector2(size.X, y), lineColor, 1.0f);
         }
     }
 
@@ -1488,5 +1734,95 @@ internal partial class RetroCheckerboardOverlay : Control
     {
         if (what == NotificationResized)
             QueueRedraw();
+    }
+}
+
+internal partial class RetroSpeedometer : Control
+{
+    private readonly FontFile _fontBody;
+    private readonly FontFile _fontPixel;
+
+    public float CurrentSpeed { get; set; } = 0.0f;
+    public float MaxSpeed { get; set; } = 100.0f;
+
+    public RetroSpeedometer(FontFile fontBody, FontFile fontPixel)
+    {
+        _fontBody = fontBody;
+        _fontPixel = fontPixel;
+        MouseFilter = MouseFilterEnum.Ignore;
+    }
+
+    public override void _Draw()
+    {
+        Vector2 size = Size;
+        Vector2 center = size * 0.5f;
+        float radius = Mathf.Min(size.X, size.Y) * 0.45f;
+
+        // 1. Draw dark background circle with a neon-tinted background color
+        DrawCircle(center, radius, new Color(0.025f, 0.02f, 0.08f, 0.88f));
+
+        // 2. Draw circular border ring (glow style using neon cyan)
+        Color ringColor = Color.FromHtml("#00f0ff");
+        float startAngleRad = Mathf.DegToRad(135.0f);
+        float endAngleRad = Mathf.DegToRad(405.0f);
+        DrawArc(center, radius - 4.0f, startAngleRad, endAngleRad, 64, ringColor, 4.0f);
+
+        // 3. Draw tick marks and values
+        for (int s = 0; s <= 100; s += 10)
+        {
+            float t = s / 100.0f;
+            float angleDeg = 135.0f + t * 270.0f;
+            float angleRad = Mathf.DegToRad(angleDeg);
+            Vector2 dir = new Vector2(Mathf.Cos(angleRad), Mathf.Sin(angleRad));
+
+            bool isMajor = s % 20 == 0;
+            float tickStart = radius - (isMajor ? 16.0f : 10.0f);
+            float tickEnd = radius - 6.0f;
+
+            Color tickColor = isMajor ? Color.FromHtml("#fcd34d") : Color.FromHtml("#efeff5");
+            DrawLine(center + dir * tickStart, center + dir * tickEnd, tickColor, isMajor ? 2.5f : 1.5f);
+
+            // Draw numbers for major ticks
+            if (isMajor)
+            {
+                float textDist = radius - 30.0f;
+                Vector2 textPos = center + dir * textDist;
+                string valStr = s.ToString();
+                Vector2 stringSize = _fontPixel.GetStringSize(valStr, HorizontalAlignment.Center, -1, 10);
+                DrawString(_fontPixel, textPos + new Vector2(0, stringSize.Y * 0.35f), valStr, HorizontalAlignment.Center, -1, 10, Color.FromHtml("#fcd34d"));
+            }
+        }
+
+        // 4. Draw digital display box framing the speed numbers (centered slightly above pivot)
+        Vector2 boxPos = center + new Vector2(-40.0f, -42.0f);
+        Vector2 boxSize = new Vector2(80.0f, 32.0f);
+        DrawRect(new Rect2(boxPos, boxSize), new Color(0.0f, 0.0f, 0.0f, 0.5f), true);
+        DrawRect(new Rect2(boxPos, boxSize), Color.FromHtml("#00f0ff"), false, 1.5f);
+
+        // 5. Draw digital speed value inside the frame
+        string speedStr = Mathf.RoundToInt(CurrentSpeed).ToString("000");
+        DrawString(_fontBody, center + new Vector2(0, -18.0f), speedStr, HorizontalAlignment.Center, -1, 26, Colors.White);
+
+        // 6. Draw speed unit text ("MPH") below the center pin
+        string unitStr = "MPH";
+        DrawString(_fontPixel, center + new Vector2(0, 36.0f), unitStr, HorizontalAlignment.Center, -1, 11, Color.FromHtml("#f5c451"));
+
+        // 7. Draw tapered neon needle pointing to current speed
+        float clampedSpeed = Mathf.Clamp(CurrentSpeed, 0.0f, MaxSpeed);
+        float needleAngleDeg = 135.0f + (clampedSpeed / MaxSpeed) * 270.0f;
+        float needleAngleRad = Mathf.DegToRad(needleAngleDeg);
+        Vector2 needleDir = new Vector2(Mathf.Cos(needleAngleRad), Mathf.Sin(needleAngleRad));
+        float needleLength = radius - 14.0f;
+
+        Color needleColor = Color.FromHtml("#ff007f"); // neon pink/red
+        Vector2 perp = new Vector2(-needleDir.Y, needleDir.X);
+        Vector2 p1 = center + perp * 3.5f;
+        Vector2 p2 = center - perp * 3.5f;
+        Vector2 p3 = center + needleDir * needleLength;
+        DrawPolygon(new Vector2[] { p1, p2, p3 }, new Color[] { needleColor, needleColor, needleColor });
+
+        // 8. Center Pin (layered circles)
+        DrawCircle(center, 9.0f, Color.FromHtml("#ff007f"));
+        DrawCircle(center, 4.0f, Color.FromHtml("#fcd34d"));
     }
 }

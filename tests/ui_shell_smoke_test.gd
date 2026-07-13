@@ -27,12 +27,15 @@ func _run() -> void:
 	var pause: Control = _find_control(shell, "PauseScreen")
 	var settings: Control = _find_control(shell, "SettingsScreen")
 	var credits: Control = _find_control(shell, "CreditsScreen")
-	_expect(main_menu != null and gameplay != null and pause != null and settings != null and credits != null, "all shell screens exist")
-	_expect(main_menu.visible and not gameplay.visible and not pause.visible and not settings.visible and not credits.visible, "main menu is the default screen")
+	var results: Control = _find_control(shell, "ResultsScreen")
+	_expect(main_menu != null and gameplay != null and pause != null and settings != null and credits != null and results != null, "all shell screens exist")
+	_expect(main_menu.visible and not gameplay.visible and not pause.visible and not settings.visible and not credits.visible and not results.visible, "main menu is the default screen")
 	_expect(paused, "game starts paused behind the main menu")
 
 	shell.call("StartRun")
 	_expect(gameplay.visible and not main_menu.visible and not paused, "StartRun enters active gameplay")
+	var countdown: Control = _find_control(shell, "CountdownLabel")
+	_expect(countdown != null and countdown.visible, "single-player run displays its start countdown")
 
 	shell.call("TogglePause")
 	_expect(pause.visible and gameplay.visible and paused, "TogglePause shows pause overlay and pauses gameplay")

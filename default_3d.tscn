@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://8sk8eoxjx5d3"]
+[gd_scene load_steps=10 format=3 uid="uid://8sk8eoxjx5d3"]
 
 [ext_resource type="PackedScene" uid="uid://cjlrpc3gabifw" path="res://kart.tscn" id="1_jvk4k"]
 [ext_resource type="Script" uid="uid://c24b6dbw8m32t" path="res://TrackCamera.cs" id="2_ta3w6"]
@@ -10,20 +10,30 @@
 
 [sub_resource type="Environment" id="Environment_race"]
 background_mode = 1
-background_color = Color(0.055, 0.068, 0.095, 1)
+background_color = Color(0.018, 0.012, 0.055, 1)
 ambient_light_source = 2
-ambient_light_color = Color(0.22, 0.27, 0.36, 1)
-ambient_light_energy = 0.46
+ambient_light_color = Color(0.22, 0.27, 0.56, 1)
+ambient_light_energy = 0.54
 tonemap_mode = 2
 glow_enabled = false
 fog_enabled = true
-fog_light_color = Color(0.25, 0.3, 0.42, 1)
-fog_density = 0.0022
+fog_light_color = Color(0.105, 0.055, 0.22, 1)
+fog_density = 0.003
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_erduv"]
 render_priority = -1
 shader = ExtResource("3_4swda")
-shader_parameter/pixel_size = 3
+shader_parameter/pixel_size = 2
+shader_parameter/color_steps = 28.0
+shader_parameter/dither_strength = 0.18
+shader_parameter/contrast = 1.03
+shader_parameter/saturation = 1.08
+shader_parameter/shadow_tint = Vector3(0.22, 0.14, 0.42)
+shader_parameter/shadow_tint_strength = 0.1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial_ground"]
+albedo_color = Color(0.012, 0.015, 0.035, 1)
+roughness = 0.96
 
 [sub_resource type="QuadMesh" id="QuadMesh_de8j7"]
 flip_faces = true
@@ -36,20 +46,21 @@ environment = SubResource("Environment_race")
 
 [node name="RaceSun" type="DirectionalLight3D" parent="."]
 rotation = Vector3(-0.82, -0.55, 0)
-light_color = Color(1, 0.78, 0.52, 1)
-light_energy = 1.25
-shadow_enabled = false
+light_color = Color(1, 0.49, 0.29, 1)
+light_energy = 0.78
+shadow_enabled = true
 
 [node name="PaddockFillLight" type="OmniLight3D" parent="."]
 position = Vector3(0, 10, -18)
-light_color = Color(0.45, 0.56, 0.85, 1)
-light_energy = 0.35
-omni_range = 90.0
+light_color = Color(0.12, 0.76, 1, 1)
+light_energy = 0.48
+omni_range = 105.0
 
 [node name="Ground" type="CSGBox3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 use_collision = true
 size = Vector3(620, 1, 460)
+material = SubResource("StandardMaterial_ground")
 
 [node name="TrackBuilder" type="Node3D" parent="."]
 script = ExtResource("4_tb")
@@ -104,4 +115,4 @@ mesh = SubResource("QuadMesh_de8j7")
 [node name="RetroNeonCabShell" parent="." instance=ExtResource("5_vrua2")]
 KartPath = NodePath("../Kart")
 PostProcessMeshPath = NodePath("../Camera3D/MeshInstance3D")
-DefaultPixelation = 4
+DefaultPixelation = 2

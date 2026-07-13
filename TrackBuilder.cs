@@ -38,6 +38,7 @@ public partial class TrackBuilder : Node3D
     private StandardMaterial3D _curbWhiteMaterial;
     private StandardMaterial3D _lightPoleMaterial;
     private StandardMaterial3D _lightHeadMaterial;
+    private StandardMaterial3D _lightHeadAltMaterial;
     private StandardMaterial3D _intersectionMaterial;
     private StandardMaterial3D _crosswalkMaterial;
     private float[] _verticalStreetCenters = Array.Empty<float>();
@@ -81,6 +82,8 @@ public partial class TrackBuilder : Node3D
         BuildCityLayout();
         GenerateRoadSurface();
         GenerateIntersections();
+        GenerateDepot();
+        GenerateWorldBounds();
         GenerateLaneMarkers();
         GenerateCurbs();
         GenerateCrosswalks();
@@ -89,6 +92,7 @@ public partial class TrackBuilder : Node3D
         LoadBuildingScenes();
         PlaceBuildings();
         PlaceDecorations();
+        GenerateNeonLandmarks();
     }
 
     private void LoadBuildingScenes()
@@ -135,25 +139,32 @@ public partial class TrackBuilder : Node3D
     {
         _roadMaterial = new StandardMaterial3D
         {
-            AlbedoColor = new Color(0.025f, 0.029f, 0.034f),
-            Roughness = 0.92f
+            AlbedoColor = new Color(0.038f, 0.043f, 0.088f),
+            Roughness = 0.9f,
+            Metallic = 0.06f
         };
 
         _laneMarkerMaterial = new StandardMaterial3D
         {
-            AlbedoColor = new Color(1.0f, 0.82f, 0.22f),
+            AlbedoColor = new Color(1.0f, 0.72f, 0.12f),
+            EmissionEnabled = true,
+            Emission = new Color(1.0f, 0.48f, 0.04f) * 0.55f,
             Roughness = 0.8f
         };
 
         _curbRedMaterial = new StandardMaterial3D
         {
-            AlbedoColor = new Color(0.78f, 0.08f, 0.06f),
+            AlbedoColor = new Color(1.0f, 0.02f, 0.46f),
+            EmissionEnabled = true,
+            Emission = new Color(1.0f, 0.0f, 0.38f) * 0.42f,
             Roughness = 0.82f
         };
 
         _curbWhiteMaterial = new StandardMaterial3D
         {
-            AlbedoColor = new Color(0.93f, 0.9f, 0.82f),
+            AlbedoColor = new Color(0.58f, 0.96f, 1.0f),
+            EmissionEnabled = true,
+            Emission = new Color(0.0f, 0.78f, 1.0f) * 0.36f,
             Roughness = 0.82f
         };
 
@@ -165,19 +176,32 @@ public partial class TrackBuilder : Node3D
 
         _lightHeadMaterial = new StandardMaterial3D
         {
-            AlbedoColor = new Color(1.0f, 0.84f, 0.42f),
+            AlbedoColor = new Color(1.0f, 0.68f, 0.18f),
+            EmissionEnabled = true,
+            Emission = new Color(1.0f, 0.38f, 0.05f),
             Roughness = 0.35f
+        };
+
+        _lightHeadAltMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.1f, 0.9f, 1.0f),
+            EmissionEnabled = true,
+            Emission = new Color(0.0f, 0.72f, 1.0f),
+            Roughness = 0.3f
         };
 
         _intersectionMaterial = new StandardMaterial3D
         {
-            AlbedoColor = new Color(0.032f, 0.034f, 0.04f),
-            Roughness = 0.9f
+            AlbedoColor = new Color(0.04f, 0.038f, 0.09f),
+            Roughness = 0.86f,
+            Metallic = 0.08f
         };
 
         _crosswalkMaterial = new StandardMaterial3D
         {
-            AlbedoColor = new Color(0.88f, 0.84f, 0.72f),
+            AlbedoColor = new Color(0.7f, 0.95f, 1.0f),
+            EmissionEnabled = true,
+            Emission = new Color(0.15f, 0.65f, 0.85f) * 0.26f,
             Roughness = 0.82f
         };
     }
@@ -240,6 +264,221 @@ public partial class TrackBuilder : Node3D
                 _intersectionPositions.Add(pos);
             }
         }
+    }
+
+    public Transform3D GetSpawnTransform(int slot)
+    {
+        Vector3 depot = GetDepotPosition();
+        float lateralOffset = (slot - 1) * 3.4f;
+        Vector3 position = depot + Vector3.Back * 6.0f + Vector3.Right * lateralOffset + Vector3.Up * 0.65f;
+        return new Transform3D(Basis.Identity, position);
+    }
+
+    public Vector3 GetDepotPosition()
+    {
+        if (_intersectionPositions.Count == 0)
+            return new Vector3(0.0f, 0.1f, 0.0f);
+
+        Vector3 nearest = _intersectionPositions[0];
+        float nearestDistance = nearest.LengthSquared();
+        foreach (Vector3 position in _intersectionPositions)
+        {
+            float distance = position.LengthSquared();
+            if (distance < nearestDistance)
+            {
+                nearest = position;
+                nearestDistance = distance;
+            }
+        }
+
+        return nearest;
+    }
+
+    public Vector3 GetNearestIntersection(Vector3 position)
+    {
+        if (_intersectionPositions.Count == 0)
+            return position;
+
+        Vector3 nearest = _intersectionPositions[0];
+        float nearestDistance = position.DistanceSquaredTo(nearest);
+        foreach (Vector3 intersection in _intersectionPositions)
+        {
+            float distance = position.DistanceSquaredTo(intersection);
+            if (distance < nearestDistance)
+            {
+                nearest = intersection;
+                nearestDistance = distance;
+            }
+        }
+
+        return nearest;
+    }
+
+    public List<Vector3> BuildStreetRoute(Vector3 from, Vector3 to)
+    {
+        var route = new List<Vector3>();
+        if (_intersectionPositions.Count == 0)
+        {
+            route.Add(to);
+            return route;
+        }
+
+        (int startColumn, int startRow) = GetNearestIntersectionCoordinates(from);
+        (int targetColumn, int targetRow) = GetNearestIntersectionCoordinates(to);
+        int column = startColumn;
+        int row = startRow;
+
+        bool travelRowsFirst = Mathf.Abs(from.Z - HorizontalStreetCoordinate(startRow)) <=
+            Mathf.Abs(from.X - VerticalStreetCoordinate(startColumn));
+
+        if (travelRowsFirst)
+        {
+            AppendRowRoute(route, column, ref row, targetRow);
+            AppendColumnRoute(route, row, ref column, targetColumn);
+        }
+        else
+        {
+            AppendColumnRoute(route, row, ref column, targetColumn);
+            AppendRowRoute(route, column, ref row, targetRow);
+        }
+
+        if (route.Count == 0 || route[^1].DistanceSquaredTo(to) > 0.25f)
+            route.Add(new Vector3(to.X, 0.1f, to.Z));
+
+        return route;
+    }
+
+    private (int Column, int Row) GetNearestIntersectionCoordinates(Vector3 position)
+    {
+        int nearestColumn = 0;
+        int nearestRow = 0;
+        float nearestDistance = float.MaxValue;
+
+        for (int column = 0; column < _verticalStreetCenters.Length; column++)
+        {
+            for (int row = 0; row < _horizontalStreetCenters.Length; row++)
+            {
+                Vector3 intersection = new(VerticalStreetCoordinate(column), 0.1f, HorizontalStreetCoordinate(row));
+                float distance = position.DistanceSquaredTo(intersection);
+                if (distance < nearestDistance)
+                {
+                    nearestColumn = column;
+                    nearestRow = row;
+                    nearestDistance = distance;
+                }
+            }
+        }
+
+        return (nearestColumn, nearestRow);
+    }
+
+    private void AppendRowRoute(List<Vector3> route, int column, ref int row, int targetRow)
+    {
+        int direction = Math.Sign(targetRow - row);
+        while (row != targetRow)
+        {
+            row += direction;
+            route.Add(new Vector3(VerticalStreetCoordinate(column), 0.1f, HorizontalStreetCoordinate(row)));
+        }
+    }
+
+    private void AppendColumnRoute(List<Vector3> route, int row, ref int column, int targetColumn)
+    {
+        int direction = Math.Sign(targetColumn - column);
+        while (column != targetColumn)
+        {
+            column += direction;
+            route.Add(new Vector3(VerticalStreetCoordinate(column), 0.1f, HorizontalStreetCoordinate(row)));
+        }
+    }
+
+    private void GenerateDepot()
+    {
+        Vector3 depotPosition = GetDepotPosition();
+        var depot = new Node3D { Name = "TaxiDepot", Position = depotPosition };
+        AddChild(depot);
+
+        var padMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.02f, 0.08f, 0.11f),
+            EmissionEnabled = true,
+            Emission = new Color(0.0f, 0.38f, 0.5f),
+            Roughness = 0.75f
+        };
+        var accentMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(1.0f, 0.0f, 0.5f),
+            EmissionEnabled = true,
+            Emission = new Color(1.0f, 0.0f, 0.5f) * 0.75f
+        };
+        var headerMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(1.0f, 0.72f, 0.08f),
+            EmissionEnabled = true,
+            Emission = new Color(1.0f, 0.38f, 0.03f) * 0.65f
+        };
+
+        depot.AddChild(new MeshInstance3D
+        {
+            Name = "DepotPad",
+            Mesh = new TorusMesh { InnerRadius = 7.0f, OuterRadius = 8.3f, Rings = 8, RingSegments = 32 },
+            MaterialOverride = padMaterial,
+            Position = Vector3.Up * 0.12f
+        });
+
+        for (int side = -1; side <= 1; side += 2)
+        {
+            depot.AddChild(new MeshInstance3D
+            {
+                Name = side < 0 ? "DepotPostLeft" : "DepotPostRight",
+                Mesh = new BoxMesh { Size = new Vector3(0.28f, 4.8f, 0.28f) },
+                MaterialOverride = accentMaterial,
+                Position = new Vector3(side * 8.2f, 2.4f, 8.0f)
+            });
+        }
+
+        depot.AddChild(new MeshInstance3D
+        {
+            Name = "DepotHeader",
+            Mesh = new BoxMesh { Size = new Vector3(16.7f, 0.38f, 0.38f) },
+            MaterialOverride = headerMaterial,
+            Position = new Vector3(0.0f, 4.8f, 8.0f)
+        });
+
+    }
+
+    private void GenerateWorldBounds()
+    {
+        const float wallThickness = 2.0f;
+        const float wallHeight = 5.0f;
+        float width = CityWidth() + 10.0f;
+        float depth = CityDepth() + 10.0f;
+        float centerX = CityCenterX();
+        float centerZ = CityCenterZ();
+
+        AddWorldCollider(
+            "WorldBoundaryNorth",
+            new Vector3(width, wallHeight, wallThickness),
+            new Vector3(centerX, wallHeight * 0.5f, CityMinZ() - 5.0f));
+        AddWorldCollider(
+            "WorldBoundarySouth",
+            new Vector3(width, wallHeight, wallThickness),
+            new Vector3(centerX, wallHeight * 0.5f, CityMaxZ() + 5.0f));
+        AddWorldCollider(
+            "WorldBoundaryWest",
+            new Vector3(wallThickness, wallHeight, depth),
+            new Vector3(CityMinX() - 5.0f, wallHeight * 0.5f, centerZ));
+        AddWorldCollider(
+            "WorldBoundaryEast",
+            new Vector3(wallThickness, wallHeight, depth),
+            new Vector3(CityMaxX() + 5.0f, wallHeight * 0.5f, centerZ));
+    }
+
+    private void AddWorldCollider(string name, Vector3 size, Vector3 position)
+    {
+        var body = new StaticBody3D { Name = name, Position = position, CollisionLayer = 1, CollisionMask = 0 };
+        body.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size } });
+        AddChild(body);
     }
 
     private void GenerateLaneMarkers()
@@ -366,7 +605,7 @@ public partial class TrackBuilder : Node3D
             var head = new MeshInstance3D
             {
                 Mesh = headMesh,
-                MaterialOverride = _lightHeadMaterial,
+                MaterialOverride = i % 3 == 0 ? _lightHeadAltMaterial : _lightHeadMaterial,
                 Transform = new Transform3D(basis, position + Vector3.Up * 5.35f + forward * 0.85f)
             };
             AddChild(head);
@@ -374,14 +613,49 @@ public partial class TrackBuilder : Node3D
 
             var light = new OmniLight3D
             {
-                LightColor = new Color(1.0f, 0.82f, 0.52f),
-                LightEnergy = TrackLightEnergy,
+                LightColor = i % 3 == 0 ? new Color(0.08f, 0.76f, 1.0f) : new Color(1.0f, 0.5f, 0.16f),
+                LightEnergy = TrackLightEnergy * (i % 3 == 0 ? 0.82f : 1.0f),
                 OmniRange = TrackLightRange,
                 ShadowEnabled = false,
                 Position = position + Vector3.Up * 4.9f + forward * 1.6f
             };
             AddChild(light);
             light.Name = $"TrackLightGlow{i:000}";
+        }
+    }
+
+    private void GenerateNeonLandmarks()
+    {
+        string[] messages = { "PAIN", "24H CAB", "NO BRAKES", "FARE//FASTER", "RUSH", "DOWNTOWN" };
+        Color[] colors =
+        {
+            new Color(1.0f, 0.02f, 0.48f),
+            new Color(0.0f, 0.88f, 1.0f),
+            new Color(1.0f, 0.72f, 0.1f)
+        };
+
+        int columns = CityColumnCount();
+        int rows = CityRowCount();
+        for (int i = 0; i < messages.Length; i++)
+        {
+            int column = i * 2 % columns;
+            int row = (i * 3 + 1) % rows;
+            Vector3 center = BlockCenter(column, row);
+            var sign = new Label3D
+            {
+                Name = $"NeonLandmark{i:00}",
+                Text = messages[i],
+                Font = GD.Load<Font>("res://assets/fonts/VT323-Regular.ttf"),
+                FontSize = 72,
+                PixelSize = 0.018f,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = false,
+                Modulate = colors[i % colors.Length],
+                OutlineModulate = new Color(0.025f, 0.01f, 0.06f),
+                OutlineSize = 16,
+                Position = center + Vector3.Up * (7.5f + i % 2 * 2.0f)
+            };
+            AddChild(sign);
         }
     }
 
@@ -422,6 +696,28 @@ public partial class TrackBuilder : Node3D
 
         AddChild(building);
         building.Name = $"BuildingBlock{column:00}_{row:00}_{slot:00}_{buildingIndex:000}";
+        AddBuildingCollision(building, buildingIndex);
+    }
+
+    private void AddBuildingCollision(Node3D building, int buildingIndex)
+    {
+        if (!TryGetLocalVisualBounds(building, out Aabb bounds))
+            return;
+
+        Vector3 size = bounds.Size;
+        size.X = Mathf.Max(1.0f, size.X * 0.86f);
+        size.Y = Mathf.Max(1.5f, size.Y);
+        size.Z = Mathf.Max(1.0f, size.Z * 0.86f);
+
+        var body = new StaticBody3D
+        {
+            Name = $"WorldCollider{buildingIndex:000}",
+            Position = bounds.GetCenter(),
+            CollisionLayer = 1,
+            CollisionMask = 0
+        };
+        body.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = size } });
+        AddChild(body);
     }
 
     private void PlaceDecorations()

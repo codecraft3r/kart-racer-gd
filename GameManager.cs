@@ -5,10 +5,11 @@ public partial class GameManager : Node
 {
     public static GameManager Instance { get; private set; }
 
+    [Export] public int SoloAiCount { get; set; } = 2;
+
     public event System.Action<int, Vector3> LocalPlayerSpawned;
 
     private const string KartScenePath = "res://kart.tscn";
-    private const string DepotPosition = "res://Depot"; // placeholder marker later
     private const double SnapshotInterval = 1.0 / 20.0;
 
     private readonly Dictionary<int, Kart> _playerKarts = new();
@@ -16,6 +17,7 @@ public partial class GameManager : Node
     private Kart _pendingLocalKart;
     private double _snapshotAccumulator;
     private bool _multiplayerSignalsConnected;
+    private readonly List<Kart> _aiKarts = new();
 
     public override void _Ready()
     {
@@ -47,10 +49,6 @@ public partial class GameManager : Node
             Instance = null;
     }
 
-    // Simple server-authoritative match timer (Phase 1 extension)
-    private double _matchTime = 300; // 5 minutes default
-    public bool MatchActive { get; private set; } = false;
-
     public void StartNetworkSession()
     {
         if (!Multiplayer.IsServer())
@@ -67,23 +65,135 @@ public partial class GameManager : Node
 
     public void ResetNetworkSession()
     {
+        TaxiMode.Instance?.ResetMatch();
+        Kart sceneKart = GetParent()?.GetNodeOrNull<Kart>("Kart");
+
         foreach (Kart kart in _playerKarts.Values)
-            kart.QueueFree();
+        {
+            if (GodotObject.IsInstanceValid(kart) && kart != sceneKart)
+                kart.QueueFree();
+        }
+
+        foreach (Kart aiKart in _aiKarts)
+        {
+            if (GodotObject.IsInstanceValid(aiKart))
+                aiKart.QueueFree();
+        }
 
         _playerKarts.Clear();
         _playerStates.Clear();
+        _aiKarts.Clear();
         _pendingLocalKart = null;
         _snapshotAccumulator = 0.0;
         ConfigureSinglePlayerKartForNetwork(false);
-        MatchActive = false;
     }
 
-    public void StartMatch(double durationSeconds = 300)
+    public void StartSoloSession()
     {
-        if (!Multiplayer.IsServer()) return;
-        _matchTime = durationSeconds;
-        MatchActive = true;
-        GD.Print($"Match started: {durationSeconds}s");
+        ResetSoloSession();
+
+        var localKart = GetParent()?.GetNodeOrNull<Kart>("Kart");
+        if (localKart != null)
+        {
+            _playerKarts[1] = localKart;
+            _playerStates[1] = new PlayerState();
+            localKart.OwnerPeerId = 1;
+            localKart.IsAI = false;
+            localKart.IsLocalPlayer = true;
+            localKart.UseLocalInput = true;
+            localKart.Visible = true;
+            localKart.Freeze = false;
+            localKart.ProcessMode = ProcessModeEnum.Inherit;
+            localKart.EnsureLocalPlayerFeatures();
+            localKart.ConfigureIdentityGlow(new Color(0.0f, 0.86f, 1.0f));
+            localKart.ResetForRun(GetSpawnTransform(0));
+        }
+
+        int aiCount = Mathf.Clamp(SoloAiCount, 0, 6);
+        for (int i = 0; i < aiCount; i++)
+        {
+            int aiId = 100 + i;
+
+            var kartScene = GD.Load<PackedScene>(KartScenePath);
+            var aiKart = kartScene.Instantiate<Kart>();
+            aiKart.Name = aiId.ToString();
+            aiKart.OwnerPeerId = aiId;
+            aiKart.IsAI = true;
+            aiKart.UseLocalInput = false;
+            aiKart.IsLocalPlayer = false;
+
+            var aiController = new KartAIController();
+            aiKart.AddChild(aiController);
+
+            GetParent()?.AddChild(aiKart);
+            aiKart.ConfigureIdentityGlow(i % 2 == 0 ? new Color(1.0f, 0.02f, 0.48f) : new Color(1.0f, 0.68f, 0.08f));
+            aiKart.ResetForRun(GetSpawnTransform(i + 1));
+            _playerKarts[aiId] = aiKart;
+            _playerStates[aiId] = new PlayerState();
+            _aiKarts.Add(aiKart);
+        }
+
+        TaxiMode.Instance?.StartMatch();
+    }
+
+    public void ResetSoloSession()
+    {
+        TaxiMode.Instance?.ResetMatch();
+
+        foreach (var aiKart in _aiKarts)
+        {
+            if (GodotObject.IsInstanceValid(aiKart))
+            {
+                aiKart.GetParent()?.RemoveChild(aiKart);
+                aiKart.QueueFree();
+            }
+        }
+        _aiKarts.Clear();
+
+        _playerKarts.Clear();
+        _playerStates.Clear();
+
+        var localKart = GetParent()?.GetNodeOrNull<Kart>("Kart");
+        if (localKart != null)
+        {
+            _playerKarts[1] = localKart;
+            _playerStates[1] = new PlayerState();
+            localKart.ClearPassenger();
+            localKart.SetBoardingProgress(0.0f);
+            localKart.SetControlsEnabled(true);
+        }
+    }
+
+    public Kart GetKart(int id)
+    {
+        return _playerKarts.TryGetValue(id, out Kart kart) && GodotObject.IsInstanceValid(kart) ? kart : null;
+    }
+
+    public int[] GetRegisteredPlayerIds()
+    {
+        var ids = new int[_playerKarts.Count];
+        _playerKarts.Keys.CopyTo(ids, 0);
+        System.Array.Sort(ids);
+        return ids;
+    }
+
+    public int GetRegisteredPlayerCount() => _playerKarts.Count;
+
+    public void SetAllKartControlsEnabled(bool enabled)
+    {
+        foreach (Kart kart in _playerKarts.Values)
+        {
+            if (GodotObject.IsInstanceValid(kart))
+                kart.SetControlsEnabled(enabled);
+        }
+    }
+
+    private Transform3D GetSpawnTransform(int slot)
+    {
+        if (TrackBuilder.Instance != null)
+            return TrackBuilder.Instance.GetSpawnTransform(slot);
+
+        return new Transform3D(Basis.Identity, new Vector3((slot - 1) * 3.4f, 0.65f, -12.0f));
     }
 
     public override void _PhysicsProcess(double delta)
@@ -91,22 +201,8 @@ public partial class GameManager : Node
         if (!Multiplayer.IsServer())
             return;
 
-        if (MatchActive)
-        {
-            _matchTime -= delta;
-            if (_matchTime <= 0)
-                EndMatch();
-        }
-
         if (HasActiveNetworkPeer())
             SendKartSnapshots(delta);
-    }
-
-    private void EndMatch()
-    {
-        MatchActive = false;
-        GD.Print("Match ended");
-        // TODO: Broadcast final scores
     }
 
     private void ConnectMultiplayerSignals()
@@ -211,6 +307,10 @@ public partial class GameManager : Node
         bool isLocalPlayer = id == Multiplayer.GetUniqueId();
         kart.IsLocalPlayer = isLocalPlayer;
         kart.UseLocalInput = !hasNetworkPeer || (Multiplayer.IsServer() && isLocalPlayer);
+        if (hasNetworkPeer && !isLocalPlayer)
+        {
+            kart.Freeze = true;
+        }
 
         AddChild(kart, true);
         _playerKarts[id] = kart;
@@ -341,8 +441,8 @@ public partial class GameManager : Node
     {
         if (!_playerKarts.TryGetValue(id, out Kart kart)) return;
 
-        kart.Position = new Vector3(0, 5, 0);
-        kart.LinearVelocity = Vector3.Zero;
+        int spawnSlot = id >= 100 ? id - 99 : 0;
+        kart.ResetForRun(GetSpawnTransform(spawnSlot));
 
         if (_playerStates.TryGetValue(id, out var state))
         {
@@ -457,9 +557,6 @@ public partial class GameManager : Node
         public int GroupSize;
         public float LoadTime; // 5-10s
     }
-
-    // Stub: Server will manage active pickup zones
-    private readonly List<Node> _pickupZones = new();
 
     // --- Phase 3 scaffolding: Weapon classes + inventory stubs ---
 

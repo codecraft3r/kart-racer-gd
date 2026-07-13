@@ -34,40 +34,58 @@ public partial class PickupZone : Area3D
         _visual = new Node3D { Name = "Visual" };
         AddChild(_visual);
 
-        // Color based on Wealth: Low = green, Medium = cyan, High = neon pink
-        Color zoneColor = new Color(0.48f, 0.70f, 0.45f, 0.45f); // Low: Greenish
+        // Color based on wealth, using the same broadcast palette as the HUD.
+        Color zoneColor = new Color(0.96f, 0.72f, 0.18f, 0.58f); // Low: Fare yellow
         if (Wealth == GameManager.CustomerWealth.Medium)
-            zoneColor = new Color(0.0f, 0.94f, 1.0f, 0.45f); // Medium: Cyan
+            zoneColor = new Color(0.1f, 0.86f, 0.95f, 0.58f); // Medium: Cyan
         else if (Wealth == GameManager.CustomerWealth.High)
-            zoneColor = new Color(1.0f, 0.0f, 0.5f, 0.45f); // High: Neon Pink
+            zoneColor = new Color(0.93f, 0.16f, 0.5f, 0.58f); // High: Neon pink
 
-        var beaconMesh = new CylinderMesh
+        var beaconMesh = new TorusMesh
         {
-            TopRadius = 5.0f,
-            BottomRadius = 5.0f,
-            Height = 0.15f,
-            RadialSegments = 32
+            InnerRadius = 4.1f,
+            OuterRadius = 5.0f,
+            Rings = 8,
+            RingSegments = 32
         };
         var beaconMaterial = new StandardMaterial3D
         {
             AlbedoColor = zoneColor,
             EmissionEnabled = true,
-            Emission = zoneColor * 0.8f,
-            Transparency = BaseMaterial3D.TransparencyEnum.Alpha
+            Emission = new Color(zoneColor.R, zoneColor.G, zoneColor.B) * 0.58f,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
         };
         var ring = new MeshInstance3D
         {
             Mesh = beaconMesh,
             MaterialOverride = beaconMaterial,
-            Position = new Vector3(0, 0.07f, 0)
+            Position = new Vector3(0, 0.14f, 0)
         };
         _visual.AddChild(ring);
+
+        for (int index = 0; index < 4; index++)
+        {
+            float angle = index * Mathf.Pi * 0.5f;
+            Vector3 direction = new(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle));
+            var bracket = new MeshInstance3D
+            {
+                Name = $"PickupBracket{index}",
+                Mesh = new BoxMesh
+                {
+                    Size = new Vector3(index % 2 == 0 ? 0.75f : 2.1f, 0.12f, index % 2 == 0 ? 2.1f : 0.75f)
+                },
+                MaterialOverride = beaconMaterial,
+                Position = direction * 4.55f + Vector3.Up * 0.14f
+            };
+            _visual.AddChild(bracket);
+        }
 
         var light = new OmniLight3D
         {
             LightColor = zoneColor,
-            LightEnergy = 1.2f,
-            OmniRange = 15.0f,
+            LightEnergy = 0.75f,
+            OmniRange = 11.0f,
             Position = new Vector3(0, 2.5f, 0)
         };
         _visual.AddChild(light);
@@ -102,7 +120,7 @@ public partial class PickupZone : Area3D
 
     public override void _PhysicsProcess(double delta)
     {
-        if (!Multiplayer.IsServer())
+        if (!Multiplayer.IsServer() || TaxiMode.Instance == null || !TaxiMode.Instance.MatchActive)
             return;
 
         if (_overlappingKarts.Count == 0)
@@ -110,7 +128,10 @@ public partial class PickupZone : Area3D
 
         // 1. Filter karts that are valid, stopped, and don't have passengers
         var validKarts = _overlappingKarts
-            .Where(k => IsInstanceValid(k) && k.LinearVelocity.Length() < 0.8f && !k.ActivePassenger.HasValue)
+            .Where(k => IsInstanceValid(k) &&
+                k.LinearVelocity.Length() < 0.8f &&
+                !k.ActivePassenger.HasValue &&
+                GameManager.Instance.GetPlayerHealth(k.OwnerPeerId) >= 100 - MaxAcceptableDamage)
             .ToList();
 
         if (validKarts.Count == 0)

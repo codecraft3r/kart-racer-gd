@@ -5,6 +5,14 @@ using System.Linq;
 
 public partial class TaxiMode : Node3D
 {
+    public enum MatchPhase
+    {
+        Idle,
+        Countdown,
+        Active,
+        Finished
+    }
+
     public static TaxiMode Instance { get; private set; }
 
     public event Action<int, int, int> ScoreboardChanged; // peerId, score, rank
@@ -12,15 +20,18 @@ public partial class TaxiMode : Node3D
     public event Action<double, bool, int> MatchStateChanged; // timeRemaining, matchActive, winnerPeerId
 
     [Export] public double MatchDurationSeconds = 180.0;
-    [Export] public int WinningCashTarget = 1500; // Target score to win
+    [Export] public double CountdownSeconds = 3.0;
+    [Export] public int WinningCashTarget = 750;
 
     public Vector3 ActiveDestination { get; private set; } = Vector3.Zero;
 
     private readonly Dictionary<int, int> _scores = new(); // peerId -> cash earned
     private readonly List<PickupZone> _activeZones = new();
     private double _timeRemaining;
+    private double _countdownRemaining;
     private bool _matchActive;
     private int _winnerPeerId;
+    private MatchPhase _phase = MatchPhase.Idle;
 
     // Track active drop-off destinations per player: peerId -> destination position
     private readonly Dictionary<int, Vector3> _playerDestinations = new();
@@ -48,14 +59,27 @@ public partial class TaxiMode : Node3D
 
     public override void _PhysicsProcess(double delta)
     {
-        if (!Multiplayer.IsServer() || !_matchActive)
+        if (!Multiplayer.IsServer())
+            return;
+
+        if (_phase == MatchPhase.Countdown)
+        {
+            _countdownRemaining = Math.Max(0.0, _countdownRemaining - delta);
+            if (_countdownRemaining <= 0.0)
+                BeginActiveMatch();
+            else
+                BroadcastMatchState();
+            return;
+        }
+
+        if (_phase != MatchPhase.Active)
             return;
 
         _timeRemaining = Math.Max(0.0, _timeRemaining - delta);
         if (_timeRemaining <= 0.0)
             EndMatch(FindLeader());
         else
-            Rpc(nameof(SyncMatchStateRpc), _timeRemaining, _matchActive, _winnerPeerId);
+            BroadcastMatchState();
     }
 
     public void StartMatch()
@@ -68,14 +92,45 @@ public partial class TaxiMode : Node3D
         ClearDropoffAreas();
         ClearPickupZones();
 
-        foreach (int peerId in GetConnectedPeerIds())
+        foreach (int peerId in GetMatchPlayerIds())
             _scores[peerId] = 0;
 
         _timeRemaining = MatchDurationSeconds;
+        _countdownRemaining = Math.Max(0.0, CountdownSeconds);
         _winnerPeerId = 0;
-        _matchActive = true;
+        _matchActive = false;
+        _phase = _countdownRemaining > 0.0 ? MatchPhase.Countdown : MatchPhase.Active;
 
         SpawnPickupZones();
+        GameManager.Instance?.SetAllKartControlsEnabled(_phase == MatchPhase.Active);
+        BroadcastFullState();
+
+        if (_phase == MatchPhase.Active)
+            BeginActiveMatch();
+    }
+
+    public void ResetMatch()
+    {
+        _matchActive = false;
+        _phase = MatchPhase.Idle;
+        _winnerPeerId = 0;
+        _timeRemaining = MatchDurationSeconds;
+        _countdownRemaining = 0.0;
+        _scores.Clear();
+        _playerDestinations.Clear();
+        ClearDropoffAreas();
+        ClearPickupZones();
+        ActiveDestination = Vector3.Zero;
+        GameManager.Instance?.SetAllKartControlsEnabled(true);
+        PublishLocalEvents();
+    }
+
+    private void BeginActiveMatch()
+    {
+        _countdownRemaining = 0.0;
+        _matchActive = true;
+        _phase = MatchPhase.Active;
+        GameManager.Instance?.SetAllKartControlsEnabled(true);
         BroadcastFullState();
     }
 
@@ -111,19 +166,27 @@ public partial class TaxiMode : Node3D
         if (!Multiplayer.IsServer())
             return;
 
+        if (peerId == Multiplayer.GetUniqueId())
+            return;
+
         int[] peerIds = _scores.Keys.OrderBy(id => id).ToArray();
         int[] scores = peerIds.Select(id => _scores[id]).ToArray();
         
         // Sync active destination if any
         Vector3 dest = _playerDestinations.TryGetValue(peerId, out Vector3 value) ? value : Vector3.Zero;
 
-        RpcId(peerId, nameof(SyncFullStateRpc), _timeRemaining, _matchActive, _winnerPeerId, dest, peerIds, scores);
+        RpcId(peerId, nameof(SyncFullStateRpc), _timeRemaining, _matchActive, _winnerPeerId, (int)_phase, _countdownRemaining, dest, peerIds, scores);
     }
 
     public IReadOnlyDictionary<int, int> Scores => _scores;
     public bool MatchActive => _matchActive;
     public double TimeRemaining => _timeRemaining;
+    public double CountdownRemaining => _countdownRemaining;
+    public MatchPhase Phase => _phase;
     public int WinnerPeerId => _winnerPeerId;
+
+    public int GetPhaseValue() => (int)_phase;
+    public int GetWinnerPeerId() => _winnerPeerId;
 
     private void SpawnPickupZones()
     {
@@ -213,7 +276,7 @@ public partial class TaxiMode : Node3D
     // Called by PickupZone when a player successfully boards a passenger
     public void OnPassengerBoarded(int peerId, GameManager.CustomerData customer)
     {
-        if (!Multiplayer.IsServer())
+        if (!Multiplayer.IsServer() || _phase != MatchPhase.Active)
             return;
 
         // Choose a random intersection for drop-off destination
@@ -223,8 +286,7 @@ public partial class TaxiMode : Node3D
         // Create Drop-off Beacon at destination
         SpawnDropoffBeacon(peerId, dest, customer.Wealth);
 
-        // Notify client about new destination
-        RpcId(peerId, nameof(SetDestinationRpc), dest);
+        NotifyDestination(peerId, dest);
 
         GD.Print($"TaxiMode: Peer {peerId} boarded passenger group of {customer.GroupSize}. Destination selected at {dest}");
     }
@@ -234,7 +296,7 @@ public partial class TaxiMode : Node3D
         if (TrackBuilder.Instance == null || TrackBuilder.Instance.IntersectionPositions.Count == 0)
             return new Vector3(0, 0.5f, 0);
 
-        var playerKart = GameManager.Instance.GetNodeOrNull<Kart>(peerId.ToString());
+        var playerKart = GameManager.Instance?.GetKart(peerId);
         Vector3 currentPos = playerKart != null ? playerKart.GlobalPosition : Vector3.Zero;
 
         // Filter intersections based on distance bounds
@@ -296,7 +358,7 @@ public partial class TaxiMode : Node3D
         area.AddChild(shape);
 
         // Visual Cylindrical Beacon
-        var visual = new Node3D { Name = "Visual" };
+        var visual = new Node3D { Name = "Visual", Visible = IsLocalPlayer(peerId) };
         area.AddChild(visual);
 
         var beaconMesh = new CylinderMesh
@@ -330,10 +392,10 @@ public partial class TaxiMode : Node3D
         };
         visual.AddChild(light);
 
-        area.GlobalPosition = position;
         area.BodyEntered += (body) => OnDropoffAreaEntered(body, peerId);
 
         AddChild(area);
+        area.GlobalPosition = position;
         _playerDropoffAreas[peerId] = area;
     }
 
@@ -366,14 +428,13 @@ public partial class TaxiMode : Node3D
         }
         _playerDropoffAreas.Remove(peerId);
 
-        // Notify client that active fare is cleared
-        RpcId(peerId, nameof(SetDestinationRpc), Vector3.Zero);
+        NotifyDestination(peerId, Vector3.Zero);
 
-        // Tell client's kart to clear its passenger
-        var kart = GameManager.Instance.GetNodeOrNull<Kart>(peerId.ToString());
+        var kart = GameManager.Instance?.GetKart(peerId);
         if (IsInstanceValid(kart))
         {
             kart.ClearPassenger();
+            kart.SetBoardingProgress(0.0f);
         }
     }
 
@@ -396,11 +457,13 @@ public partial class TaxiMode : Node3D
     private void EndMatch(int winnerPeerId)
     {
         _matchActive = false;
+        _phase = MatchPhase.Finished;
         _winnerPeerId = winnerPeerId;
         _timeRemaining = Math.Max(0.0, _timeRemaining);
         ClearDropoffAreas();
         ClearPickupZones();
-        Rpc(nameof(SyncMatchStateRpc), _timeRemaining, _matchActive, _winnerPeerId);
+        GameManager.Instance?.SetAllKartControlsEnabled(false);
+        BroadcastMatchState();
     }
 
     private int FindLeader()
@@ -418,6 +481,20 @@ public partial class TaxiMode : Node3D
             yield return peerId;
     }
 
+    private IEnumerable<int> GetMatchPlayerIds()
+    {
+        int[] registered = GameManager.Instance?.GetRegisteredPlayerIds();
+        if (registered != null && registered.Length > 0)
+        {
+            foreach (int id in registered)
+                yield return id;
+            yield break;
+        }
+
+        foreach (int id in GetConnectedPeerIds())
+            yield return id;
+    }
+
     private void BroadcastFullState()
     {
         int[] peerIds = _scores.Keys.OrderBy(id => id).ToArray();
@@ -425,11 +502,38 @@ public partial class TaxiMode : Node3D
         
         foreach (int id in GetConnectedPeerIds())
         {
+            if (id == Multiplayer.GetUniqueId())
+                continue;
             Vector3 dest = _playerDestinations.TryGetValue(id, out Vector3 val) ? val : Vector3.Zero;
-            RpcId(id, nameof(SyncFullStateRpc), _timeRemaining, _matchActive, _winnerPeerId, dest, peerIds, scores);
+            RpcId(id, nameof(SyncFullStateRpc), _timeRemaining, _matchActive, _winnerPeerId, (int)_phase, _countdownRemaining, dest, peerIds, scores);
         }
 
         PublishLocalEvents();
+    }
+
+    private void BroadcastMatchState()
+    {
+        foreach (int id in Multiplayer.GetPeers())
+            RpcId(id, nameof(SyncMatchStateRpc), _timeRemaining, _matchActive, _winnerPeerId, (int)_phase, _countdownRemaining);
+
+        PublishLocalEvents();
+    }
+
+    private bool IsLocalPlayer(int peerId)
+    {
+        return peerId == Multiplayer.GetUniqueId();
+    }
+
+    private void NotifyDestination(int peerId, Vector3 destination)
+    {
+        if (IsLocalPlayer(peerId))
+        {
+            SetDestinationRpc(destination);
+            return;
+        }
+
+        if (Multiplayer.GetPeers().Contains(peerId))
+            RpcId(peerId, nameof(SetDestinationRpc), destination);
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = true, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -440,11 +544,13 @@ public partial class TaxiMode : Node3D
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void SyncFullStateRpc(double timeRemaining, bool matchActive, int winnerPeerId, Vector3 destination, int[] peerIds, int[] scores)
+    private void SyncFullStateRpc(double timeRemaining, bool matchActive, int winnerPeerId, int phase, double countdownRemaining, Vector3 destination, int[] peerIds, int[] scores)
     {
         _timeRemaining = timeRemaining;
         _matchActive = matchActive;
         _winnerPeerId = winnerPeerId;
+        _phase = (MatchPhase)phase;
+        _countdownRemaining = countdownRemaining;
         _scores.Clear();
 
         int count = Math.Min(peerIds.Length, scores.Length);
@@ -457,11 +563,13 @@ public partial class TaxiMode : Node3D
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Unreliable)]
-    private void SyncMatchStateRpc(double timeRemaining, bool matchActive, int winnerPeerId)
+    private void SyncMatchStateRpc(double timeRemaining, bool matchActive, int winnerPeerId, int phase, double countdownRemaining)
     {
         _timeRemaining = timeRemaining;
         _matchActive = matchActive;
         _winnerPeerId = winnerPeerId;
+        _phase = (MatchPhase)phase;
+        _countdownRemaining = countdownRemaining;
         MatchStateChanged?.Invoke(_timeRemaining, _matchActive, _winnerPeerId);
     }
 
@@ -470,6 +578,36 @@ public partial class TaxiMode : Node3D
         MatchStateChanged?.Invoke(_timeRemaining, _matchActive, _winnerPeerId);
         foreach (KeyValuePair<int, int> entry in _scores)
             ScoreboardChanged?.Invoke(entry.Key, entry.Value, GetRank(entry.Key));
+    }
+
+    public Vector3 GetPlayerDestination(int peerId)
+    {
+        return _playerDestinations.TryGetValue(peerId, out Vector3 dest) ? dest : Vector3.Zero;
+    }
+
+    public Vector3 GetNearestPickupPosition(Vector3 from)
+    {
+        Vector3 nearest = Vector3.Zero;
+        float nearestDistance = float.MaxValue;
+        foreach (PickupZone zone in _activeZones)
+        {
+            if (!IsInstanceValid(zone) || zone.IsQueuedForDeletion())
+                continue;
+
+            float distance = from.DistanceSquaredTo(zone.GlobalPosition);
+            if (distance < nearestDistance)
+            {
+                nearest = zone.GlobalPosition;
+                nearestDistance = distance;
+            }
+        }
+
+        return nearest;
+    }
+
+    public int GetActivePickupCount()
+    {
+        return _activeZones.Count(zone => IsInstanceValid(zone) && !zone.IsQueuedForDeletion());
     }
 
     public int GetScore(int peerId)

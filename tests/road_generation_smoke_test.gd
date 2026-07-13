@@ -29,6 +29,9 @@ func _run() -> void:
 	var track_light_glows := _count_children_with_prefix(track_builder, "TrackLightGlow")
 	var building_nodes := _get_children_with_prefix(track_builder, "Building")
 	var decoration_nodes := _get_children_with_prefix(track_builder, "Decoration")
+	var building_colliders := _count_children_with_prefix(track_builder, "WorldCollider")
+	var world_boundaries := _count_children_with_prefix(track_builder, "WorldBoundary")
+	var depot: Node3D = track_builder.get_node_or_null("TaxiDepot")
 
 	var city_columns := int(track_builder.get("CityColumns"))
 	var city_rows := int(track_builder.get("CityRows"))
@@ -54,6 +57,9 @@ func _run() -> void:
 	_expect(_nodes_scaled_above_import_size(building_nodes, 1.1), "buildings scaled above raw import size")
 	_expect(_roads_have_width_hierarchy(track_builder, track_width), "city has wider avenues and narrower side streets")
 	_expect(_nodes_clear_of_road_bands(building_nodes, track_builder), "buildings stay inside blocks and clear of roads")
+	_expect(building_colliders == expected_buildings, "every generated building has coarse gameplay collision")
+	_expect(world_boundaries == 4, "city has four out-of-bounds barriers")
+	_expect(depot != null, "single-player taxi depot is generated")
 
 	if get_meta("failed", false):
 		quit(1)

@@ -124,6 +124,7 @@ public partial class MultiplayerManager : Node
     {
         GD.Print($"Received seed from server: {seed}");
         _syncedSeed = seed;
+        LoadMatchScene();
     }
 
     private void OnPeerDisconnected(long id)
@@ -135,7 +136,6 @@ public partial class MultiplayerManager : Node
     {
         GD.Print("Connected to server");
         SetState(ConnectionState.InMatch, "Connected");
-        LoadMatchScene();
     }
 
     private void OnConnectionFailed()

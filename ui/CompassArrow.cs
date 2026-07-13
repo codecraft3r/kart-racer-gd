@@ -54,27 +54,75 @@ public partial class CompassArrow : Node3D
             return;
         }
 
-        // Only show if there is an active destination
-        if (TaxiMode.Instance == null || TaxiMode.Instance.ActiveDestination == Vector3.Zero)
+        if (TaxiMode.Instance == null)
         {
             Visible = false;
             return;
         }
 
-        Visible = true;
         _timeAccumulator += (float)delta;
 
         // 1. Hover/floating animation
         float hoverOffset = Mathf.Sin(_timeAccumulator * 4.5f) * 0.15f;
         Position = new Vector3(0.0f, 2.6f + hoverOffset, 0.0f);
 
-        // 2. Point towards the destination in the horizontal plane (flat X-Z direction)
-        Vector3 dest = TaxiMode.Instance.ActiveDestination;
-        Vector3 targetPos = new Vector3(dest.X, GlobalPosition.Y, dest.Z);
+        Vector3 targetPos = Vector3.Zero;
+        Color arrowColor = new Color(0.0f, 0.95f, 1.0f); // Default Cyan
 
-        if (GlobalPosition.DistanceSquaredTo(targetPos) > 0.2f)
+        if (parentKart.ActivePassenger.HasValue)
+        {
+            Vector3 dest = TaxiMode.Instance.ActiveDestination;
+            targetPos = new Vector3(dest.X, GlobalPosition.Y, dest.Z);
+
+            var wealth = parentKart.ActivePassenger.Value.Wealth;
+            if (wealth == GameManager.CustomerWealth.Medium)
+                arrowColor = new Color(1.0f, 0.82f, 0.22f); // Amber
+            else if (wealth == GameManager.CustomerWealth.High)
+                arrowColor = new Color(1.0f, 0.0f, 0.5f); // Neon Pink
+
+            Visible = dest != Vector3.Zero;
+        }
+        else
+        {
+            // Find nearest active pickup zone
+            float nearestDist = float.MaxValue;
+            PickupZone nearestZone = null;
+
+            foreach (var child in TaxiMode.Instance.GetChildren())
+            {
+                if (child is PickupZone zone && GodotObject.IsInstanceValid(zone))
+                {
+                    float dist = GlobalPosition.DistanceSquaredTo(zone.GlobalPosition);
+                    if (dist < nearestDist)
+                    {
+                        nearestDist = dist;
+                        nearestZone = zone;
+                    }
+                }
+            }
+
+            if (nearestZone != null)
+            {
+                targetPos = new Vector3(nearestZone.GlobalPosition.X, GlobalPosition.Y, nearestZone.GlobalPosition.Z);
+                arrowColor = new Color(0.48f, 0.70f, 0.45f); // Green
+                Visible = true;
+            }
+            else
+            {
+                Visible = false;
+            }
+        }
+
+        if (Visible && GlobalPosition.DistanceSquaredTo(targetPos) > 0.2f)
         {
             LookAt(targetPos, Vector3.Up);
+
+            var material = _meshInstance?.MaterialOverride as StandardMaterial3D;
+            if (material != null)
+            {
+                material.AlbedoColor = arrowColor;
+                material.Emission = arrowColor * 1.2f;
+            }
         }
     }
 }

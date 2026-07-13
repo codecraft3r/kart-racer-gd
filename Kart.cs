@@ -7,7 +7,10 @@ public partial class Kart : RigidBody3D
     [Export] public int OwnerPeerId { get; set; } = 1;
     [Export] public bool UseLocalInput { get; set; } = true;
     [Export] public bool IsLocalPlayer { get; set; } = false;
+    [Export] public bool IsAI { get; set; } = false;
     [Export] public float TapInputHoldTime = 0.16f;
+
+    public bool ControlsEnabled { get; private set; } = true;
 
     [ExportGroup("Driving")]
     [Export] public float Acceleration = 4200.0f;
@@ -36,6 +39,10 @@ public partial class Kart : RigidBody3D
     private float _yaw = 0.0f;
     private bool _isGrounded;
 
+    private Vector3 _netTargetPosition;
+    private Vector3 _netTargetRotation;
+    private bool _hasNetTarget = false;
+
     // Tactical Taxi variables
     public GameManager.CustomerData? ActivePassenger { get; set; }
     public float PanicMeter { get; private set; } = 0.0f;
@@ -63,21 +70,28 @@ public partial class Kart : RigidBody3D
         MaxContactsReported = 4;
         BodyEntered += OnBodyCollision;
 
-        if (IsLocalPlayer)
-        {
-            var compass = new CompassArrow { Name = "CompassArrow" };
-            AddChild(compass);
-        }
+        EnsureLocalPlayerFeatures();
     }
 
     public override void _Process(double delta)
     {
         UpdateTapTimers((float)delta);
 
-        if (IsLocalPlayer && IsConnectedClient())
+        if (!IsAI && IsLocalPlayer && IsConnectedClient())
         {
             CaptureLocalInput();
             RpcId(1, nameof(SendInputRpc), _forwardInput, _steeringInput);
+        }
+
+        if (ShouldRunPhysics() == false && _hasNetTarget)
+        {
+            GlobalPosition = GlobalPosition.Lerp(_netTargetPosition, 0.15f);
+            Rotation = new Vector3(
+                Mathf.LerpAngle(Rotation.X, _netTargetRotation.X, 0.15f),
+                Mathf.LerpAngle(Rotation.Y, _netTargetRotation.Y, 0.15f),
+                Mathf.LerpAngle(Rotation.Z, _netTargetRotation.Z, 0.15f)
+            );
+            _yaw = Rotation.Y;
         }
 
         if (_visualContainer == null) return;
@@ -85,7 +99,6 @@ public partial class Kart : RigidBody3D
         _visualContainer.GlobalPosition = GlobalPosition;
         if (ShouldRunPhysics() == false)
         {
-            _yaw = Rotation.Y;
             _groundRay.ForceRaycastUpdate();
             _isGrounded = _groundRay.IsColliding();
         }
@@ -95,7 +108,7 @@ public partial class Kart : RigidBody3D
 
     public override void _Input(InputEvent @event)
     {
-        if (UseLocalInput == false && IsLocalPlayer == false && IsOffline() == false) return;
+        if (!ControlsEnabled || IsAI || (UseLocalInput == false && IsLocalPlayer == false && IsOffline() == false)) return;
 
         if (@event.IsActionPressed("move_forward"))
             BufferTapInput(1.0f, 0.0f);
@@ -128,9 +141,14 @@ public partial class Kart : RigidBody3D
     {
         if (ShouldRunPhysics() == false) return;
 
-        if (UseLocalInput || IsOffline())
+        if (ControlsEnabled && !IsAI && (UseLocalInput || IsOffline()))
         {
             CaptureLocalInput();
+        }
+        else if (!ControlsEnabled)
+        {
+            _forwardInput = 0.0f;
+            _steeringInput = 0.0f;
         }
 
         float dt = (float)delta;
@@ -190,10 +208,102 @@ public partial class Kart : RigidBody3D
         if (ShouldRunPhysics())
             return;
 
-        GlobalPosition = position;
-        Rotation = rotation;
+        if (!_hasNetTarget)
+        {
+            GlobalPosition = position;
+            Rotation = rotation;
+            _netTargetPosition = position;
+            _netTargetRotation = rotation;
+            _hasNetTarget = true;
+        }
+        else
+        {
+            _netTargetPosition = position;
+            _netTargetRotation = rotation;
+        }
+
         LinearVelocity = velocity;
         _yaw = rotation.Y;
+    }
+
+    public void SetAIInput(float forward, float steer)
+    {
+        if (IsAI && ControlsEnabled)
+        {
+            _forwardInput = Mathf.Clamp(forward, -1.0f, 1.0f);
+            _steeringInput = Mathf.Clamp(steer, -1.0f, 1.0f);
+        }
+    }
+
+    public void SetControlsEnabled(bool enabled)
+    {
+        ControlsEnabled = enabled;
+        if (!enabled)
+        {
+            _forwardInput = 0.0f;
+            _steeringInput = 0.0f;
+            _forwardTapTimer = 0.0f;
+            _steeringTapTimer = 0.0f;
+        }
+    }
+
+    public bool GetControlsEnabled() => ControlsEnabled;
+
+    public void EnsureLocalPlayerFeatures()
+    {
+        if (!IsLocalPlayer || GetNodeOrNull<CompassArrow>("CompassArrow") != null)
+            return;
+
+        AddChild(new CompassArrow { Name = "CompassArrow" });
+    }
+
+    public void ConfigureIdentityGlow(Color color)
+    {
+        Node3D existing = GetNodeOrNull<Node3D>("IdentityGlow");
+        if (existing != null)
+            return;
+
+        var glowRoot = new Node3D { Name = "IdentityGlow", Position = new Vector3(0.0f, -0.38f, 0.0f) };
+        var glowMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(color.R, color.G, color.B, 0.62f),
+            EmissionEnabled = true,
+            Emission = color * 0.85f,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            Roughness = 0.25f,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+        };
+        glowRoot.AddChild(new MeshInstance3D
+        {
+            Name = "IdentityRing",
+            Mesh = new TorusMesh { InnerRadius = 0.72f, OuterRadius = 1.14f, Rings = 8, RingSegments = 24 },
+            MaterialOverride = glowMaterial
+        });
+        glowRoot.AddChild(new OmniLight3D
+        {
+            Name = "GlowLight",
+            LightColor = color,
+            LightEnergy = 0.5f,
+            OmniRange = 4.8f,
+            ShadowEnabled = false,
+            Position = Vector3.Up * 0.28f
+        });
+        AddChild(glowRoot);
+    }
+
+    public void ResetForRun(Transform3D spawnTransform)
+    {
+        GlobalTransform = spawnTransform;
+        LinearVelocity = Vector3.Zero;
+        AngularVelocity = Vector3.Zero;
+        Sleeping = false;
+        _yaw = spawnTransform.Basis.GetEuler().Y;
+        _forwardInput = 0.0f;
+        _steeringInput = 0.0f;
+        BoardingProgress = 0.0f;
+        ActivePassenger = null;
+        PanicMeter = 0.0f;
+        _airtimeAccumulator = 0.0f;
     }
 
     private void SyncYawToBodyRotation()
@@ -313,7 +423,7 @@ public partial class Kart : RigidBody3D
         if (PanicMeter >= 100.0f)
         {
             TriggerSpeechBubble("I'M OUTTA HERE!");
-            if (!IsOffline() && Multiplayer.IsServer())
+            if (TaxiMode.Instance != null && GameManager.Instance != null)
             {
                 TaxiMode.Instance.ClearActiveFare(OwnerPeerId);
                 GameManager.Instance.NotifyBailout(OwnerPeerId);
@@ -350,7 +460,7 @@ public partial class Kart : RigidBody3D
                 TriggerSpeechBubble(GetHumorousCollisionPhrase());
             }
 
-            if (!IsOffline() && GameManager.Instance != null)
+            if (GameManager.Instance != null)
             {
                 GameManager.Instance.ApplyVehicleDamage(OwnerPeerId, Mathf.RoundToInt(speed * 0.8f));
             }
@@ -366,6 +476,8 @@ public partial class Kart : RigidBody3D
             Rpc(nameof(SyncPassengerStateRpc), true, (int)data.Distance, (int)data.Wealth, data.MaxAcceptableDamage, data.GroupSize, data.LoadTime, 0.0f);
         }
     }
+
+    public bool HasPassenger() => ActivePassenger.HasValue;
 
     public void ClearPassenger()
     {
@@ -449,7 +561,7 @@ public partial class Kart : RigidBody3D
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             NoDepthTest = true,
             PixelSize = 0.015f,
-            Modulate = Colors.HotPink,
+            Modulate = IsAI ? Colors.Tomato : Colors.HotPink,
             OutlineModulate = Colors.Black,
             Position = new Vector3(0, 2.5f, 0)
         };
