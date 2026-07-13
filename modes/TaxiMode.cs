@@ -10,7 +10,8 @@ public partial class TaxiMode : Node3D
         Idle,
         Countdown,
         Active,
-        Finished
+        Finished,
+        Intermission
     }
 
     public static TaxiMode Instance { get; private set; }
@@ -22,6 +23,7 @@ public partial class TaxiMode : Node3D
     [Export] public double MatchDurationSeconds = 180.0;
     [Export] public double CountdownSeconds = 3.0;
     [Export] public int WinningCashTarget = 750;
+    [Export] public int EndlessQuotaStep = 250;
 
     public Vector3 ActiveDestination { get; private set; } = Vector3.Zero;
 
@@ -32,6 +34,11 @@ public partial class TaxiMode : Node3D
     private bool _matchActive;
     private int _winnerPeerId;
     private MatchPhase _phase = MatchPhase.Idle;
+    private bool _endlessRunActive;
+    private int _shiftNumber = 1;
+    private int _currentCashQuota;
+    private int _totalRunCash;
+    private int _lastShiftCash;
 
     // Track active drop-off destinations per player: peerId -> destination position
     private readonly Dictionary<int, Vector3> _playerDestinations = new();
@@ -77,9 +84,37 @@ public partial class TaxiMode : Node3D
 
         _timeRemaining = Math.Max(0.0, _timeRemaining - delta);
         if (_timeRemaining <= 0.0)
-            EndMatch(FindLeader());
+        {
+            if (_endlessRunActive)
+                EndEndlessRun();
+            else
+                EndMatch(FindLeader());
+        }
         else
             BroadcastMatchState();
+    }
+
+    public void StartEndlessRun()
+    {
+        if (!Multiplayer.IsServer())
+            return;
+
+        _endlessRunActive = true;
+        _shiftNumber = 1;
+        _currentCashQuota = WinningCashTarget;
+        _totalRunCash = 0;
+        _lastShiftCash = 0;
+        StartMatch();
+    }
+
+    public void ContinueEndlessRun()
+    {
+        if (!Multiplayer.IsServer() || !_endlessRunActive || _phase != MatchPhase.Intermission)
+            return;
+
+        _shiftNumber++;
+        _currentCashQuota = WinningCashTarget + ((_shiftNumber - 1) * EndlessQuotaStep);
+        StartMatch();
     }
 
     public void StartMatch()
@@ -116,6 +151,11 @@ public partial class TaxiMode : Node3D
         _winnerPeerId = 0;
         _timeRemaining = MatchDurationSeconds;
         _countdownRemaining = 0.0;
+        _endlessRunActive = false;
+        _shiftNumber = 1;
+        _currentCashQuota = WinningCashTarget;
+        _totalRunCash = 0;
+        _lastShiftCash = 0;
         _scores.Clear();
         _playerDestinations.Clear();
         ClearDropoffAreas();
@@ -184,9 +224,17 @@ public partial class TaxiMode : Node3D
     public double CountdownRemaining => _countdownRemaining;
     public MatchPhase Phase => _phase;
     public int WinnerPeerId => _winnerPeerId;
+    public bool EndlessRunActive => _endlessRunActive;
+    public int ShiftNumber => _shiftNumber;
+    public int CurrentCashQuota => _endlessRunActive ? _currentCashQuota : WinningCashTarget;
+    public int TotalRunCash => _totalRunCash;
+    public int LastShiftCash => _lastShiftCash;
 
     public int GetPhaseValue() => (int)_phase;
     public int GetWinnerPeerId() => _winnerPeerId;
+    public int GetShiftNumber() => _shiftNumber;
+    public int GetCurrentCashQuota() => CurrentCashQuota;
+    public int GetTotalRunCash() => _totalRunCash;
 
     private void SpawnPickupZones()
     {
@@ -440,7 +488,7 @@ public partial class TaxiMode : Node3D
 
     public void AddCashScore(int peerId, int cash)
     {
-        if (!Multiplayer.IsServer())
+        if (!Multiplayer.IsServer() || _phase != MatchPhase.Active || cash <= 0)
             return;
 
         if (!_scores.ContainsKey(peerId))
@@ -448,10 +496,39 @@ public partial class TaxiMode : Node3D
 
         _scores[peerId] += cash;
 
-        if (_scores[peerId] >= WinningCashTarget)
+        if (_endlessRunActive)
+        {
+            if (peerId == 1)
+            {
+                _totalRunCash += cash;
+                if (_scores[peerId] >= _currentCashQuota)
+                    CompleteEndlessShift();
+            }
+        }
+        else if (_scores[peerId] >= WinningCashTarget)
+        {
             EndMatch(peerId);
+        }
 
         BroadcastFullState();
+    }
+
+    private void CompleteEndlessShift()
+    {
+        _matchActive = false;
+        _phase = MatchPhase.Intermission;
+        _winnerPeerId = 1;
+        _lastShiftCash = GetScore(1);
+        ClearDropoffAreas();
+        ClearPickupZones();
+        GameManager.Instance?.SetAllKartControlsEnabled(false);
+        BroadcastMatchState();
+    }
+
+    private void EndEndlessRun()
+    {
+        _lastShiftCash = GetScore(1);
+        EndMatch(FindLeader());
     }
 
     private void EndMatch(int winnerPeerId)

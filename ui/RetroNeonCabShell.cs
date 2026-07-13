@@ -9,6 +9,7 @@ public partial class RetroNeonCabShell : CanvasLayer
     [Export] public int DefaultPixelation { get; set; } = 4;
 
     private const string VersionText = "v1.86 - PAIN TAXI EDITION";
+    private const int PitRepairCost = 100;
 
     private enum ShellScreen
     {
@@ -48,6 +49,8 @@ public partial class RetroNeonCabShell : CanvasLayer
     private Label _resultTitleLabel;
     private Label _resultSummaryLabel;
     private Label _resultStandingsLabel;
+    private Button _resultPrimaryButton;
+    private Button _pitRepairButton;
     private Label _connectionStatusLabel;
     private LineEdit _joinAddressField;
     private LineEdit _playerNameField;
@@ -171,7 +174,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         _driftMeters = 0.0;
         WireModeEvents();
         if (_objectiveLabel != null && TaxiMode.Instance != null)
-            _objectiveLabel.Text = $"EARN ${TaxiMode.Instance.WinningCashTarget}  //  STOP IN A GLOWING PICKUP ZONE";
+            _objectiveLabel.Text = $"SHIFT 1  //  QUOTA ${TaxiMode.Instance.WinningCashTarget}";
         UpdateGameplayStats(GetKartSpeedMetersPerSecond());
         ShowScreen(ShellScreen.Gameplay);
 
@@ -245,6 +248,29 @@ public partial class RetroNeonCabShell : CanvasLayer
     {
         ResetKart();
         StartRun();
+    }
+
+    public void AdvanceOrRestartRun()
+    {
+        if (!IsNetworked() && TaxiMode.Instance?.Phase == TaxiMode.MatchPhase.Intermission)
+        {
+            ShowScreen(ShellScreen.Gameplay);
+            GameManager.Instance?.ContinueSoloSession();
+            return;
+        }
+
+        RestartRun();
+    }
+
+    public void BuyPitRepair()
+    {
+        if (IsNetworked() || TaxiMode.Instance?.Phase != TaxiMode.MatchPhase.Intermission)
+            return;
+
+        if (GameManager.Instance?.TryPurchaseRepair(1, PitRepairCost) == true)
+            AudioManager.Instance?.PlayUiConfirm();
+
+        RefreshPitRepairButton();
     }
 
     public void ExitToMainMenu()
@@ -770,10 +796,15 @@ public partial class RetroNeonCabShell : CanvasLayer
         Label hint = MakeLabel("THE CITY IS READY FOR ANOTHER SHIFT", _fontPixel, 13, Hex("ff007f"), HorizontalAlignment.Center);
         stack.AddChild(hint);
 
-        Button restart = MakePixelButton("RUN IT AGAIN", true, 380.0f, 54.0f);
-        restart.Name = "ResultRestartButton";
-        restart.Pressed += RestartRun;
-        stack.AddChild(restart);
+        _pitRepairButton = MakePixelButton("REPAIR TAXI - $100", false, 380.0f, 48.0f);
+        _pitRepairButton.Name = "PitRepairButton";
+        _pitRepairButton.Pressed += BuyPitRepair;
+        stack.AddChild(_pitRepairButton);
+
+        _resultPrimaryButton = MakePixelButton("RUN IT AGAIN", true, 380.0f, 54.0f);
+        _resultPrimaryButton.Name = "ResultRestartButton";
+        _resultPrimaryButton.Pressed += AdvanceOrRestartRun;
+        stack.AddChild(_resultPrimaryButton);
 
         Button main = MakePixelButton("BACK TO MAIN", false, 380.0f, 50.0f);
         main.Name = "ResultMainButton";
@@ -969,7 +1000,12 @@ public partial class RetroNeonCabShell : CanvasLayer
         TaxiMode mode = TaxiMode.Instance;
 
         if (_scoreLabel != null)
-            _scoreLabel.Text = $"CASH: ${cash}";
+        {
+            int shiftCash = mode?.GetScore(peerId) ?? 0;
+            _scoreLabel.Text = mode?.EndlessRunActive == true
+                ? $"QUOTA: ${shiftCash}/${mode.CurrentCashQuota}"
+                : $"CASH: ${cash}";
+        }
         if (_boostLabel != null)
             _boostLabel.Text = $"HP: {health}%";
         if (_speedometer != null)
@@ -990,7 +1026,7 @@ public partial class RetroNeonCabShell : CanvasLayer
                 int seconds = totalSeconds % 60;
                 _timerLabel.Text = $"TIME: {minutes:00}:{seconds:00}";
             }
-            else if (mode?.Phase == TaxiMode.MatchPhase.Finished)
+            else if (mode?.Phase == TaxiMode.MatchPhase.Finished || mode?.Phase == TaxiMode.MatchPhase.Intermission)
                 _timerLabel.Text = "TIME: DONE";
             else
                 _timerLabel.Text = "TIME: --:--";
@@ -1040,7 +1076,9 @@ public partial class RetroNeonCabShell : CanvasLayer
                 }
 
                 if (_objectiveLabel != null && mode != null)
-                    _objectiveLabel.Text = $"EARN ${mode.WinningCashTarget}  //  STOP IN A GLOWING PICKUP ZONE";
+                    _objectiveLabel.Text = mode.EndlessRunActive
+                        ? $"SHIFT {mode.ShiftNumber}  //  QUOTA ${mode.CurrentCashQuota}"
+                        : $"EARN ${mode.WinningCashTarget}  //  STOP IN A GLOWING PICKUP ZONE";
 
                 if (_driftMetersLabel != null)
                     _driftMetersLabel.Text = "NO PASSENGER";
@@ -1195,7 +1233,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         if (_timerLabel != null && mode?.Phase == TaxiMode.MatchPhase.Active)
             _timerLabel.Text = $"TIME: {minutes:00}:{seconds:00}";
 
-        if (mode?.Phase == TaxiMode.MatchPhase.Finished && winnerPeerId > 0 && _currentScreen != ShellScreen.Results)
+        if ((mode?.Phase == TaxiMode.MatchPhase.Finished || mode?.Phase == TaxiMode.MatchPhase.Intermission) && _currentScreen != ShellScreen.Results)
             ShowResults(winnerPeerId);
     }
 
@@ -1204,22 +1242,47 @@ public partial class RetroNeonCabShell : CanvasLayer
         TaxiMode mode = TaxiMode.Instance;
         int localPeerId = IsNetworked() ? Multiplayer.GetUniqueId() : 1;
         int score = mode?.GetScore(localPeerId) ?? 0;
-        int rank = mode?.GetRank(localPeerId) ?? 1;
-        int totalDrivers = Mathf.Max(1, mode?.Scores.Count ?? 1);
-        bool playerWon = winnerPeerId == localPeerId;
+        bool shiftCleared = mode?.Phase == TaxiMode.MatchPhase.Intermission;
 
         if (_resultTitleLabel != null)
         {
-            _resultTitleLabel.Text = playerWon ? "SHIFT CRUSHED!" : "SHIFT OVER";
-            _resultTitleLabel.AddThemeColorOverride("font_color", playerWon ? Hex("fcd34d") : Hex("ff007f"));
+            _resultTitleLabel.Text = shiftCleared ? "SHIFT CLEARED!" : "RUN OVER";
+            _resultTitleLabel.AddThemeColorOverride("font_color", shiftCleared ? Hex("fcd34d") : Hex("ff007f"));
         }
 
         if (_resultSummaryLabel != null)
-            _resultSummaryLabel.Text = playerWon ? "YOU OWNED THE DOWNTOWN SHIFT" : $"DRIVER {winnerPeerId} TOOK THE SHIFT";
+            _resultSummaryLabel.Text = shiftCleared
+                ? $"SHIFT {mode.ShiftNumber} QUOTA CRUSHED"
+                : $"MISSED THE ${mode?.CurrentCashQuota ?? 0} QUOTA";
         if (_resultStandingsLabel != null)
-            _resultStandingsLabel.Text = $"CASH: ${score}  •  RANK: {rank}/{totalDrivers}";
+            _resultStandingsLabel.Text = shiftCleared
+                ? $"SHIFT: ${score}  •  BANK: ${GameManager.Instance?.GetPlayerMoney(localPeerId) ?? 0}  •  NEXT: ${mode.CurrentCashQuota + mode.EndlessQuotaStep}"
+                : $"TOTAL: ${mode?.TotalRunCash ?? 0}  •  SHIFTS: {Mathf.Max(0, (mode?.ShiftNumber ?? 1) - 1)}";
+        if (_resultPrimaryButton != null)
+            _resultPrimaryButton.Text = shiftCleared ? "NEXT SHIFT" : "RUN IT AGAIN";
+        RefreshPitRepairButton();
 
         ShowScreen(ShellScreen.Results);
+    }
+
+    private void RefreshPitRepairButton()
+    {
+        if (_pitRepairButton == null)
+            return;
+
+        bool availableAtPit = !IsNetworked() && TaxiMode.Instance?.Phase == TaxiMode.MatchPhase.Intermission;
+        _pitRepairButton.Visible = availableAtPit;
+        if (!availableAtPit)
+            return;
+
+        int health = GameManager.Instance?.GetPlayerHealth(1) ?? 100;
+        int bank = GameManager.Instance?.GetPlayerMoney(1) ?? 0;
+        _pitRepairButton.Disabled = health >= 100 || bank < PitRepairCost;
+        _pitRepairButton.Text = health >= 100
+            ? "TAXI AT FULL HP"
+            : bank < PitRepairCost
+                ? $"REPAIR NEEDS ${PitRepairCost}"
+                : $"REPAIR TAXI - ${PitRepairCost}";
     }
 
     private void OnScoreboardChanged(int peerId, int score, int rank)

@@ -27,6 +27,7 @@ func _run() -> void:
 		_finish()
 		return
 
+	_expect(int(mode.call("GetCurrentCashQuota")) == 750, "endless run uses the designed starting cash quota")
 	mode.set("WinningCashTarget", 100000)
 	shell.call("StartRun")
 	await process_frame
@@ -54,23 +55,48 @@ func _run() -> void:
 	_expect(second_fare_completed, "a second fare can be completed without restarting")
 	_expect(int(manager.call("GetPlayerMoney", LOCAL_PLAYER_ID)) > first_payout, "second delivery increases cash")
 
+	manager.call("ApplyVehicleDamage", LOCAL_PLAYER_ID, 50)
 	mode.call("AddCashScore", LOCAL_PLAYER_ID, 100000)
 	await process_frame
 	var results: Control = shell.find_child("ResultsScreen", true, false) as Control
-	_expect(int(mode.call("GetPhaseValue")) == 3, "cash target finishes the shift")
+	var repair_button: Button = shell.find_child("PitRepairButton", true, false) as Button
+	_expect(int(mode.call("GetPhaseValue")) == 4, "cash quota clears the shift into intermission")
 	_expect(int(mode.call("GetWinnerPeerId")) == LOCAL_PLAYER_ID, "local player is recorded as the winner")
-	_expect(results != null and results.visible, "finished shift opens the results screen")
-	_expect(paused, "results screen safely pauses the finished level")
+	_expect(int(mode.call("GetShiftNumber")) == 1, "first cleared shift is recorded")
+	_expect(results != null and results.visible, "cleared shift opens the intermission screen")
+	_expect(paused, "intermission safely pauses the level")
+	_expect(repair_button != null and repair_button.visible and not repair_button.disabled, "damaged taxi can buy a pit repair")
+	var bank_before_repair := int(manager.call("GetPlayerMoney", LOCAL_PLAYER_ID))
+	shell.call("BuyPitRepair")
+	_expect(int(manager.call("GetPlayerHealth", LOCAL_PLAYER_ID)) == 100, "pit repair restores taxi health")
+	_expect(int(manager.call("GetPlayerMoney", LOCAL_PLAYER_ID)) == bank_before_repair - 100, "pit repair spends earned cash")
 
 	mode.set("MatchDurationSeconds", 0.15)
 	mode.set("CountdownSeconds", 0.0)
 	mode.set("WinningCashTarget", 100000)
-	shell.call("RestartRun")
+	shell.call("AdvanceOrRestartRun")
 	await process_frame
-	_expect(int(manager.call("GetRegisteredPlayerCount")) == 3, "restarting replaces rivals without duplicating them")
+	_expect(int(manager.call("GetRegisteredPlayerCount")) == 3, "advancing keeps rivals without duplicating them")
+	_expect(int(mode.call("GetShiftNumber")) == 2, "advancing starts the second shift")
+	_expect(int(mode.call("GetCurrentCashQuota")) == 100250, "second shift raises the cash quota")
+	_expect(int(mode.call("GetTotalRunCash")) >= 100000, "run cash carries across shifts")
+	mode.call("AddCashScore", LOCAL_PLAYER_ID, 100250)
+	await process_frame
+	_expect(int(mode.call("GetPhaseValue")) == 4, "second quota opens another intermission")
+	shell.call("AdvanceOrRestartRun")
+	await process_frame
+	_expect(int(mode.call("GetShiftNumber")) == 3, "endless run advances into a third shift")
+	_expect(int(mode.call("GetCurrentCashQuota")) == 100500, "third shift raises the quota again")
+	_expect(int(manager.call("GetRegisteredPlayerCount")) == 4, "third shift adds an escalating Rival")
 	var timer_finished := await _wait_for_phase(mode, 3, 120)
-	_expect(timer_finished, "shift also finishes when the timer expires")
-	_expect(results.visible, "timer completion returns to the results screen")
+	_expect(timer_finished, "missing the quota when time expires ends the run")
+	_expect(results.visible, "run failure returns to the results screen")
+	shell.call("AdvanceOrRestartRun")
+	await process_frame
+	_expect(int(mode.call("GetShiftNumber")) == 1, "run-over primary action starts a fresh run")
+	_expect(int(mode.call("GetCurrentCashQuota")) == 100000, "fresh run resets to the starting quota")
+	_expect(int(mode.call("GetTotalRunCash")) == 0, "fresh run clears accumulated run cash")
+	_expect(int(manager.call("GetRegisteredPlayerCount")) == 3, "fresh run resets to the base Rival count")
 
 	_finish()
 

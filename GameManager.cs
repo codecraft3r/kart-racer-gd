@@ -63,6 +63,32 @@ public partial class GameManager : Node
         TaxiMode.Instance?.StartMatch();
     }
 
+    public void ContinueSoloSession()
+    {
+        if (TaxiMode.Instance?.Phase != TaxiMode.MatchPhase.Intermission)
+            return;
+
+        int nextShiftNumber = TaxiMode.Instance.ShiftNumber + 1;
+        int targetRivalCount = Mathf.Clamp(SoloAiCount + ((nextShiftNumber - 1) / 2), 0, 6);
+        while (_aiKarts.Count < targetRivalCount)
+            SpawnSoloRival(_aiKarts.Count);
+
+        int slot = 0;
+        foreach (int id in GetRegisteredPlayerIds())
+        {
+            Kart kart = GetKart(id);
+            if (GodotObject.IsInstanceValid(kart))
+            {
+                kart.ClearPassenger();
+                kart.SetBoardingProgress(0.0f);
+                kart.ResetForRun(GetSpawnTransform(slot));
+            }
+            slot++;
+        }
+
+        TaxiMode.Instance.ContinueEndlessRun();
+    }
+
     public void ResetNetworkSession()
     {
         TaxiMode.Instance?.ResetMatch();
@@ -111,29 +137,32 @@ public partial class GameManager : Node
 
         int aiCount = Mathf.Clamp(SoloAiCount, 0, 6);
         for (int i = 0; i < aiCount; i++)
-        {
-            int aiId = 100 + i;
+            SpawnSoloRival(i);
 
-            var kartScene = GD.Load<PackedScene>(KartScenePath);
-            var aiKart = kartScene.Instantiate<Kart>();
-            aiKart.Name = aiId.ToString();
-            aiKart.OwnerPeerId = aiId;
-            aiKart.IsAI = true;
-            aiKart.UseLocalInput = false;
-            aiKart.IsLocalPlayer = false;
+        TaxiMode.Instance?.StartEndlessRun();
+    }
 
-            var aiController = new KartAIController();
-            aiKart.AddChild(aiController);
+    private void SpawnSoloRival(int rivalIndex)
+    {
+        int aiId = 100 + rivalIndex;
+        if (_playerKarts.ContainsKey(aiId))
+            return;
 
-            GetParent()?.AddChild(aiKart);
-            aiKart.ConfigureIdentityGlow(i % 2 == 0 ? new Color(1.0f, 0.02f, 0.48f) : new Color(1.0f, 0.68f, 0.08f));
-            aiKart.ResetForRun(GetSpawnTransform(i + 1));
-            _playerKarts[aiId] = aiKart;
-            _playerStates[aiId] = new PlayerState();
-            _aiKarts.Add(aiKart);
-        }
+        var kartScene = GD.Load<PackedScene>(KartScenePath);
+        var aiKart = kartScene.Instantiate<Kart>();
+        aiKart.Name = aiId.ToString();
+        aiKart.OwnerPeerId = aiId;
+        aiKart.IsAI = true;
+        aiKart.UseLocalInput = false;
+        aiKart.IsLocalPlayer = false;
+        aiKart.AddChild(new KartAIController());
 
-        TaxiMode.Instance?.StartMatch();
+        GetParent()?.AddChild(aiKart);
+        aiKart.ConfigureIdentityGlow(rivalIndex % 2 == 0 ? new Color(1.0f, 0.02f, 0.48f) : new Color(1.0f, 0.68f, 0.08f));
+        aiKart.ResetForRun(GetSpawnTransform(rivalIndex + 1));
+        _playerKarts[aiId] = aiKart;
+        _playerStates[aiId] = new PlayerState();
+        _aiKarts.Add(aiKart);
     }
 
     public void ResetSoloSession()
@@ -595,7 +624,7 @@ public partial class GameManager : Node
 
     public bool TryPurchaseRepair(int id, int cost)
     {
-        if (_playerStates.TryGetValue(id, out var state) && state.Money >= cost)
+        if (_playerStates.TryGetValue(id, out var state) && state.Health < 100 && state.Money >= cost)
         {
             state.Money -= cost;
             state.Health = 100;
