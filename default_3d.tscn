@@ -112,8 +112,8 @@ LookAheadDistance = 8.0
 MinFov = 64.0
 MaxFov = 86.0
 FovLerpSpeed = 6.5
-MaxRollDegrees = 3.5
-RollResponse = 0.22
+MaxRollDegrees = 2.8
+RollResponse = 0.176
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Camera3D"]
 material_override = SubResource("ShaderMaterial_erduv")

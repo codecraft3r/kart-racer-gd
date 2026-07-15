@@ -13,12 +13,13 @@ public partial class Kart : RigidBody3D
     public bool ControlsEnabled { get; private set; } = true;
 
     [ExportGroup("Driving")]
-    [Export] public float Acceleration = 38.0f;
-    [Export] public float ReverseAcceleration = 22.0f;
+    [Export] public float Acceleration = 22.88f;
+    [Export] public float ReverseAcceleration = 14.08f;
     [Export] public float BrakeForce = 56.0f;
-    [Export] public float MaxForwardSpeed = 46.0f;
-    [Export] public float MaxReverseSpeed = 13.0f;
+    [Export] public float MaxForwardSpeed = 28.16f;
+    [Export] public float MaxReverseSpeed = 8.8f;
     [Export] public float SpeedLimitApproachRange = 5.0f;
+    [Export] public float AISpeedScale = 0.85f;
     [Export] public float SteeringSpeed = 3.4f;
     [Export] public float MinSteeringSpeed = 1.4f;
     [Export] public float HighSpeedSteeringRetention = 0.72f;
@@ -253,6 +254,13 @@ public partial class Kart : RigidBody3D
         {
             float speedLimit = _forwardInput > 0.0f ? MaxForwardSpeed : MaxReverseSpeed;
             float driveAcceleration = braking ? BrakeForce : (_forwardInput > 0.0f ? Acceleration : ReverseAcceleration);
+
+            if (IsAI)
+            {
+                speedLimit *= AISpeedScale;
+                driveAcceleration *= AISpeedScale;
+            }
+
             float speedInInputDirection = forwardSpeed * Mathf.Sign(_forwardInput);
             float speedLimitFactor = braking
                 ? 1.0f

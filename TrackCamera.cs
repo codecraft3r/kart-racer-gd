@@ -23,8 +23,8 @@ public partial class TrackCamera : Camera3D
     [Export] public float MinFov = 63.0f;
     [Export] public float MaxFov = 78.0f;
     [Export] public float FovLerpSpeed = 5.0f;
-    [Export] public float MaxRollDegrees = 5.0f;
-    [Export] public float RollResponse = 0.18f;
+    [Export] public float MaxRollDegrees = 4.0f;
+    [Export] public float RollResponse = 0.144f;
 
     [ExportGroup("Impact Shake")]
     [Export] public float ShakeDecay = 1.8f;

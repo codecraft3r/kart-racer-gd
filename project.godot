@@ -12,23 +12,20 @@ config_version=5
 
 config/name="kart_racer"
 run/main_scene="res://default_3d.tscn"
-config/features=PackedStringArray("4.6", "C#", "Forward Plus")
-config/icon="res://icon.svg"
-boot_splash/image="res://assets/loading/pain_loading.png"
-boot_splash/minimum_display_time=1000
-boot_splash/show_image=true
-boot_splash/stretch_mode=1
-boot_splash/use_filter=true
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 boot_splash/bg_color=Color(0, 0, 0, 1)
-
-[dotnet]
-
-project/assembly_name="kart_racer"
+boot_splash/image="res://assets/loading/pain_loading.png"
+config/icon="res://icon.svg"
+boot_splash/minimum_display_time=1000
 
 [autoload]
 
 AudioManager="*res://audio/AudioManager.cs"
 MultiplayerManager="*res://MultiplayerManager.cs"
+
+[dotnet]
+
+project/assembly_name="kart_racer"
 
 [input]
 
@@ -63,11 +60,11 @@ move_backward={
 
 [physics]
 
-common/physics_interpolation=true
 3d/physics_engine="Jolt Physics"
+common/physics_interpolation=true
 
 [rendering]
 
+rendering_device/driver.windows="opengl3"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-rendering_device/driver.windows="opengl3"
