@@ -90,6 +90,14 @@ public partial class PickupZone : Area3D
         };
         _visual.AddChild(light);
 
+        var arrow = new HolographicArrow
+        {
+            Name = "HolographicArrow",
+            ArrowColor = new Color(zoneColor.R, zoneColor.G, zoneColor.B, 1.0f),
+            Position = new Vector3(0.0f, 6.0f, 0.0f)
+        };
+        _visual.AddChild(arrow);
+
         // 4. Connect signals
         BodyEntered += OnBodyEntered;
         BodyExited += OnBodyExited;

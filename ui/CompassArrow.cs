@@ -12,8 +12,8 @@ public partial class CompassArrow : Node3D
         var arrowMesh = new CylinderMesh
         {
             TopRadius = 0.0f,      // Cone tip pointing forward
-            BottomRadius = 0.25f,
-            Height = 1.0f,
+            BottomRadius = 0.5f,
+            Height = 2.0f,
             RadialSegments = 6
         };
 
@@ -31,7 +31,7 @@ public partial class CompassArrow : Node3D
             Mesh = arrowMesh,
             MaterialOverride = arrowMaterial,
             // Cylinder stands vertical by default, rotate it so the tip points forward (-Z)
-            Rotation = new Vector3(Mathf.Pi / 2.0f, 0.0f, 0.0f),
+            Rotation = new Vector3(-Mathf.Pi / 2.0f, 0.0f, 0.0f),
             Position = new Vector3(0.0f, 0.0f, -0.5f) // Offset so pivot is at the tail
         };
         AddChild(_meshInstance);

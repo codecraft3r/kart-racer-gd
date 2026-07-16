@@ -54,6 +54,7 @@ public partial class Kart : RigidBody3D
 
     private float _forwardInput;
     private float _steeringInput;
+    private bool _handbrakeInput;
     private float _forwardTapInput;
     private float _steeringTapInput;
     private float _forwardTapTimer;
@@ -109,10 +110,10 @@ public partial class Kart : RigidBody3D
     {
         UpdateTapTimers((float)delta);
 
-        if (!IsAI && IsLocalPlayer && IsConnectedClient())
+        if (ControlsEnabled && UseLocalInput && !IsAI)
         {
             CaptureLocalInput();
-            RpcId(1, nameof(SendInputRpc), _forwardInput, _steeringInput);
+            RpcId(1, nameof(SendInputRpc), _forwardInput, _steeringInput, _handbrakeInput);
         }
 
         if (ShouldRunPhysics() == false && _hasNetTarget)
@@ -161,20 +162,26 @@ public partial class Kart : RigidBody3D
             BufferTapInput(0.0f, -1.0f);
     }
 
-    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Unreliable)]
-    private void SendInputRpc(float forward, float steer)
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
+    private void SendInputRpc(float forward, float steer, bool handbrake)
     {
-        if (Multiplayer.IsServer())
+        if (!Multiplayer.IsServer())
+            return;
+
+        int senderId = Multiplayer.GetRemoteSenderId();
+        if (senderId != OwnerPeerId)
         {
-            int senderId = Multiplayer.GetRemoteSenderId();
-            if (senderId != OwnerPeerId)
+            if (senderId != 1 || OwnerPeerId != 1)
             {
                 GD.PushWarning($"Rejected kart input from peer {senderId}; kart belongs to peer {OwnerPeerId}.");
                 return;
             }
-
+        }
+        if (ControlsEnabled)
+        {
             _forwardInput = Mathf.Clamp(forward, -1.0f, 1.0f);
             _steeringInput = Mathf.Clamp(steer, -1.0f, 1.0f);
+            _handbrakeInput = handbrake;
         }
     }
 
@@ -190,6 +197,7 @@ public partial class Kart : RigidBody3D
         {
             _forwardInput = 0.0f;
             _steeringInput = 0.0f;
+            _handbrakeInput = false;
         }
 
         float dt = (float)delta;
@@ -249,6 +257,12 @@ public partial class Kart : RigidBody3D
         ApplyCentralForce(sideDirection * lateralGripAcceleration * Mass);
         ApplyCentralForce(-forwardDirection * forwardSpeed * RollingDrag * Mass);
         ApplyCentralForce(-groundNormal * GroundAdhesion * Mass);
+
+        if (_handbrakeInput)
+        {
+            float hardStopForce = 45.0f; // Massive drag for instant stopping
+            ApplyCentralForce(-planarVelocity * hardStopForce * Mass);
+        }
 
         if (Mathf.Abs(_forwardInput) > InputDeadzone)
         {
@@ -321,12 +335,15 @@ public partial class Kart : RigidBody3D
         LinearVelocity = velocity;
     }
 
-    public void SetAIInput(float forward, float steer)
+    public void SetAIInput(float forward, float steer, bool handbrake = false)
     {
-        if (IsAI && ControlsEnabled)
+        if (!IsAI || !ControlsEnabled) return;
+
+        if (Multiplayer.IsServer())
         {
             _forwardInput = Mathf.Clamp(forward, -1.0f, 1.0f);
             _steeringInput = Mathf.Clamp(steer, -1.0f, 1.0f);
+            _handbrakeInput = handbrake;
         }
     }
 
@@ -343,6 +360,16 @@ public partial class Kart : RigidBody3D
     }
 
     public bool GetControlsEnabled() => ControlsEnabled;
+
+    public void ClearInput()
+    {
+        if (Multiplayer.IsServer() || UseLocalInput)
+        {
+            _forwardInput = 0.0f;
+            _steeringInput = 0.0f;
+            _handbrakeInput = false;
+        }
+    }
 
     public void EnsureLocalPlayerFeatures()
     {
@@ -394,6 +421,7 @@ public partial class Kart : RigidBody3D
         Sleeping = false;
         _forwardInput = 0.0f;
         _steeringInput = 0.0f;
+        _handbrakeInput = false;
         BoardingProgress = 0.0f;
         ActivePassenger = null;
         PanicMeter = 0.0f;
@@ -412,6 +440,17 @@ public partial class Kart : RigidBody3D
 
         _forwardInput = Mathf.Abs(forwardAxis) > InputDeadzone ? forwardAxis : (_forwardTapTimer > 0.0f ? _forwardTapInput : 0.0f);
         _steeringInput = Mathf.Abs(steeringAxis) > InputDeadzone ? steeringAxis : (_steeringTapTimer > 0.0f ? _steeringTapInput : 0.0f);
+        
+        bool joypadA = false;
+        foreach (int device in Input.GetConnectedJoypads())
+        {
+            if (Input.IsJoyButtonPressed(device, JoyButton.A))
+            {
+                joypadA = true;
+                break;
+            }
+        }
+        _handbrakeInput = Input.IsPhysicalKeyPressed(Key.Space) || joypadA;
 
         _forwardInput = Mathf.Clamp(_forwardInput, -1.0f, 1.0f);
         _steeringInput = Mathf.Clamp(_steeringInput, -1.0f, 1.0f);

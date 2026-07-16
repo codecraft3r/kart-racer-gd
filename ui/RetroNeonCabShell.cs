@@ -44,9 +44,15 @@ public partial class RetroNeonCabShell : CanvasLayer
     private Button _joinButton;
     private Label _pauseRivalsLabel;
     private Label _checkpointLabel;
+    private Label _statusLabel;
+    private ProgressBar _panicBar;
+    private Label _stopLabel;
     private Label _countdownLabel;
     private Label _objectiveLabel;
     private Label _resultTitleLabel;
+    
+    private bool _wasBoarding = false;
+    private float _goLabelAlpha = 0.0f;
     private Label _resultSummaryLabel;
     private Label _resultStandingsLabel;
     private Button _resultPrimaryButton;
@@ -621,6 +627,50 @@ public partial class RetroNeonCabShell : CanvasLayer
         _checkpointLabel = MakeLabel("FARE: SEARCHING...", _fontBody, 21, Colors.White, HorizontalAlignment.Center);
         hudRow.AddChild(WrapPill("CheckpointPill", _checkpointLabel, Hex("ed3b8b"), 190.0f));
 
+        VBoxContainer statusContainer = new VBoxContainer();
+        statusContainer.AddThemeConstantOverride("separation", 2);
+        
+        _panicBar = new ProgressBar
+        {
+            Name = "PanicBar",
+            MinValue = 0.0,
+            MaxValue = 100.0,
+            Value = 0.0,
+            CustomMinimumSize = new Vector2(170.0f, 10.0f),
+            ShowPercentage = false
+        };
+        var bgStyle = new StyleBoxFlat { BgColor = Hex("111122"), CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4, CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4 };
+        var fgStyle = new StyleBoxFlat { BgColor = Hex("00ff00"), CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4, CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4 };
+        _panicBar.AddThemeStyleboxOverride("background", bgStyle);
+        _panicBar.AddThemeStyleboxOverride("fill", fgStyle);
+        _panicBar.Visible = false; // Hide by default until hired
+        statusContainer.AddChild(_panicBar);
+
+        _statusLabel = MakeLabel("STATUS: VACANT", _fontBody, 21, Hex("00ff00"), HorizontalAlignment.Center);
+        statusContainer.AddChild(WrapPill("StatusPill", _statusLabel, Hex("111122"), 170.0f));
+
+        statusContainer.AnchorLeft = 0.5f;
+        statusContainer.AnchorRight = 0.5f;
+        statusContainer.AnchorTop = 1.0f;
+        statusContainer.AnchorBottom = 1.0f;
+        statusContainer.OffsetLeft = -85.0f;
+        statusContainer.OffsetRight = 85.0f;
+        statusContainer.OffsetTop = -80.0f;
+        statusContainer.OffsetBottom = -20.0f;
+        screen.AddChild(statusContainer);
+
+        _stopLabel = MakeLabel(">> STOP <<", _fontOrbitron, 48, Hex("ff0055"), HorizontalAlignment.Center);
+        _stopLabel.AnchorLeft = 0.5f;
+        _stopLabel.AnchorRight = 0.5f;
+        _stopLabel.AnchorTop = 0.33f;
+        _stopLabel.AnchorBottom = 0.33f;
+        _stopLabel.OffsetLeft = -200.0f;
+        _stopLabel.OffsetRight = 200.0f;
+        _stopLabel.OffsetTop = -30.0f;
+        _stopLabel.OffsetBottom = 30.0f;
+        _stopLabel.Visible = false;
+        screen.AddChild(_stopLabel);
+
         Label shiftTag = MakeLabel("DOWNTOWN SHIFT // CH 86", _fontPixel, 10, Hex("9ba8d8"), HorizontalAlignment.Left);
         shiftTag.Name = "ShiftTag";
         shiftTag.AnchorLeft = 0.0f;
@@ -654,26 +704,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         _countdownLabel.Visible = false;
         screen.AddChild(_countdownLabel);
 
-        PanelContainer objectivePanel = new()
-        {
-            Name = "ObjectivePanel",
-            MouseFilter = Control.MouseFilterEnum.Ignore
-        };
-        objectivePanel.AnchorLeft = 0.5f;
-        objectivePanel.AnchorRight = 0.5f;
-        objectivePanel.AnchorTop = 1.0f;
-        objectivePanel.AnchorBottom = 1.0f;
-        objectivePanel.OffsetLeft = -370.0f;
-        objectivePanel.OffsetRight = 370.0f;
-        objectivePanel.OffsetTop = -60.0f;
-        objectivePanel.OffsetBottom = -16.0f;
-        objectivePanel.AddThemeStyleboxOverride("panel", MakePillStyle(Hex("f5c451")));
-        screen.AddChild(objectivePanel);
-
-        _objectiveLabel = MakeLabel("EARN $750  //  STOP IN A GLOWING PICKUP ZONE", _fontBody, 23, Colors.White, HorizontalAlignment.Center);
-        _objectiveLabel.Name = "ObjectiveLabel";
-        _objectiveLabel.AddThemeColorOverride("font_color", Hex("f7f4ff"));
-        objectivePanel.AddChild(_objectiveLabel);
+        // objectivePanel and _objectiveLabel removed by request
 
         _speedometer = new RetroSpeedometer(_fontBody, _fontPixel) { Name = "SpeedometerGauge" };
         _speedometer.AnchorLeft = 1.0f;
@@ -1036,8 +1067,34 @@ public partial class RetroNeonCabShell : CanvasLayer
 
         if (_kart != null && GodotObject.IsInstanceValid(_kart))
         {
+            bool isBoarding = _kart.BoardingProgress > 0.0f;
+            if (_wasBoarding && !isBoarding && _kart.ActivePassenger.HasValue)
+            {
+                _goLabelAlpha = 1.0f;
+            }
+            _wasBoarding = isBoarding;
+
             if (_kart.ActivePassenger.HasValue)
             {
+                if (_goLabelAlpha > 0.0f)
+                {
+                    if (_stopLabel != null)
+                    {
+                        _stopLabel.Visible = true;
+                        _stopLabel.Text = ">> GO <<";
+                        _stopLabel.Modulate = new Color(0.0f, 1.0f, 0.0f, _goLabelAlpha);
+                    }
+                    if (_kart.LinearVelocity.Length() > 2.0f)
+                    {
+                        _goLabelAlpha -= (float)GetProcessDeltaTime() * 1.5f;
+                    }
+                }
+                else
+                {
+                    if (_stopLabel != null)
+                        _stopLabel.Visible = false;
+                }
+
                 var passenger = _kart.ActivePassenger.Value;
                 int panic = Mathf.RoundToInt(_kart.PanicMeter);
                 Vector3 destination = mode?.GetPlayerDestination(peerId) ?? Vector3.Zero;
@@ -1046,7 +1103,7 @@ public partial class RetroNeonCabShell : CanvasLayer
                 int distance = destination == Vector3.Zero ? 0 : Mathf.RoundToInt(_kart.GlobalPosition.DistanceTo(destination));
 
                 if (_checkpointLabel != null)
-                    _checkpointLabel.Text = $"DROPOFF: {distance}m • PANIC {panic}%";
+                    _checkpointLabel.Text = $"DROPOFF: {distance}m";
                 if (_objectiveLabel != null)
                     _objectiveLabel.Text = "DELIVER THE FARE  //  KEEP PANIC BELOW 100%";
 
@@ -1056,22 +1113,47 @@ public partial class RetroNeonCabShell : CanvasLayer
                     string wealthStr = new string('$', (int)passenger.Wealth + 1);
                     _driftMetersLabel.Text = $"FARE: {distStr} ({wealthStr})";
                 }
+
+                if (_statusLabel != null)
+                {
+                    _statusLabel.Text = "STATUS: HIRED";
+                    _statusLabel.AddThemeColorOverride("font_color", Hex("ff0055"));
+                }
+
+                if (_panicBar != null)
+                {
+                    _panicBar.Visible = true;
+                    _panicBar.Value = _kart.PanicMeter;
+                    Color panicColor = new Color(0, 1, 0).Lerp(new Color(1, 0, 0), _kart.PanicMeter / 100.0f);
+                    if (_panicBar.HasThemeStyleboxOverride("fill"))
+                    {
+                        var fillStyle = _panicBar.GetThemeStylebox("fill") as StyleBoxFlat;
+                        if (fillStyle != null)
+                        {
+                            fillStyle.BgColor = panicColor;
+                        }
+                    }
+                }
             }
             else
             {
-                if (_kart.BoardingProgress > 0.0f)
+                if (_stopLabel != null)
+                    _stopLabel.Visible = false;
+
+                if (_checkpointLabel != null)
                 {
-                    int boardingPercent = Mathf.RoundToInt(_kart.BoardingProgress * 100.0f);
-                    if (_checkpointLabel != null)
-                        _checkpointLabel.Text = $"LOADING: {boardingPercent}%";
-                }
-                else
-                {
-                    if (_checkpointLabel != null)
+                    Vector3 pickup = mode?.GetNearestPickupPosition(_kart.GlobalPosition) ?? Vector3.Zero;
+                    int distance = pickup == Vector3.Zero ? 0 : Mathf.RoundToInt(_kart.GlobalPosition.DistanceTo(pickup));
+                    _checkpointLabel.Text = pickup == Vector3.Zero ? "FARE: SEARCHING..." : $"PICKUP: {distance}m";
+
+                    if (distance > 0 && distance <= 5 && _kart.LinearVelocity.Length() >= 0.8f && _kart.BoardingProgress == 0.0f)
                     {
-                        Vector3 pickup = mode?.GetNearestPickupPosition(_kart.GlobalPosition) ?? Vector3.Zero;
-                        int distance = pickup == Vector3.Zero ? 0 : Mathf.RoundToInt(_kart.GlobalPosition.DistanceTo(pickup));
-                        _checkpointLabel.Text = pickup == Vector3.Zero ? "FARE: SEARCHING..." : $"PICKUP: {distance}m";
+                        if (_stopLabel != null)
+                        {
+                            _stopLabel.Visible = true;
+                            _stopLabel.Text = ">> STOP <<";
+                            _stopLabel.Modulate = (Time.GetTicksMsec() % 500 < 250) ? Colors.White : Hex("ff0055");
+                        }
                     }
                 }
 
@@ -1082,6 +1164,33 @@ public partial class RetroNeonCabShell : CanvasLayer
 
                 if (_driftMetersLabel != null)
                     _driftMetersLabel.Text = "NO PASSENGER";
+
+                if (_statusLabel != null)
+                {
+                    if (_kart.BoardingProgress > 0.0f)
+                    {
+                        int boardingPercent = Mathf.RoundToInt(_kart.BoardingProgress * 100.0f);
+                        _statusLabel.Text = $"LOADING: {boardingPercent}%";
+                        _statusLabel.AddThemeColorOverride("font_color", Hex("f5c451"));
+                        
+                        if (_stopLabel != null)
+                        {
+                            _stopLabel.Visible = true;
+                            _stopLabel.Text = ">> WAIT <<";
+                            _stopLabel.Modulate = (Time.GetTicksMsec() % 500 < 250) ? Colors.White : Hex("f5c451");
+                        }
+                    }
+                    else
+                    {
+                        _statusLabel.Text = "STATUS: VACANT";
+                        _statusLabel.AddThemeColorOverride("font_color", Hex("00ff00"));
+                    }
+                }
+                
+                if (_panicBar != null)
+                {
+                    _panicBar.Visible = false;
+                }
             }
         }
         else

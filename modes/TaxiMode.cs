@@ -29,6 +29,8 @@ public partial class TaxiMode : Node3D
 
     private readonly Dictionary<int, int> _scores = new(); // peerId -> cash earned
     private readonly List<PickupZone> _activeZones = new();
+    private const int MaxActiveCustomers = 5;
+    private int _pickupZoneCounter = 0;
     private double _timeRemaining;
     private double _countdownRemaining;
     private bool _matchActive;
@@ -244,61 +246,96 @@ public partial class TaxiMode : Node3D
             return;
         }
 
-        var intersections = TrackBuilder.Instance.IntersectionPositions;
-        GD.Print($"TaxiMode: Found {intersections.Count} intersections from TrackBuilder. Spawning pickup zones.");
+        _activeZones.RemoveAll(z => !IsInstanceValid(z) || z.IsQueuedForDeletion());
 
-        int count = 0;
-        foreach (Vector3 pos in intersections)
+        int spawned = 0;
+        while (_activeZones.Count < MaxActiveCustomers)
         {
-            float dist = pos.Length(); // Radial distance from center (depot)
-            if (dist < 35.0f)
-            {
-                // Safe zone near depot
-                continue;
-            }
-
-            // Spawn passenger zone based on distance from center
-            GameManager.CustomerDistance customerDist;
-            GameManager.CustomerWealth customerWealth;
-            int maxDmg;
-            int groupSize = GD.RandRange(1, 3);
-            float loadTime = 3.0f + groupSize * 1.5f;
-
-            if (dist < 90.0f)
-            {
-                customerDist = GameManager.CustomerDistance.Near;
-                customerWealth = GameManager.CustomerWealth.Low;
-                maxDmg = 80; // Tolerant of damage
-            }
-            else if (dist < 185.0f)
-            {
-                customerDist = GameManager.CustomerDistance.Moderate;
-                customerWealth = GameManager.CustomerWealth.Medium;
-                maxDmg = 50; // Moderately picky
-            }
-            else
-            {
-                customerDist = GameManager.CustomerDistance.Far;
-                customerWealth = GameManager.CustomerWealth.High;
-                maxDmg = 30; // Very picky, wealth demands comfort!
-            }
-
-            var zone = new PickupZone
-            {
-                Name = $"PickupZone_{count++}",
-                Distance = customerDist,
-                Wealth = customerWealth,
-                MaxAcceptableDamage = maxDmg,
-                GroupSize = groupSize,
-                LoadTime = loadTime,
-                Position = pos + Vector3.Up * 0.1f // Slightly raised
-            };
-
-            AddChild(zone);
-            _activeZones.Add(zone);
+            if (!SpawnSinglePickupZone())
+                break;
+            spawned++;
         }
 
-        GD.Print($"TaxiMode: Spawned {_activeZones.Count} radial pickup zones.");
+        GD.Print($"TaxiMode: Initialized {spawned} pickup zones. Total active: {_activeZones.Count}");
+    }
+
+    private bool SpawnSinglePickupZone()
+    {
+        var intersections = TrackBuilder.Instance.IntersectionPositions;
+        if (intersections.Count == 0) return false;
+
+        var available = new System.Collections.Generic.List<Vector3>();
+        foreach (Vector3 pos in intersections)
+        {
+            if (pos.Length() < 35.0f) continue;
+
+            bool occupied = false;
+            foreach (var zone in _activeZones)
+            {
+                if (IsInstanceValid(zone) && !zone.IsQueuedForDeletion() && zone.GlobalPosition.DistanceSquaredTo(pos) < 1.0f)
+                {
+                    occupied = true;
+                    break;
+                }
+            }
+            if (occupied) continue;
+
+            foreach (var dest in _playerDestinations.Values)
+            {
+                if (dest.DistanceSquaredTo(pos) < 1.0f)
+                {
+                    occupied = true;
+                    break;
+                }
+            }
+            if (occupied) continue;
+
+            available.Add(pos);
+        }
+
+        if (available.Count == 0) return false;
+
+        Vector3 spawnPos = available[GD.RandRange(0, available.Count - 1)];
+        float dist = spawnPos.Length();
+        GameManager.CustomerDistance customerDist;
+        GameManager.CustomerWealth customerWealth;
+        int maxDmg;
+        int groupSize = GD.RandRange(1, 3);
+        float loadTime = 1.0f + groupSize * 0.5f;
+
+        if (dist < 90.0f)
+        {
+            customerDist = GameManager.CustomerDistance.Near;
+            customerWealth = GameManager.CustomerWealth.Low;
+            maxDmg = 80;
+        }
+        else if (dist < 185.0f)
+        {
+            customerDist = GameManager.CustomerDistance.Moderate;
+            customerWealth = GameManager.CustomerWealth.Medium;
+            maxDmg = 50;
+        }
+        else
+        {
+            customerDist = GameManager.CustomerDistance.Far;
+            customerWealth = GameManager.CustomerWealth.High;
+            maxDmg = 30;
+        }
+
+        var newZone = new PickupZone
+        {
+            Name = $"PickupZone_{_pickupZoneCounter++}",
+            Distance = customerDist,
+            Wealth = customerWealth,
+            MaxAcceptableDamage = maxDmg,
+            GroupSize = groupSize,
+            LoadTime = loadTime,
+            Position = spawnPos + Vector3.Up * 0.1f
+        };
+
+        AddChild(newZone);
+        _activeZones.Add(newZone);
+        return true;
     }
 
     private void ClearPickupZones()
@@ -337,6 +374,13 @@ public partial class TaxiMode : Node3D
         NotifyDestination(peerId, dest);
 
         GD.Print($"TaxiMode: Peer {peerId} boarded passenger group of {customer.GroupSize}. Destination selected at {dest}");
+
+        // Cleanup destroyed zones and spawn a new one to maintain the pool
+        _activeZones.RemoveAll(z => !IsInstanceValid(z) || z.IsQueuedForDeletion());
+        while (_activeZones.Count < MaxActiveCustomers)
+        {
+            if (!SpawnSinglePickupZone()) break;
+        }
     }
 
     private Vector3 PickRandomDestination(int peerId, GameManager.CustomerDistance distanceType)
@@ -439,6 +483,14 @@ public partial class TaxiMode : Node3D
             Position = new Vector3(0, 4.0f, 0)
         };
         visual.AddChild(light);
+
+        var arrow = new HolographicArrow
+        {
+            Name = "HolographicArrow",
+            ArrowColor = new Color(beaconColor.R, beaconColor.G, beaconColor.B, 1.0f),
+            Position = new Vector3(0.0f, 6.0f, 0.0f)
+        };
+        visual.AddChild(arrow);
 
         area.BodyEntered += (body) => OnDropoffAreaEntered(body, peerId);
 
