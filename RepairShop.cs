@@ -121,7 +121,7 @@ public partial class RepairShop : Area3D
             Mesh = new PlaneMesh
             {
                 Size = new Vector2(LaneWidth, DrivewayLength),
-                Orientation = PlaneMesh.OrientationEnum.Z
+                Orientation = PlaneMesh.OrientationEnum.Y
             },
             MaterialOverride = groundMaterial,
             Position = new Vector3(0.0f, 0.04f, 0.0f)
