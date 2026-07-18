@@ -65,6 +65,8 @@ public partial class RetroNeonCabShell : CanvasLayer
     private Label _pauseDriftLabel;
     private Label _volumeLabel;
     private Label _pixelLabel;
+    private Label _repairPromptLabel;
+    private Control _repairPromptPill;
     private Button _audioButton;
     private Button _scanlineButton;
     private Button _crtButton;
@@ -626,6 +628,22 @@ public partial class RetroNeonCabShell : CanvasLayer
 
         _checkpointLabel = MakeLabel("FARE: SEARCHING...", _fontBody, 21, Colors.White, HorizontalAlignment.Center);
         hudRow.AddChild(WrapPill("CheckpointPill", _checkpointLabel, Hex("ed3b8b"), 190.0f));
+
+        // Drive-through repair shop prompt. Hidden by default; pops in when the
+        // local kart enters the shop zone, and shows the current cost/repair timer.
+        _repairPromptLabel = MakeLabel("PIT STOP", _fontBody, 22, Colors.White, HorizontalAlignment.Center);
+        _repairPromptPill = WrapPill("RepairPromptPill", _repairPromptLabel, Hex("0e8c9c"), 360.0f);
+        _repairPromptPill.AnchorLeft = 0.5f;
+        _repairPromptPill.AnchorRight = 0.5f;
+        _repairPromptPill.AnchorTop = 0.0f;
+        _repairPromptPill.AnchorBottom = 0.0f;
+        _repairPromptPill.OffsetLeft = -180.0f;
+        _repairPromptPill.OffsetRight = 180.0f;
+        _repairPromptPill.OffsetTop = 64.0f;
+        _repairPromptPill.OffsetBottom = 110.0f;
+        _repairPromptPill.MouseFilter = Control.MouseFilterEnum.Ignore;
+        _repairPromptPill.Visible = false;
+        screen.AddChild(_repairPromptPill);
 
         VBoxContainer statusContainer = new VBoxContainer();
         statusContainer.AddThemeConstantOverride("separation", 2);
@@ -1199,6 +1217,45 @@ public partial class RetroNeonCabShell : CanvasLayer
                 _checkpointLabel.Text = "CHECKPOINT: --";
             if (_driftMetersLabel != null)
                 _driftMetersLabel.Text = $"{Mathf.RoundToInt((float)_driftMeters):N0}m";
+        }
+
+        UpdateRepairPrompt();
+    }
+
+    private void UpdateRepairPrompt()
+    {
+        if (_repairPromptPill == null || _repairPromptLabel == null)
+            return;
+
+        // Only show during active gameplay (paused/menu screens hide it via the
+        // surrounding ShowScreen() flow that re-builds the pill).
+        if (_currentScreen != ShellScreen.Gameplay)
+        {
+            _repairPromptPill.Visible = false;
+            return;
+        }
+
+        RepairShop shop = TrackBuilder.Instance?.GetRepairShop();
+        if (shop == null || !GodotObject.IsInstanceValid(shop))
+        {
+            _repairPromptPill.Visible = false;
+            return;
+        }
+
+        if (shop.TryGetPromptForLocalKart(out string text, out bool inProgress, out _))
+        {
+            _repairPromptLabel.Text = text;
+            _repairPromptPill.Visible = true;
+            // Flash the pill between white and the alert color while a repair
+            // is in progress, to give clear feedback that the kart is locked.
+            Color modulate = inProgress
+                ? ((Time.GetTicksMsec() % 600 < 300) ? Colors.White : Hex("ff5050"))
+                : Colors.White;
+            _repairPromptLabel.AddThemeColorOverride("font_color", modulate);
+        }
+        else
+        {
+            _repairPromptPill.Visible = false;
         }
     }
 

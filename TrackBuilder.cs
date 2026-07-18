@@ -294,6 +294,15 @@ public partial class TrackBuilder : Node3D
         return nearest;
     }
 
+    /// <summary>
+    /// Returns the drive-through repair shop spawned at the depot, or null if
+    /// the world hasn't finished building yet.
+    /// </summary>
+    public RepairShop GetRepairShop()
+    {
+        return GetNodeOrNull<RepairShop>("TaxiDepot/RepairShop");
+    }
+
     public Vector3 GetNearestIntersection(Vector3 position)
     {
         if (_intersectionPositions.Count == 0)
@@ -443,6 +452,14 @@ public partial class TrackBuilder : Node3D
             Mesh = new BoxMesh { Size = new Vector3(16.7f, 0.38f, 0.38f) },
             MaterialOverride = headerMaterial,
             Position = new Vector3(0.0f, 4.8f, 8.0f)
+        });
+
+        // Drive-through repair shop — placed on the depot exit axis so karts
+        // leaving the spawn pad pass through it to access the main road.
+        depot.AddChild(new RepairShop
+        {
+            Name = "RepairShop",
+            Position = new Vector3(0.0f, 0.0f, 4.0f)
         });
 
     }
