@@ -3,12 +3,16 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Drive-through economy-based repair shop from the Tactical Taxis GDD.
-/// Karts that come to a complete stop inside the Area3D are disabled for
-/// `RepairDuration` seconds and then billed a flat + per-HP fee that restores
-/// their vehicle to full health via <see cref="GameManager.TryPurchaseRepair"/>.
+/// Sits on a city block and bridges two parallel streets as a single one-lane
+/// straight connector. The first kart that comes to a complete stop inside the
+/// bay is locked in for <see cref="RepairDuration"/> seconds and then billed a
+/// flat + per-HP fee that restores Health to 100 via <see cref="GameManager.TryPurchaseRepair"/>.
 ///
-/// Repair is refused while the kart is carrying a passenger so a driver can't
-/// duck the bail-out damage penalty by driving past the depot.
+/// Single bay: only one kart can be repaired at a time. A second kart that
+/// enters while a repair is in progress is shown a "BUSY" prompt and ignored.
+///
+/// Repair is refused while a kart is carrying a passenger so a driver can't
+/// duck the bail-out damage penalty by driving through the depot.
 ///
 /// Server-authoritative; solo runs through the IsServer() branch.
 /// </summary>
@@ -20,21 +24,31 @@ public partial class RepairShop : Area3D
     [Export] public int MaxRepairCost = 200;
     [Export] public float StopSpeedThreshold = 0.8f;
 
-    private const float PromptHideGracePeriod = 0.35f;
+    /// <summary>Width of the shop's interior lane, perpendicular to the driveway. ~2/3 of a street.</summary>
+    [Export] public float LaneWidth = 6.0f;
+    /// <summary>Length of the shop's interior lane along the driveway axis.</summary>
+    [Export] public float DrivewayLength = 24.0f;
 
-    private readonly Dictionary<int, ActiveRepair> _activeRepairs = new();
-    private CollisionShape3D _collisionShape;
-    private MeshInstance3D _progressBarFill;
-    private MeshInstance3D _progressBarBacking;
-    private Label3D _statusLabel;
+    private const float ProgressBarHeight = 4.4f;
 
     private struct ActiveRepair
     {
+        public int PeerId;
         public float Elapsed;
         public int Cost;
-        public int QuotedHealth;
         public bool PassengerOnEntry;
     }
+
+    private readonly HashSet<Kart> _overlappingKarts = new();
+    private ActiveRepair? _currentRepair;
+    private bool _kartsChanged;
+
+    private CollisionShape3D _collisionShape;
+    private MeshInstance3D _roofBeam;
+    private MeshInstance3D _roofSign;
+    private MeshInstance3D _progressBarBacking;
+    private MeshInstance3D _progressBarFill;
+    private Label3D _statusLabel;
 
     public override void _Ready()
     {
@@ -44,8 +58,12 @@ public partial class RepairShop : Area3D
         CollisionMask = 1; // Detect karts (Layer 1, matches PickupZone)
 
         _collisionShape = new CollisionShape3D { Name = "CollisionShape" };
-        // Wide but short box — matches drive-through geometry, not a passenger cylinder.
-        _collisionShape.Shape = new BoxShape3D { Size = new Vector3(5.0f, 2.5f, 8.0f) };
+        // Driveway runs along the shop's local +Z axis; width along X.
+        _collisionShape.Shape = new BoxShape3D
+        {
+            Size = new Vector3(LaneWidth, 2.8f, DrivewayLength)
+        };
+        _collisionShape.Position = new Vector3(0.0f, 1.4f, 0.0f);
         AddChild(_collisionShape);
 
         BuildVisual();
@@ -56,65 +74,102 @@ public partial class RepairShop : Area3D
 
     private void BuildVisual()
     {
-        var padMaterial = new StandardMaterial3D
+        var groundMaterial = new StandardMaterial3D
         {
             AlbedoColor = new Color(0.04f, 0.10f, 0.14f),
             EmissionEnabled = true,
-            Emission = new Color(0.10f, 0.62f, 0.78f),
-            Roughness = 0.75f
+            Emission = new Color(0.06f, 0.48f, 0.62f),
+            Roughness = 0.85f
+        };
+        var postMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.05f, 0.05f, 0.10f),
+            EmissionEnabled = true,
+            Emission = new Color(0.02f, 0.02f, 0.04f),
+            Roughness = 0.55f,
+            Metallic = 0.6f
         };
         var accentMaterial = new StandardMaterial3D
         {
             AlbedoColor = new Color(0.0f, 0.92f, 1.0f),
             EmissionEnabled = true,
-            Emission = new Color(0.0f, 0.92f, 1.0f) * 0.85f
+            Emission = new Color(0.0f, 0.92f, 1.0f) * 0.90f
         };
-        var headerMaterial = new StandardMaterial3D
+        var signMaterial = new StandardMaterial3D
         {
             AlbedoColor = new Color(0.95f, 0.78f, 0.20f),
             EmissionEnabled = true,
-            Emission = new Color(0.95f, 0.45f, 0.05f) * 0.70f
+            Emission = new Color(0.95f, 0.45f, 0.05f) * 0.85f
+        };
+        var progressMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.10f, 1.0f, 0.45f),
+            EmissionEnabled = true,
+            Emission = new Color(0.10f, 1.0f, 0.45f) * 0.90f
+        };
+        var progressBackingMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.05f, 0.05f, 0.10f),
+            EmissionEnabled = true,
+            Emission = new Color(0.02f, 0.02f, 0.05f)
         };
 
+        // Ground strip showing the lane.
         AddChild(new MeshInstance3D
         {
-            Name = "ShopPad",
-            Mesh = new PlaneMesh { Size = new Vector2(11.0f, 16.0f) },
-            MaterialOverride = padMaterial,
-            Position = Vector3.Up * 0.06f
+            Name = "ShopLane",
+            Mesh = new PlaneMesh
+            {
+                Size = new Vector2(LaneWidth, DrivewayLength),
+                Orientation = PlaneMesh.OrientationEnum.Z
+            },
+            MaterialOverride = groundMaterial,
+            Position = new Vector3(0.0f, 0.04f, 0.0f)
         });
 
+        // Two canopy posts straddling the lane on -X and +X. Span the full driveway length.
+        float postHeight = 4.8f;
         for (int side = -1; side <= 1; side += 2)
         {
             AddChild(new MeshInstance3D
             {
-                Name = side < 0 ? "ShopPostLeft" : "ShopPostRight",
-                Mesh = new BoxMesh { Size = new Vector3(0.30f, 4.6f, 0.30f) },
-                MaterialOverride = accentMaterial,
-                Position = new Vector3(side * 5.5f, 2.3f, 6.5f)
+                Name = side < 0 ? "CanopyPostLeft" : "CanopyPostRight",
+                Mesh = new BoxMesh { Size = new Vector3(0.42f, postHeight, DrivewayLength * 0.98f) },
+                MaterialOverride = postMaterial,
+                Position = new Vector3(side * (LaneWidth * 0.5f + 0.18f), postHeight * 0.5f, 0.0f)
             });
         }
 
-        AddChild(new MeshInstance3D
+        // Roof beam across the lane at the midpoint. Holds the progress bar.
+        float beamLength = LaneWidth + 0.6f;
+        _roofBeam = new MeshInstance3D
         {
-            Name = "ShopHeader",
-            Mesh = new BoxMesh { Size = new Vector3(11.6f, 0.42f, 0.42f) },
-            MaterialOverride = headerMaterial,
-            Position = new Vector3(0.0f, 4.55f, 6.5f)
-        });
+            Name = "RoofBeam",
+            Mesh = new BoxMesh { Size = new Vector3(beamLength, 0.30f, 0.30f) },
+            MaterialOverride = accentMaterial,
+            Position = new Vector3(0.0f, ProgressBarHeight, 0.0f)
+        };
+        AddChild(_roofBeam);
 
-        // Progress bar: backing + fill that scales with repair progress.
+        // Sign on the roof beam — visible from any approach direction since we
+        // make the Label3D billboarded.
+        _roofSign = new MeshInstance3D
+        {
+            Name = "SignPanel",
+            Mesh = new BoxMesh { Size = new Vector3(beamLength * 0.9f, 0.6f, 0.10f) },
+            MaterialOverride = signMaterial,
+            Position = new Vector3(0.0f, ProgressBarHeight + 0.45f, 0.0f)
+        };
+        AddChild(_roofSign);
+
+        // Progress bar (backing + fill) attached to the underside of the roof beam.
+        float barWidth = Mathf.Min(LaneWidth * 0.8f, 5.0f);
         _progressBarBacking = new MeshInstance3D
         {
             Name = "ProgressBarBacking",
-            Mesh = new BoxMesh { Size = new Vector3(4.0f, 0.18f, 0.18f) },
-            MaterialOverride = new StandardMaterial3D
-            {
-                AlbedoColor = new Color(0.05f, 0.05f, 0.10f),
-                EmissionEnabled = true,
-                Emission = new Color(0.02f, 0.02f, 0.05f)
-            },
-            Position = new Vector3(0.0f, 3.55f, 6.5f),
+            Mesh = new BoxMesh { Size = new Vector3(barWidth, 0.16f, 0.16f) },
+            MaterialOverride = progressBackingMaterial,
+            Position = new Vector3(0.0f, ProgressBarHeight - 0.25f, 0.0f),
             Visible = false
         };
         AddChild(_progressBarBacking);
@@ -122,18 +177,14 @@ public partial class RepairShop : Area3D
         _progressBarFill = new MeshInstance3D
         {
             Name = "ProgressBarFill",
-            Mesh = new BoxMesh { Size = new Vector3(3.9f, 0.16f, 0.16f) },
-            MaterialOverride = new StandardMaterial3D
-            {
-                AlbedoColor = new Color(0.10f, 1.0f, 0.45f),
-                EmissionEnabled = true,
-                Emission = new Color(0.10f, 1.0f, 0.45f) * 0.90f
-            },
-            Position = new Vector3(0.0f, 3.55f, 6.51f),
+            Mesh = new BoxMesh { Size = new Vector3(barWidth * 0.98f, 0.14f, 0.14f) },
+            MaterialOverride = progressMaterial,
+            Position = new Vector3(0.0f, ProgressBarHeight - 0.25f, 0.01f),
             Visible = false
         };
         AddChild(_progressBarFill);
 
+        // Floating status label — billboarded so any approach direction reads it.
         var font = GD.Load<Font>("res://assets/fonts/VT323-Regular.ttf");
         _statusLabel = new Label3D
         {
@@ -144,7 +195,7 @@ public partial class RepairShop : Area3D
             PixelSize = 0.014f,
             Modulate = new Color(0.95f, 0.95f, 0.45f),
             OutlineModulate = Colors.Black,
-            Position = new Vector3(0.0f, 5.4f, 6.5f)
+            Position = new Vector3(0.0f, ProgressBarHeight + 1.4f, 0.0f)
         };
         if (font != null)
         {
@@ -164,126 +215,131 @@ public partial class RepairShop : Area3D
             return;
 
         float dt = (float)delta;
-        bool anyActive = false;
 
-        // Sweep stale entries (kart despawned).
-        var stale = new List<int>();
-        foreach (var kv in _activeRepairs)
+        // Sweep stale entries (kart despawned mid-repair).
+        if (_currentRepair.HasValue)
         {
-            Kart kart = GameManager.Instance?.GetKart(kv.Key);
+            int peerId = _currentRepair.Value.PeerId;
+            Kart kart = GameManager.Instance?.GetKart(peerId);
             if (kart == null || !GodotObject.IsInstanceValid(kart))
-                stale.Add(kv.Key);
-        }
-        foreach (int id in stale)
-            _activeRepairs.Remove(id);
-
-        // Tick active repairs.
-        var completed = new List<int>();
-        foreach (var kv in _activeRepairs)
-        {
-            anyActive = true;
-            ActiveRepair repair = kv.Value;
-            repair.Elapsed += dt;
-            _activeRepairs[kv.Key] = repair;
-
-            if (repair.Elapsed >= RepairDuration)
-                completed.Add(kv.Key);
-        }
-
-        foreach (int id in completed)
-        {
-            ActiveRepair repair = _activeRepairs[id];
-            _activeRepairs.Remove(id);
-
-            Kart kart = GameManager.Instance?.GetKart(id);
-            if (kart != null && GodotObject.IsInstanceValid(kart))
             {
-                // Bail-out protection: if a passenger boarded mid-repair, refund nothing
-                // and refuse to bill. The driver took the repair knowing the rules.
-                if (kart.ActivePassenger.HasValue && !repair.PassengerOnEntry)
-                {
-                    GD.Print($"RepairShop: peer {id} boarded mid-repair; refunding cost.");
-                }
-                else
-                {
-                    if (GameManager.Instance != null && GameManager.Instance.TryPurchaseRepair(id, repair.Cost))
-                    {
-                        kart.BroadcastFareCompletedAudio();
-                        kart.TriggerSpeechBubble($"PIT STOP — ${repair.Cost}");
-                        GD.Print($"RepairShop: peer {id} repaired for ${repair.Cost}.");
-                    }
-                    else
-                    {
-                        kart.TriggerSpeechBubble("REPAIR DENIED — INSUFFICIENT CASH");
-                        GD.Print($"RepairShop: peer {id} could not afford ${repair.Cost}.");
-                    }
-                }
-
-                kart.SetControlsEnabled(true);
+                _currentRepair = null;
             }
         }
 
-        UpdateVisual(anyActive);
+        // Tick the active repair.
+        bool bayBusy = false;
+        if (_currentRepair.HasValue)
+        {
+            bayBusy = true;
+            ActiveRepair r = _currentRepair.Value;
+            r.Elapsed += dt;
+            _currentRepair = r;
+
+            if (r.Elapsed >= RepairDuration)
+            {
+                CompleteRepair();
+            }
+        }
+
+        UpdateVisual(bayBusy);
     }
 
-    private void UpdateVisual(bool anyActive)
+    private void CompleteRepair()
+    {
+        if (!_currentRepair.HasValue) return;
+        ActiveRepair repair = _currentRepair.Value;
+        _currentRepair = null;
+
+        Kart kart = GameManager.Instance?.GetKart(repair.PeerId);
+        if (kart == null || !GodotObject.IsInstanceValid(kart))
+            return;
+
+        // Bail-out protection: if a passenger boarded mid-repair, refuse to bill.
+        if (kart.ActivePassenger.HasValue && !repair.PassengerOnEntry)
+        {
+            GD.Print($"RepairShop: peer {repair.PeerId} boarded mid-repair; refunding cost.");
+        }
+        else if (GameManager.Instance != null && GameManager.Instance.TryPurchaseRepair(repair.PeerId, repair.Cost))
+        {
+            kart.BroadcastFareCompletedAudio();
+            kart.TriggerSpeechBubble($"PIT STOP — ${repair.Cost}");
+            GD.Print($"RepairShop: peer {repair.PeerId} repaired for ${repair.Cost}.");
+        }
+        else
+        {
+            kart.TriggerSpeechBubble("REPAIR DENIED — INSUFFICIENT CASH");
+            GD.Print($"RepairShop: peer {repair.PeerId} could not afford ${repair.Cost}.");
+        }
+
+        kart.SetControlsEnabled(true);
+    }
+
+    private void UpdateVisual(bool bayBusy)
     {
         if (_statusLabel == null) return;
 
-        if (!anyActive)
+        if (!bayBusy)
         {
-            // Show a passive prompt when at least one kart is overlapping the zone
-            // and is currently stopped + eligible.
-            bool anyEligible = false;
+            // No active repair — show a passive prompt for any stopped, eligible,
+            // not-already-here kart that overlaps the bay. If the bay is otherwise
+            // idle but a kart is sitting inside it without eligibility, show BUSY
+            // so it's clear the spot is taken (matches single-bay semantics).
             string promptText = string.Empty;
-            foreach (var kart in OverlappingKarts)
+            bool anyStopped = false;
+
+            foreach (var kart in _overlappingKarts)
             {
                 if (!IsInstanceValid(kart)) continue;
-                if (kart.LinearVelocity.Length() >= StopSpeedThreshold) continue;
-                if (kart.ActivePassenger.HasValue) continue;
+                if (kart.LinearVelocity.Length() < StopSpeedThreshold)
+                    anyStopped = true;
 
-                int peerId = kart.OwnerPeerId;
                 if (GameManager.Instance == null) continue;
+                int peerId = kart.OwnerPeerId;
                 if (GameManager.Instance.GetPlayerHealth(peerId) >= 100) continue;
+                if (kart.ActivePassenger.HasValue) continue;
 
                 int cost = ComputeCost(peerId);
                 if (GameManager.Instance.GetPlayerMoney(peerId) < cost) continue;
+                if (kart.LinearVelocity.Length() >= StopSpeedThreshold) continue;
 
-                anyEligible = true;
                 promptText = $"PIT STOP — STOP FOR REPAIR (${cost})";
                 break;
             }
 
-            _statusLabel.Text = anyEligible ? promptText : string.Empty;
+            if (promptText.Length == 0 && anyStopped)
+                promptText = "REPAIR UNAVAILABLE";
+
+            _statusLabel.Text = promptText;
             _progressBarBacking.Visible = false;
             _progressBarFill.Visible = false;
             return;
         }
 
-        // Show progress for the active repair (single-repair-per-shop assumption).
-        foreach (var kv in _activeRepairs)
+        // Bay busy — show progress.
+        ActiveRepair r = _currentRepair!.Value;
+        float t = Mathf.Clamp(r.Elapsed / RepairDuration, 0.0f, 1.0f);
+
+        _progressBarBacking.Visible = true;
+        _progressBarFill.Visible = true;
+
+        float fullWidth = _progressBarBacking.Mesh is BoxMesh backingBox ? backingBox.Size.X : 4.0f;
+        float currentWidth = Mathf.Max(0.001f, fullWidth * t);
+        _progressBarFill.Mesh = new BoxMesh
         {
-            float t = Mathf.Clamp(kv.Value.Elapsed / RepairDuration, 0.0f, 1.0f);
-            _progressBarBacking.Visible = true;
-            _progressBarFill.Visible = true;
+            Size = new Vector3(currentWidth, 0.14f, 0.14f)
+        };
+        float offset = -(fullWidth - currentWidth) * 0.5f;
+        _progressBarFill.Position = new Vector3(offset, _progressBarBacking.Position.Y, _progressBarBacking.Position.Z + 0.01f);
 
-            float fullWidth = 3.9f;
-            float currentWidth = Mathf.Max(0.001f, fullWidth * t);
-            _progressBarFill.Mesh = new BoxMesh
-            {
-                Size = new Vector3(currentWidth, 0.16f, 0.16f)
-            };
-            // Re-anchor fill so it grows from the left edge, not the centre.
-            float offset = -(fullWidth - currentWidth) * 0.5f;
-            _progressBarFill.Position = new Vector3(offset, 3.55f, 6.51f);
-
-            float remaining = Mathf.Max(0.0f, RepairDuration - kv.Value.Elapsed);
-            _statusLabel.Text = $"REPAIRING... {remaining:0.0}s";
-            return;
-        }
+        float remaining = Mathf.Max(0.0f, RepairDuration - r.Elapsed);
+        _statusLabel.Text = $"REPAIRING... {remaining:0.0}s";
     }
 
-    // Public so HUD can read state without subscribing to signals.
+    /// <summary>
+    /// Reads this shop's prompt state for the local player (peer 1).
+    /// Returns true if the player is currently inside the shop's overlap.
+    /// </summary>
     public bool TryGetPromptForLocalKart(out string text, out bool inProgress, out float progress)
     {
         text = string.Empty;
@@ -295,15 +351,21 @@ public partial class RepairShop : Area3D
         if (localKart == null || !GodotObject.IsInstanceValid(localKart)) return false;
         if (!IsInstanceValid(this)) return false;
 
-        if (_activeRepairs.TryGetValue(1, out ActiveRepair active))
+        // Active repair for the local kart?
+        if (_currentRepair.HasValue && _currentRepair.Value.PeerId == 1)
         {
             inProgress = true;
-            progress = Mathf.Clamp(active.Elapsed / RepairDuration, 0.0f, 1.0f);
-            text = $"REPAIRING... {Mathf.Max(0.0f, RepairDuration - active.Elapsed):0.0}s";
+            progress = Mathf.Clamp(_currentRepair.Value.Elapsed / RepairDuration, 0.0f, 1.0f);
+            text = $"REPAIRING... {Mathf.Max(0.0f, RepairDuration - _currentRepair.Value.Elapsed):0.0}s";
             return true;
         }
 
-        // Not actively repairing — check eligibility for the prompt.
+        // Bay busy for someone else but local kart is inside the zone.
+        if (_currentRepair.HasValue)
+            return _overlappingKarts.Contains(localKart);
+
+        // Bay idle — check local eligibility.
+        if (!_overlappingKarts.Contains(localKart)) return false;
         if (localKart.LinearVelocity.Length() >= StopSpeedThreshold) return false;
         if (localKart.ActivePassenger.HasValue) return false;
         if (GameManager.Instance.GetPlayerHealth(1) >= 100) return false;
@@ -315,15 +377,13 @@ public partial class RepairShop : Area3D
         return true;
     }
 
-    private readonly HashSet<Kart> OverlappingKarts = new();
-
     private void OnBodyEntered(Node body)
     {
-        if (body is Kart kart && !OverlappingKarts.Contains(kart))
+        if (body is Kart kart && !_overlappingKarts.Contains(kart))
         {
-            OverlappingKarts.Add(kart);
+            _overlappingKarts.Add(kart);
             kart.PlayPickupEnterAudio();
-            GD.Print($"RepairShop: Kart {kart.Name} entered zone.");
+            GD.Print($"RepairShop({Name}): Kart {kart.Name} entered zone.");
         }
     }
 
@@ -331,12 +391,17 @@ public partial class RepairShop : Area3D
     {
         if (body is Kart kart)
         {
-            OverlappingKarts.Remove(kart);
-            _activeRepairs.Remove(kart.OwnerPeerId);
-            Kart liveKart = GameManager.Instance?.GetKart(kart.OwnerPeerId);
-            if (liveKart != null && GodotObject.IsInstanceValid(liveKart))
-                liveKart.SetControlsEnabled(true);
-            GD.Print($"RepairShop: Kart {kart.Name} exited zone.");
+            _overlappingKarts.Remove(kart);
+
+            // If this kart was being repaired, abort cleanly without billing.
+            if (_currentRepair.HasValue && _currentRepair.Value.PeerId == kart.OwnerPeerId)
+            {
+                _currentRepair = null;
+                Kart liveKart = GameManager.Instance?.GetKart(kart.OwnerPeerId);
+                if (liveKart != null && GodotObject.IsInstanceValid(liveKart))
+                    liveKart.SetControlsEnabled(true);
+                GD.Print($"RepairShop({Name}): Kart {kart.Name} left mid-repair; cancelled.");
+            }
         }
     }
 
@@ -344,22 +409,21 @@ public partial class RepairShop : Area3D
     {
         if (!Multiplayer.IsServer()) return;
 
+        // Already repairing — don't accept new work.
+        if (_currentRepair.HasValue) return;
+
         float dt = (float)delta;
 
-        foreach (Kart kart in OverlappingKarts)
+        foreach (Kart kart in _overlappingKarts)
         {
             if (!IsInstanceValid(kart)) continue;
-
-            int peerId = kart.OwnerPeerId;
-
-            // A kart already in an active repair: just keep ticking — done in _Process.
-            if (_activeRepairs.ContainsKey(peerId)) continue;
 
             // Need: stopped, no passenger, damaged, affordable.
             if (kart.LinearVelocity.Length() >= StopSpeedThreshold) continue;
             if (kart.ActivePassenger.HasValue) continue;
             if (GameManager.Instance == null) continue;
 
+            int peerId = kart.OwnerPeerId;
             int health = GameManager.Instance.GetPlayerHealth(peerId);
             if (health >= 100) continue;
 
@@ -370,14 +434,15 @@ public partial class RepairShop : Area3D
             kart.SetControlsEnabled(false);
             kart.ClearInput();
             kart.TriggerSpeechBubble($"HOLD STILL — ${cost}");
-            _activeRepairs[peerId] = new ActiveRepair
+            _currentRepair = new ActiveRepair
             {
+                PeerId = peerId,
                 Elapsed = 0.0f,
                 Cost = cost,
-                QuotedHealth = health,
                 PassengerOnEntry = false
             };
-            GD.Print($"RepairShop: peer {peerId} repair started for ${cost}.");
+            GD.Print($"RepairShop({Name}): peer {peerId} repair started for ${cost}.");
+            break; // single bay
         }
     }
 

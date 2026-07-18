@@ -1235,7 +1235,13 @@ public partial class RetroNeonCabShell : CanvasLayer
             return;
         }
 
-        RepairShop shop = TrackBuilder.Instance?.GetRepairShop();
+        if (_kart == null || !GodotObject.IsInstanceValid(_kart))
+        {
+            _repairPromptPill.Visible = false;
+            return;
+        }
+
+        RepairShop shop = TrackBuilder.Instance?.GetNearestRepairShop(_kart.GlobalPosition);
         if (shop == null || !GodotObject.IsInstanceValid(shop))
         {
             _repairPromptPill.Visible = false;
