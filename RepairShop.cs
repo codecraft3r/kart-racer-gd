@@ -129,20 +129,39 @@ public partial class RepairShop : Area3D
             Position = new Vector3(0.0f, 0.04f, 0.0f)
         });
 
-        // Two canopy posts straddling the lane on -X and +X. Span the full driveway length.
+        // Canopy posts: a SHORT roof centered on the bay midpoint so the shop
+        // reads as a small garage you drive into, not a tunnel you drive through.
+        // Posts only span the canopy length, not the full lane, leaving the
+        // approach and exit open.
+        float canopyLength = Mathf.Min(DrivewayLength, 8.0f);
         float postHeight = 4.8f;
         for (int side = -1; side <= 1; side += 2)
         {
+            Vector3 postSize = new Vector3(0.42f, postHeight, canopyLength);
+            Vector3 postPos = new Vector3(side * (LaneWidth * 0.5f + 0.18f), postHeight * 0.5f, 0.0f);
+
             AddChild(new MeshInstance3D
             {
                 Name = side < 0 ? "CanopyPostLeft" : "CanopyPostRight",
-                Mesh = new BoxMesh { Size = new Vector3(0.42f, postHeight, DrivewayLength * 0.98f) },
+                Mesh = new BoxMesh { Size = postSize },
                 MaterialOverride = postMaterial,
-                Position = new Vector3(side * (LaneWidth * 0.5f + 0.18f), postHeight * 0.5f, 0.0f)
+                Position = postPos
             });
+
+            // Solid collider so a kart can't drive through the post.
+            var postBody = new StaticBody3D
+            {
+                Name = side < 0 ? "CanopyPostColliderLeft" : "CanopyPostColliderRight",
+                Position = postPos,
+                CollisionLayer = 1,
+                CollisionMask = 0
+            };
+            postBody.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = postSize } });
+            AddChild(postBody);
         }
 
-        // Roof beam across the lane at the midpoint. Holds the progress bar.
+        // Roof beam across the lane at the midpoint of the canopy. Holds the
+        // progress bar.
         float beamLength = LaneWidth + 0.6f;
         _roofBeam = new MeshInstance3D
         {
