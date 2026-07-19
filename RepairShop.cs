@@ -22,7 +22,9 @@ public partial class RepairShop : Area3D
     [Export] public int BaseServiceFee = 25;
     [Export] public int PerMissingHealthCost = 1;
     [Export] public int MaxRepairCost = 200;
-    [Export] public float StopSpeedThreshold = 0.8f;
+    // Slightly forgiving stop threshold: a slow roll counts as stopped so
+    // a kart easing into the bay doesn't have to be perfectly motionless.
+    [Export] public float StopSpeedThreshold = 2.5f;
 
     /// <summary>Width of the shop's interior lane, perpendicular to the driveway. ~2/3 of a street.</summary>
     [Export] public float LaneWidth = 6.0f;
@@ -275,40 +277,42 @@ public partial class RepairShop : Area3D
         kart.SetControlsEnabled(true);
     }
 
+    private string BuildPromptForKart(Kart kart)
+    {
+        if (GameManager.Instance == null) return string.Empty;
+        int peerId = kart.OwnerPeerId;
+
+        if (kart.ActivePassenger.HasValue) return "DROP OFF PASSENGER FIRST";
+        if (GameManager.Instance.GetPlayerHealth(peerId) >= 100) return "ALREADY AT FULL HEALTH";
+
+        int cost = ComputeCost(peerId);
+        if (GameManager.Instance.GetPlayerMoney(peerId) < cost) return $"NEED ${cost} TO REPAIR";
+        if (kart.LinearVelocity.Length() >= StopSpeedThreshold) return "STOP TO REPAIR";
+
+        return $"PIT STOP — REPAIR FOR ${cost}";
+    }
+
     private void UpdateVisual(bool bayBusy)
     {
         if (_statusLabel == null) return;
 
         if (!bayBusy)
         {
-            // No active repair — show a passive prompt for any stopped, eligible,
-            // not-already-here kart that overlaps the bay. If the bay is otherwise
-            // idle but a kart is sitting inside it without eligibility, show BUSY
-            // so it's clear the spot is taken (matches single-bay semantics).
+            // Show a passive prompt for any overlapping kart. Pick the first
+            // non-local kart if any (so AI karts get visible feedback), else
+            // the local one. Keeps the same message set as the HUD pill so
+            // the player learns the rules from both sources.
             string promptText = string.Empty;
-            bool anyStopped = false;
-
+            Kart fallbackForLocal = null;
             foreach (var kart in _overlappingKarts)
             {
                 if (!IsInstanceValid(kart)) continue;
-                if (kart.LinearVelocity.Length() < StopSpeedThreshold)
-                    anyStopped = true;
-
-                if (GameManager.Instance == null) continue;
-                int peerId = kart.OwnerPeerId;
-                if (GameManager.Instance.GetPlayerHealth(peerId) >= 100) continue;
-                if (kart.ActivePassenger.HasValue) continue;
-
-                int cost = ComputeCost(peerId);
-                if (GameManager.Instance.GetPlayerMoney(peerId) < cost) continue;
-                if (kart.LinearVelocity.Length() >= StopSpeedThreshold) continue;
-
-                promptText = $"PIT STOP — STOP FOR REPAIR (${cost})";
-                break;
+                promptText = BuildPromptForKart(kart);
+                if (!string.IsNullOrEmpty(promptText)) break;
+                if (kart.OwnerPeerId == 1) fallbackForLocal = kart;
             }
-
-            if (promptText.Length == 0 && anyStopped)
-                promptText = "REPAIR UNAVAILABLE";
+            if (string.IsNullOrEmpty(promptText) && fallbackForLocal != null)
+                promptText = BuildPromptForKart(fallbackForLocal);
 
             _statusLabel.Text = promptText;
             _progressBarBacking.Visible = false;
@@ -338,7 +342,8 @@ public partial class RepairShop : Area3D
 
     /// <summary>
     /// Reads this shop's prompt state for the local player (peer 1).
-    /// Returns true if the player is currently inside the shop's overlap.
+    /// Always returns a prompt whenever the local kart is overlapping the
+    /// shop's collision box, so the player can see what's required of them.
     /// </summary>
     public bool TryGetPromptForLocalKart(out string text, out bool inProgress, out float progress)
     {
@@ -350,6 +355,7 @@ public partial class RepairShop : Area3D
         Kart localKart = GameManager.Instance.GetKart(1);
         if (localKart == null || !GodotObject.IsInstanceValid(localKart)) return false;
         if (!IsInstanceValid(this)) return false;
+        if (!_overlappingKarts.Contains(localKart)) return false;
 
         // Active repair for the local kart?
         if (_currentRepair.HasValue && _currentRepair.Value.PeerId == 1)
@@ -360,20 +366,37 @@ public partial class RepairShop : Area3D
             return true;
         }
 
-        // Bay busy for someone else but local kart is inside the zone.
+        // Bay busy for someone else.
         if (_currentRepair.HasValue)
-            return _overlappingKarts.Contains(localKart);
+        {
+            text = "BAY OCCUPIED — WAIT";
+            return true;
+        }
 
-        // Bay idle — check local eligibility.
-        if (!_overlappingKarts.Contains(localKart)) return false;
-        if (localKart.LinearVelocity.Length() >= StopSpeedThreshold) return false;
-        if (localKart.ActivePassenger.HasValue) return false;
-        if (GameManager.Instance.GetPlayerHealth(1) >= 100) return false;
-
+        // Bay idle — give feedback based on what's blocking repair.
+        if (localKart.ActivePassenger.HasValue)
+        {
+            text = "DROP OFF PASSENGER FIRST";
+            return true;
+        }
+        if (GameManager.Instance.GetPlayerHealth(1) >= 100)
+        {
+            text = "ALREADY AT FULL HEALTH";
+            return true;
+        }
         int cost = ComputeCost(1);
-        if (GameManager.Instance.GetPlayerMoney(1) < cost) return false;
+        if (GameManager.Instance.GetPlayerMoney(1) < cost)
+        {
+            text = $"NEED ${cost} TO REPAIR";
+            return true;
+        }
+        if (localKart.LinearVelocity.Length() >= StopSpeedThreshold)
+        {
+            text = "STOP TO REPAIR";
+            return true;
+        }
 
-        text = $"PIT STOP — STOP FOR REPAIR (${cost})";
+        text = $"PIT STOP — REPAIR FOR ${cost}";
         return true;
     }
 

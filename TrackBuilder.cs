@@ -508,7 +508,11 @@ public partial class TrackBuilder : Node3D
                 // We pick the orientation whose parallel-street pair has the
                 // longer uninterrupted front/back segment.
                 bool alongX = gapZ >= gapX;     // driveway X wins when vertical-street pair (gapZ) is longer
-                float laneLength = alongX ? gapZ : gapX;  // driveway length = the gap it crosses
+                // Driveway length = the gap between the two parallel streets it bridges.
+                // Driveway along X spans gapX (the X span of the block = distance between the
+                // two vertical streets). Driveway along Z spans gapZ (distance between the two
+                // horizontal streets).
+                float laneLength = alongX ? gapX : gapZ;
                 // Average width of the parallel-street pair the driveway bridges
                 // (used to scale the lane width to ~2/3 of a street).
                 float streetWidth = alongX
