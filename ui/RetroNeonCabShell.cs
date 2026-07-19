@@ -1072,12 +1072,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         TaxiMode mode = TaxiMode.Instance;
 
         if (_scoreLabel != null)
-        {
-            int shiftCash = mode?.GetScore(peerId) ?? 0;
-            _scoreLabel.Text = mode?.EndlessRunActive == true
-                ? $"QUOTA: ${shiftCash}/${mode.CurrentCashQuota}"
-                : $"CASH: ${cash}";
-        }
+            _scoreLabel.Text = $"CASH: ${cash}";
         if (_boostLabel != null)
             _boostLabel.Text = $"HP: {health}%";
         if (_speedometer != null)
