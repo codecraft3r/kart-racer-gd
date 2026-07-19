@@ -619,6 +619,21 @@ public partial class TrackBuilder : Node3D
         return best;
     }
 
+    /// <summary>
+    /// Returns true if any repair shop in the city currently has an active
+    /// repair for the given peer. Used by <see cref="GameManager.ApplyVehicleDamage"/>
+    /// to suppress collision damage while a kart is being repaired.
+    /// </summary>
+    public bool IsPeerBeingRepaired(int peerId)
+    {
+        foreach (var shop in _repairShops)
+        {
+            if (shop != null && GodotObject.IsInstanceValid(shop) && shop.IsRepairingPeer(peerId))
+                return true;
+        }
+        return false;
+    }
+
     private void GenerateWorldBounds()
     {
         const float wallThickness = 2.0f;

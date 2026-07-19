@@ -503,6 +503,13 @@ public partial class GameManager : Node
     {
         if (_playerStates.TryGetValue(id, out var state))
         {
+            // Suppress damage while a repair is in progress: the kart is locked
+            // in the bay and all HP changes (including this would-be reduction)
+            // are deferred until the repair completes. Leaving the bay early
+            // cancels the repair and the kart takes damage normally again.
+            if (TrackBuilder.Instance != null && TrackBuilder.Instance.IsPeerBeingRepaired(id))
+                return;
+
             state.Health = Mathf.Max(0, state.Health - damage);
             SyncPlayerState(id, state.Score, state.Money, state.Health);
 

@@ -129,11 +129,10 @@ public partial class RepairShop : Area3D
             Position = new Vector3(0.0f, 0.04f, 0.0f)
         });
 
-        // Canopy posts: a SHORT roof centered on the bay midpoint so the shop
-        // reads as a small garage you drive into, not a tunnel you drive through.
-        // Posts only span the canopy length, not the full lane, leaving the
-        // approach and exit open.
-        float canopyLength = Mathf.Min(DrivewayLength, 8.0f);
+        // Canopy posts: span the full bay length so the side walls cover the
+        // whole repair zone. Previous version capped at 8m which left about a
+        // quarter of the lane uncovered at each end.
+        float canopyLength = DrivewayLength;
         float postHeight = 4.8f;
         for (int side = -1; side <= 1; side += 2)
         {
@@ -265,6 +264,10 @@ public partial class RepairShop : Area3D
 
         UpdateVisual(bayBusy);
     }
+
+    /// <summary>True if this shop currently has an active repair for the given peer.</summary>
+    public bool IsRepairingPeer(int peerId) =>
+        _currentRepair.HasValue && _currentRepair.Value.PeerId == peerId;
 
     private void CompleteRepair()
     {

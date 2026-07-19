@@ -1257,16 +1257,14 @@ public partial class RetroNeonCabShell : CanvasLayer
         }
         _wasRepairInProgress = inProgress;
 
+        // Only emit prompts when the shop is actively doing something:
+        //   WAIT while the repair timer ticks, GO on the frame of completion.
+        // No STOP prompt — the shop stays silent until it's actually working,
+        // so the prompt isn't noisy while the player is just driving in.
         if (inProgress)
         {
             Color waitTint = (Time.GetTicksMsec() % 500 < 250) ? Colors.White : Hex("f5c451");
             RequestKartPrompt(KartPrompt.Wait, waitTint, ">> WAIT <<");
-        }
-        else
-        {
-            // Stop cue: the kart must come to rest to start the repair.
-            Color stopTint = (Time.GetTicksMsec() % 500 < 250) ? Colors.White : Hex("ff0055");
-            RequestKartPrompt(KartPrompt.Stop, stopTint, ">> STOP <<");
         }
     }
 
