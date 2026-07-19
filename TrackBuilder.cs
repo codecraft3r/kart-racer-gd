@@ -467,13 +467,11 @@ public partial class TrackBuilder : Node3D
     {
         public int Column;
         public int Row;
-        // The block's gap along the axis the shop's driveway runs along.
-        // (Driveway axis = perpendicular to the two parallel streets it bridges.)
-        public float LaneLength;
-        public bool DrivewayAlongX; // true => driveway runs along X (bridges two horizontal streets)
-        public Vector3 Position;
+        public float LaneLength;       // Driveway direction, shrunk to fit block interior minus margin
+        public float LaneWidth;        // Perpendicular, ~2/3 of the bridged street pair's width
+        public bool DrivewayAlongX;
+        public Vector3 Position;       // Interior center, NOT block center (so the box doesn't sit on the road)
         public float YawRadians;
-        public float StreetWidth;
     }
 
     private void GenerateRepairShops()
@@ -481,6 +479,10 @@ public partial class TrackBuilder : Node3D
         int columns = CityColumnCount();
         int rows = CityRowCount();
         if (columns <= 0 || rows <= 0) return;
+
+        // Inset from the curb so the shop's collision box lives entirely inside
+        // the block interior and never spills onto the bounding streets.
+        const float CurbInset = 1.5f;
 
         // Build candidates for every block. Each block yields two orientations;
         // we keep the best one (longer uninterrupted segment between the two
@@ -490,44 +492,48 @@ public partial class TrackBuilder : Node3D
         {
             for (int r = 0; r < rows; r++)
             {
-                Vector3 center = BlockCenter(c, r);
                 float gapX = Mathf.Abs(VerticalStreetCoordinate(c + 1) - VerticalStreetCoordinate(c));
                 float gapZ = Mathf.Abs(HorizontalStreetCoordinate(r + 1) - HorizontalStreetCoordinate(r));
 
-                // The two parallel streets that bound the block on the X axis are
-                // the horizontal streets (top/bottom). Bridging them with a
-                // straight driveway running along world Z means the driveway
-                // spans the X-gap and crosses the two horizontal streets. The
-                // front/back road segments on those streets run from (c,r) to
-                // (c+1,r), with uninterrupted length = gapX.
-                // The two parallel streets that bound the block on the Z axis are
-                // the vertical streets (left/right). Bridging them with a driveway
-                // running along world X spans the Z-gap; the front/back segments
-                // on those vertical streets run from (c,r) to (c,r+1), length = gapZ.
-                //
-                // We pick the orientation whose parallel-street pair has the
-                // longer uninterrupted front/back segment.
-                bool alongX = gapZ >= gapX;     // driveway X wins when vertical-street pair (gapZ) is longer
-                // Driveway length = the gap between the two parallel streets it bridges.
-                // Driveway along X spans gapX (the X span of the block = distance between the
-                // two vertical streets). Driveway along Z spans gapZ (distance between the two
-                // horizontal streets).
-                float laneLength = alongX ? gapX : gapZ;
-                // Average width of the parallel-street pair the driveway bridges
-                // (used to scale the lane width to ~2/3 of a street).
-                float streetWidth = alongX
+                // Block interior spans — distance between the inner edges of the
+                // bounding street pairs. Box must fit inside these.
+                Vector2 interior = BlockInteriorSize(c, r);
+                float interiorWidth = interior.X;
+                float interiorDepth = interior.Y;
+
+                // Pick orientation by which parallel-street pair has the longer
+                // uninterrupted front/back segment.
+                bool alongX = gapZ >= gapX;
+
+                // Driveway length: the gap between the two bridged streets, but
+                // shrunk so the box doesn't sit on the road surface.
+                float laneLength = (alongX ? interiorWidth : interiorDepth) - 2.0f * CurbInset;
+                if (laneLength < 4.0f) continue;   // block too narrow to host a shop
+
+                // Lane width: ~2/3 of the bridged street pair's width, clamped
+                // to the perpendicular interior span minus margin.
+                float bridgedStreetWidth = alongX
                     ? (VerticalStreetWidth(c) + VerticalStreetWidth(c + 1)) * 0.5f
                     : (HorizontalStreetWidth(r) + HorizontalStreetWidth(r + 1)) * 0.5f;
+                float laneWidth = Mathf.Min(
+                    bridgedStreetWidth * (2.0f / 3.0f),
+                    (alongX ? interiorDepth : interiorWidth) - 2.0f * CurbInset);
+
+                // Interior center, NOT block center — shifts away from the road
+                // if the bounding street widths are asymmetric.
+                float cx = VerticalStreetCoordinate(c) + VerticalStreetWidth(c) * 0.5f + interiorWidth * 0.5f;
+                float cz = HorizontalStreetCoordinate(r) + HorizontalStreetWidth(r) * 0.5f + interiorDepth * 0.5f;
+                Vector3 interiorCenter = new Vector3(cx, 0.0f, cz);
 
                 candidates.Add(new RepairShopCandidate
                 {
                     Column = c,
                     Row = r,
                     LaneLength = laneLength,
+                    LaneWidth = laneWidth,
                     DrivewayAlongX = alongX,
-                    Position = center,
+                    Position = interiorCenter,
                     YawRadians = alongX ? Mathf.Pi * 0.5f : 0.0f,
-                    StreetWidth = streetWidth
                 });
             }
         }
@@ -584,7 +590,7 @@ public partial class TrackBuilder : Node3D
                 Name = $"RepairShop_{cand.Column:00}_{cand.Row:00}",
                 Position = cand.Position,
                 Rotation = new Vector3(0.0f, cand.YawRadians, 0.0f),
-                LaneWidth = cand.StreetWidth * (2.0f / 3.0f),
+                LaneWidth = cand.LaneWidth,
                 DrivewayLength = cand.LaneLength
             };
             _repairShops.Add(shop);
