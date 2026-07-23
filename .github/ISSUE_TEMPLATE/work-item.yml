@@ -1,0 +1,95 @@
+name: PAIN TAXI work item
+description: Plan a code, asset, audio, design, or engine deliverable.
+title: "[Work]: "
+labels:
+  - work-item
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for implementation work. GitHub Projects holds workflow status; this issue records the durable outcome and evidence.
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: What should exist or behave differently when this is complete?
+      placeholder: Describe the player-visible, developer-visible, or production outcome.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mvp
+    attributes:
+      label: MVP requirement
+      description: Choose Yes only when the MVP depends on this work.
+      options:
+        - "Yes — initial status should be To Do"
+        - "No — initial status should be Backlog"
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Add independently verifiable criteria as a checklist.
+      placeholder: |
+        - [ ] Observable behavior or artifact
+        - [ ] Relevant validation passes
+        - [ ] Evidence is attached or linked
+    validations:
+      required: true
+
+  - type: dropdown
+    id: work_type
+    attributes:
+      label: Primary work type
+      options:
+        - Code / scripts
+        - Godot scene / engine configuration
+        - 3D model / animation
+        - 2D art / UI
+        - Audio / music
+        - Design / documentation
+        - Mixed
+    validations:
+      required: true
+
+  - type: textarea
+    id: areas
+    attributes:
+      label: Relevant areas and assets
+      description: List likely files, systems, source assets, exports, or tools. This guides coordination but is not a Git branch security boundary.
+      placeholder: Godot scenes, C# systems, Blender source, exported GLB, audio stems, documentation, etc.
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and related work
+      description: Link blocking issues, parent issues, decisions, or external inputs.
+      placeholder: "Blocked by #123; parent #100; requires approved concept art."
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation plan
+      description: How should the assigned developer prove this works?
+      placeholder: Build/test commands, in-engine checks, screenshots, video, playback checks, provenance, or human review.
+    validations:
+      required: true
+
+  - type: input
+    id: branch
+    attributes:
+      label: Scoped branch or pull request
+      description: Leave blank while unassigned. Add the scoped branch or PR after work begins.
+      placeholder: fare-payout-balancing or https://github.com/OWNER/REPO/pull/123
+
+  - type: checkboxes
+    id: accountability
+    attributes:
+      label: Accountability
+      options:
+        - label: I understand that humans own commits made under their identity, branch owners approve readiness, and the manager owns merges into master.
+          required: true
