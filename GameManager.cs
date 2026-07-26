@@ -3,6 +3,13 @@ using System.Collections.Generic;
 
 public partial class GameManager : Node
 {
+    public enum BakedKartState
+    {
+        OfflinePreview,
+        SoloActive,
+        NetworkHidden
+    }
+
     public readonly record struct FarePayoutBreakdown(int BaseFare, int CleanDrivingBonus, int StyleTip, int PanicDeduction, int FinalPayout);
     public static GameManager Instance { get; private set; }
 
@@ -17,6 +24,7 @@ public partial class GameManager : Node
     private readonly Dictionary<int, PlayerState> _playerStates = new();
     private Kart _pendingLocalKart;
     private double _snapshotAccumulator;
+    private readonly Dictionary<int, int> _nextSnapshotSequences = new();
     private bool _multiplayerSignalsConnected;
     private readonly List<Kart> _aiKarts = new();
 
@@ -31,10 +39,12 @@ public partial class GameManager : Node
 
         Instance = this;
         ConnectMultiplayerSignals();
+        if (IsMultiplayerSmokeRequested())
+            CallDeferred(nameof(StartMultiplayerSmokeProbe));
 
         if (HasActiveNetworkPeer())
         {
-            ConfigureSinglePlayerKartForNetwork(true);
+            PrepareNetworkSession();
 
             if (Multiplayer.IsServer())
                 CallDeferred(nameof(StartNetworkSession));
@@ -55,7 +65,7 @@ public partial class GameManager : Node
         if (!Multiplayer.IsServer())
             return;
 
-        ConfigureSinglePlayerKartForNetwork(true);
+        PrepareNetworkSession();
         SpawnPlayerForPeer(Multiplayer.GetUniqueId());
 
         foreach (int peerId in Multiplayer.GetPeers())
@@ -112,12 +122,14 @@ public partial class GameManager : Node
         _aiKarts.Clear();
         _pendingLocalKart = null;
         _snapshotAccumulator = 0.0;
-        ConfigureSinglePlayerKartForNetwork(false);
+        _nextSnapshotSequences.Clear();
+        ApplyBakedKartState(BakedKartState.OfflinePreview);
     }
 
     public void StartSoloSession()
     {
         ResetSoloSession();
+        ApplyBakedKartState(BakedKartState.SoloActive);
 
         var localKart = GetParent()?.GetNodeOrNull<Kart>("Kart");
         if (localKart != null)
@@ -194,10 +206,22 @@ public partial class GameManager : Node
         }
     }
 
+    /// <summary>
+    /// Removes the scene-authored kart from the network simulation before any
+    /// dynamic peer kart can be spawned. This is safe to call from the lobby
+    /// before the match scene reloads and again once GameManager is ready.
+    /// </summary>
+    public void PrepareNetworkSession()
+    {
+        ApplyBakedKartState(BakedKartState.NetworkHidden);
+    }
+
     public Kart GetKart(int id)
     {
         return _playerKarts.TryGetValue(id, out Kart kart) && GodotObject.IsInstanceValid(kart) ? kart : null;
     }
+
+    public int GetRegisteredPlayerCount() => _playerKarts.Count;
 
     public int[] GetRegisteredPlayerIds()
     {
@@ -206,8 +230,6 @@ public partial class GameManager : Node
         System.Array.Sort(ids);
         return ids;
     }
-
-    public int GetRegisteredPlayerCount() => _playerKarts.Count;
 
     public void SetAllKartControlsEnabled(bool enabled)
     {
@@ -336,18 +358,21 @@ public partial class GameManager : Node
         bool hasNetworkPeer = HasActiveNetworkPeer();
         bool isLocalPlayer = id == Multiplayer.GetUniqueId();
         kart.IsLocalPlayer = isLocalPlayer;
-        kart.UseLocalInput = !hasNetworkPeer || (Multiplayer.IsServer() && isLocalPlayer);
+        // The server owns every rigid body, but the local peer always owns the
+        // input stream for its matching spawned kart.
+        kart.UseLocalInput = !hasNetworkPeer || isLocalPlayer;
         // The server owns every simulated rigid body. Clients keep replicas frozen,
         // including their local kart; local processing remains active to send input.
         kart.Freeze = hasNetworkPeer && !Multiplayer.IsServer();
 
         AddChild(kart, true);
+        kart.ResetNetworkReplicationState();
         _playerKarts[id] = kart;
         if (!_playerStates.ContainsKey(id))
             _playerStates[id] = new PlayerState();
 
         if (hasNetworkPeer)
-            ConfigureSinglePlayerKartForNetwork(true);
+            PrepareNetworkSession();
 
         if (isLocalPlayer)
         {
@@ -408,6 +433,38 @@ public partial class GameManager : Node
         _pendingLocalKart = null;
     }
 
+    private void StartMultiplayerSmokeProbe()
+    {
+        PackedScene probeScene = GD.Load<PackedScene>("res://tests/multiplayer_two_instance_smoke.tscn");
+        Node probe = probeScene?.Instantiate<Node>();
+        if (probe != null)
+        {
+            probe.Name = "MultiplayerSmokeProbe";
+            AddChild(probe);
+        }
+        else
+        {
+            GD.PushError("Unable to load multiplayer smoke probe.");
+        }
+    }
+
+    private static bool IsMultiplayerSmokeRequested()
+    {
+        foreach (string arg in OS.GetCmdlineArgs())
+        {
+            if (arg.StartsWith("--multiplayer-smoke-role=", System.StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        foreach (string arg in OS.GetCmdlineUserArgs())
+        {
+            if (arg.StartsWith("--multiplayer-smoke-role=", System.StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
     private void SendKartSnapshots(double delta)
     {
         _snapshotAccumulator += delta;
@@ -421,9 +478,14 @@ public partial class GameManager : Node
             if (kart == null || !GodotObject.IsInstanceValid(kart))
                 continue;
 
+            int sequence = _nextSnapshotSequences.TryGetValue(entry.Key, out int currentSequence)
+                ? currentSequence + 1
+                : 0;
+            _nextSnapshotSequences[entry.Key] = sequence;
             Rpc(
                 nameof(ApplyKartSnapshotRpc),
                 entry.Key,
+                sequence,
                 kart.GlobalPosition,
                 kart.Rotation,
                 kart.LinearVelocity
@@ -432,13 +494,13 @@ public partial class GameManager : Node
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Unreliable)]
-    private void ApplyKartSnapshotRpc(int id, Vector3 position, Vector3 rotation, Vector3 velocity)
+    private void ApplyKartSnapshotRpc(int id, int sequence, Vector3 position, Vector3 rotation, Vector3 velocity)
     {
         if (Multiplayer.IsServer())
             return;
 
         if (_playerKarts.TryGetValue(id, out Kart kart) && kart != null && GodotObject.IsInstanceValid(kart))
-            kart.ApplyNetworkSnapshot(position, rotation, velocity);
+            kart.ApplyNetworkSnapshot(sequence, position, rotation, velocity);
     }
 
     private bool HasActiveNetworkPeer()
@@ -446,22 +508,29 @@ public partial class GameManager : Node
         return Multiplayer.HasMultiplayerPeer() && Multiplayer.MultiplayerPeer is not OfflineMultiplayerPeer;
     }
 
-    private void ConfigureSinglePlayerKartForNetwork(bool networked)
+    private void ApplyBakedKartState(BakedKartState state)
     {
         Kart sceneKart = GetParent()?.GetNodeOrNull<Kart>("Kart");
         if (sceneKart == null || sceneKart.GetParent() == this)
             return;
 
+        bool networked = state == BakedKartState.NetworkHidden;
         sceneKart.UseLocalInput = !networked;
         sceneKart.IsLocalPlayer = !networked;
         sceneKart.Visible = !networked;
         sceneKart.Freeze = networked;
         sceneKart.ProcessMode = networked ? ProcessModeEnum.Disabled : ProcessModeEnum.Inherit;
+        sceneKart.SetControlsEnabled(!networked);
         if (networked)
         {
             sceneKart.LinearVelocity = Vector3.Zero;
             sceneKart.AngularVelocity = Vector3.Zero;
+            GetParent()?.GetNodeOrNull<TrackCamera>("Camera3D")?.SetTarget(null);
+            return;
         }
+
+        sceneKart.EnsureLocalPlayerFeatures();
+        RetargetLocalView(sceneKart);
     }
 
     // --- Phase 1 additions: PlayerState + respawn at depot ---

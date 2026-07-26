@@ -58,7 +58,7 @@ public partial class Kart : RigidBody3D
     [ExportGroup("Visuals")]
     [Export] public float VisualRotationSpeed = 12.0f;
     [Export] public float VisualSteerLeanDegrees = 6.0f;
-    [Export] public float NetworkSmoothingSpeed = 12.0f;
+    [Export] public float NetworkSmoothingSpeed = 24.0f;
 
     public float DriftAmount { get; private set; }
     public DriftPhase CurrentDriftPhase { get; private set; }
@@ -67,6 +67,7 @@ public partial class Kart : RigidBody3D
     public int VehicleOption { get; private set; }
     public int VehicleOptionCount => VehicleNames.Length;
     public string VehicleName => VehicleNames[Mathf.Clamp(VehicleOption, 0, VehicleNames.Length - 1)];
+    public Vector3 NetworkTargetPosition => _netTargetPosition;
 
     private RayCast3D[] _groundRays;
     private Node3D _visualContainer;
@@ -92,6 +93,15 @@ public partial class Kart : RigidBody3D
     private Vector3 _netTargetPosition;
     private Vector3 _netTargetRotation;
     private bool _hasNetTarget = false;
+    private int _nextInputSequence;
+    private int _lastAcceptedInputSequence = -1;
+    private int _lastNetworkSnapshotSequence = -1;
+    private ulong _lastValidInputAtMs;
+    private ulong _lastRejectedInputWarningMs;
+
+    private const ulong InputTimeoutMs = 250;
+    private const ulong RejectedInputWarningIntervalMs = 1000;
+    private const float NetworkSnapDistance = 8.0f;
 
     // Tactical Taxi variables
     public GameManager.CustomerData? ActivePassenger { get; set; }
@@ -139,12 +149,6 @@ public partial class Kart : RigidBody3D
     {
         UpdateTapTimers((float)delta);
 
-        if (ControlsEnabled && UseLocalInput && !IsAI)
-        {
-            CaptureLocalInput();
-            RpcId(1, nameof(SendInputRpc), _forwardInput, _steeringInput, _handbrakeInput);
-        }
-
         if (ShouldRunPhysics() == false && _hasNetTarget)
         {
             float networkBlend = 1.0f - Mathf.Exp(-NetworkSmoothingSpeed * (float)delta);
@@ -191,8 +195,8 @@ public partial class Kart : RigidBody3D
             BufferTapInput(0.0f, -1.0f);
     }
 
-    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
-    private void SendInputRpc(float forward, float steer, bool handbrake)
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Unreliable)]
+    private void SendInputRpc(int sequence, float forward, float steer, bool handbrake)
     {
         if (!Multiplayer.IsServer())
             return;
@@ -200,12 +204,18 @@ public partial class Kart : RigidBody3D
         int senderId = Multiplayer.GetRemoteSenderId();
         if (senderId != OwnerPeerId)
         {
-            if (senderId != 1 || OwnerPeerId != 1)
-            {
-                GD.PushWarning($"Rejected kart input from peer {senderId}; kart belongs to peer {OwnerPeerId}.");
-                return;
-            }
+            WarnRejectedInput($"Rejected kart input from peer {senderId}; kart belongs to peer {OwnerPeerId}.");
+            return;
         }
+
+        if (sequence <= _lastAcceptedInputSequence)
+        {
+            WarnRejectedInput($"Rejected stale kart input sequence {sequence} from peer {senderId}.");
+            return;
+        }
+
+        _lastAcceptedInputSequence = sequence;
+        _lastValidInputAtMs = Time.GetTicksMsec();
         if (ControlsEnabled)
         {
             _forwardInput = Mathf.Clamp(forward, -1.0f, 1.0f);
@@ -216,6 +226,15 @@ public partial class Kart : RigidBody3D
 
     public override void _PhysicsProcess(double delta)
     {
+        // A connected client has a frozen local replica, but it must sample and
+        // submit input before the client-only physics early return.
+        if (ControlsEnabled && UseLocalInput && !IsAI)
+        {
+            CaptureLocalInput();
+            if (IsConnectedClient())
+                RpcId(1, nameof(SendInputRpc), ++_nextInputSequence, _forwardInput, _steeringInput, _handbrakeInput);
+        }
+
         if (ShouldRunPhysics() == false) return;
 
         if (ControlsEnabled && !IsAI && (UseLocalInput || IsOffline()))
@@ -227,6 +246,12 @@ public partial class Kart : RigidBody3D
             _forwardInput = 0.0f;
             _steeringInput = 0.0f;
             _handbrakeInput = false;
+        }
+
+        if (Multiplayer.IsServer() && !IsAI && OwnerPeerId != Multiplayer.GetUniqueId() &&
+            Time.GetTicksMsec() - _lastValidInputAtMs > InputTimeoutMs)
+        {
+            ClearInput();
         }
 
         float dt = (float)delta;
@@ -332,12 +357,17 @@ public partial class Kart : RigidBody3D
         }
     }
 
-    public void ApplyNetworkSnapshot(Vector3 position, Vector3 rotation, Vector3 velocity)
+    public void ApplyNetworkSnapshot(int sequence, Vector3 position, Vector3 rotation, Vector3 velocity)
     {
         if (ShouldRunPhysics())
             return;
 
-        if (!_hasNetTarget)
+        if (sequence <= _lastNetworkSnapshotSequence)
+            return;
+
+        _lastNetworkSnapshotSequence = sequence;
+
+        if (!_hasNetTarget || GlobalPosition.DistanceTo(position) > NetworkSnapDistance)
         {
             GlobalPosition = position;
             Rotation = rotation;
@@ -352,6 +382,25 @@ public partial class Kart : RigidBody3D
         }
 
         LinearVelocity = velocity;
+    }
+
+    public void ResetNetworkReplicationState()
+    {
+        _nextInputSequence = 0;
+        _lastAcceptedInputSequence = -1;
+        _lastNetworkSnapshotSequence = -1;
+        _lastValidInputAtMs = Time.GetTicksMsec();
+        _hasNetTarget = false;
+    }
+
+    private void WarnRejectedInput(string message)
+    {
+        ulong now = Time.GetTicksMsec();
+        if (now - _lastRejectedInputWarningMs < RejectedInputWarningIntervalMs)
+            return;
+
+        _lastRejectedInputWarningMs = now;
+        GD.PushWarning(message);
     }
 
     public void SetAIInput(float forward, float steer, bool handbrake = false)

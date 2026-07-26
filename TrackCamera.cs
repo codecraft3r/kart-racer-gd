@@ -40,6 +40,8 @@ public partial class TrackCamera : Camera3D
     private float _trauma;
     private float _shakeTime;
 
+    public Node3D TargetVehicle => _targetVehicle;
+
     public override void _Ready()
     {
         if (TargetVehiclePath == null || string.IsNullOrWhiteSpace(TargetVehiclePath.ToString()))
@@ -88,7 +90,10 @@ public partial class TrackCamera : Camera3D
         {
             Vector3 travelDirection = planarVelocity.Normalized();
             if (travelDirection.Dot(bodyForward) > 0.15f)
-                chaseForward = bodyForward.Slerp(travelDirection, VelocityHeadingWeight * speedT).Normalized();
+                // Vector3.Slerp can throw when numerical drift leaves its
+                // implied rotation axis degenerate.  A normalized linear blend
+                // is stable here and visually equivalent at this small weight.
+                chaseForward = bodyForward.Lerp(travelDirection, VelocityHeadingWeight * speedT).Normalized();
         }
 
         Vector3 right = Vector3.Up.Cross(chaseForward).Normalized();
