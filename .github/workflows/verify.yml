@@ -56,7 +56,8 @@ jobs:
       - name: Reject generated configuration or metadata changes
         run: |
           git diff --exit-code -- project.godot kart_racer.csproj global.json
-          test -z "$(git status --porcelain)"
+          git diff --exit-code
+          git diff --cached --exit-code
 
       - name: Upload visual capture
         if: always()
