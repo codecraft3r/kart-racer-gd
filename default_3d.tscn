@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://8sk8eoxjx5d3"]
+[gd_scene load_steps=14 format=3 uid="uid://8sk8eoxjx5d3"]
 
 [ext_resource type="PackedScene" uid="uid://cjlrpc3gabifw" path="res://kart.tscn" id="1_jvk4k"]
 [ext_resource type="Script" uid="uid://c24b6dbw8m32t" path="res://TrackCamera.cs" id="2_ta3w6"]
@@ -7,15 +7,32 @@
 [ext_resource type="PackedScene" path="res://ui/RetroNeonCabShell.tscn" id="5_vrua2"]
 [ext_resource type="Script" path="res://GameManager.cs" id="6_game_manager"]
 [ext_resource type="Script" path="res://modes/TaxiMode.cs" id="7_checkpoint"]
+[ext_resource type="Script" path="res://CameraRainVfx.cs" id="8_rain_vfx"]
+[ext_resource type="Script" path="res://DistantSkyline.cs" id="9_distant_skyline"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_night"]
+sky_top_color = Color(0.006, 0.004, 0.04, 1)
+sky_horizon_color = Color(0.19, 0.028, 0.24, 1)
+ground_bottom_color = Color(0.006, 0.003, 0.018, 1)
+ground_horizon_color = Color(0.11, 0.012, 0.15, 1)
+sun_angle_max = 8.0
+sun_curve = 0.08
+
+[sub_resource type="Sky" id="Sky_night"]
+sky_material = SubResource("ProceduralSkyMaterial_night")
 
 [sub_resource type="Environment" id="Environment_race"]
-background_mode = 1
+background_mode = 2
+sky = SubResource("Sky_night")
 background_color = Color(0.018, 0.012, 0.055, 1)
 ambient_light_source = 2
 ambient_light_color = Color(0.22, 0.27, 0.56, 1)
 ambient_light_energy = 0.54
 tonemap_mode = 2
-glow_enabled = false
+glow_enabled = true
+glow_intensity = 0.72
+glow_strength = 0.82
+glow_bloom = 0.16
 fog_enabled = true
 fog_light_color = Color(0.105, 0.055, 0.22, 1)
 fog_density = 0.003
@@ -86,6 +103,9 @@ TrackLightEnergy = 0.95
 TrackLightRange = 20.0
 Seed = 1337
 
+[node name="DistantSkyline" type="Node3D" parent="."]
+script = ExtResource("9_distant_skyline")
+
 [node name="GameManager" type="Node" parent="."]
 script = ExtResource("6_game_manager")
 
@@ -119,6 +139,10 @@ RollResponse = 0.176
 material_override = SubResource("ShaderMaterial_erduv")
 extra_cull_margin = 16384.0
 mesh = SubResource("QuadMesh_de8j7")
+
+[node name="CameraRainVfx" type="MultiMeshInstance3D" parent="Camera3D"]
+cast_shadow = 0
+script = ExtResource("8_rain_vfx")
 
 [node name="RetroNeonCabShell" parent="." instance=ExtResource("5_vrua2")]
 KartPath = NodePath("../Kart")

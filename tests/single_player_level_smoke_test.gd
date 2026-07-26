@@ -43,11 +43,17 @@ func _run() -> void:
 	_expect(bool(kart.get("IsLocalPlayer")), "scene kart is configured as the local player")
 	_expect(kart.get_node_or_null("CompassArrow") != null, "local player receives objective navigation")
 	_expect(int(mode.call("GetActivePickupCount")) > 0, "fare pickup zones are available")
+	_expect(int(kart.call("GetVehicleOptionCount")) >= 5, "garage exposes multiple vehicle options")
+	kart.call("SetVehicleOption", 1)
+	await process_frame
+	_expect(kart.get_node_or_null("VisualContainer/VehicleOptionVisual") != null, "selected garage vehicle replaces the default cab visual")
+	kart.call("SetVehicleOption", 0)
 
 	var first_fare_completed := await _complete_fare(mode, manager, kart)
 	_expect(first_fare_completed, "first passenger can be picked up and delivered")
 	var first_payout := int(manager.call("GetPlayerMoney", LOCAL_PLAYER_ID))
 	_expect(first_payout > 0, "first delivery awards cash")
+	_expect(int(kart.get("LastFarePayoutMs")) > 0, "delivery records a fare payout breakdown for the HUD")
 	_expect(not bool(kart.call("HasPassenger")), "first delivery clears the passenger")
 	_expect(mode.call("GetPlayerDestination", LOCAL_PLAYER_ID) == Vector3.ZERO, "first delivery clears the destination")
 
@@ -111,6 +117,7 @@ func _complete_fare(mode: Node, manager: Node, kart: RigidBody3D) -> bool:
 	if not await _wait_for_passenger(kart, true, 120):
 		_fail("Passenger did not board inside pickup zone")
 		return false
+	_expect(kart.get_node_or_null("VisualContainer/PassengerInCab") != null, "boarding adds the visible passenger to the taxi cabin")
 
 	var destination: Vector3 = mode.call("GetPlayerDestination", LOCAL_PLAYER_ID)
 	if destination == Vector3.ZERO:
@@ -121,6 +128,7 @@ func _complete_fare(mode: Node, manager: Node, kart: RigidBody3D) -> bool:
 	if not await _wait_for_passenger(kart, false, 120):
 		_fail("Passenger did not complete drop-off")
 		return false
+	_expect(kart.get_parent().get_node_or_null("PassengerInCab") != null, "drop-off releases a visible passenger from the taxi")
 
 	await process_frame
 	return true

@@ -15,6 +15,7 @@ public partial class PickupZone : Area3D
     private readonly Dictionary<int, float> _boardingTimers = new();
     private CollisionShape3D _collisionShape;
     private Node3D _visual;
+    private readonly List<PassengerActor> _passengers = new();
 
     public override void _Ready()
     {
@@ -97,6 +98,16 @@ public partial class PickupZone : Area3D
             Position = new Vector3(0.0f, 6.0f, 0.0f)
         };
         _visual.AddChild(arrow);
+
+        // Visible customers turn the abstract pickup ring into a readable curbside scene.
+        for (int index = 0; index < GroupSize; index++)
+        {
+            float angle = Mathf.Pi * 0.25f + index * 0.72f;
+            var passenger = new PassengerActor { Name = $"WaitingPassenger{index}", Position = new Vector3(Mathf.Cos(angle) * 3.1f, 0.05f, Mathf.Sin(angle) * 3.1f) };
+            AddChild(passenger);
+            passenger.Build(zoneColor, index == 0 ? "HAIL" : "", index * 0.8f);
+            _passengers.Add(passenger);
+        }
 
         // 4. Connect signals
         BodyEntered += OnBodyEntered;
@@ -183,6 +194,7 @@ public partial class PickupZone : Area3D
                 _boardingTimers[peerId] += (float)delta;
                 float progress = Mathf.Clamp(_boardingTimers[peerId] / LoadTime, 0.0f, 1.0f);
                 kart.SetBoardingProgress(progress);
+                UpdatePassengerBoarding(kart, progress);
 
                 if (progress >= 1.0f)
                 {
@@ -225,5 +237,15 @@ public partial class PickupZone : Area3D
 
         // Delete the pickup zone
         QueueFree();
+    }
+
+    private void UpdatePassengerBoarding(Kart kart, float progress)
+    {
+        for (int index = 0; index < _passengers.Count; index++)
+        {
+            PassengerActor passenger = _passengers[index];
+            if (GodotObject.IsInstanceValid(passenger))
+                passenger.SetBoarding(kart, Mathf.Clamp(progress - index * 0.12f, 0.0f, 1.0f));
+        }
     }
 }

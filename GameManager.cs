@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 public partial class GameManager : Node
 {
+    public readonly record struct FarePayoutBreakdown(int BaseFare, int CleanDrivingBonus, int StyleTip, int PanicDeduction, int FinalPayout);
     public static GameManager Instance { get; private set; }
 
     [Export] public int SoloAiCount { get; set; } = 2;
@@ -531,9 +532,9 @@ public partial class GameManager : Node
         GD.Print($"Passenger bailed out for peer {id}!");
     }
 
-    public void AwardFarePayout(int id)
+    public FarePayoutBreakdown AwardFarePayout(int id)
     {
-        if (!_playerKarts.TryGetValue(id, out Kart kart) || !kart.ActivePassenger.HasValue) return;
+        if (!_playerKarts.TryGetValue(id, out Kart kart) || !kart.ActivePassenger.HasValue) return default;
 
         var passenger = kart.ActivePassenger.Value;
 
@@ -545,10 +546,13 @@ public partial class GameManager : Node
 
         int groupSize = passenger.GroupSize;
         int scoreYield = basePayout * groupSize;
+        int styleTip = kart.ConsumeStyleTip();
+        int cleanDrivingBonus = kart.PanicMeter < 25.0f ? Mathf.RoundToInt(scoreYield * 0.1f) : 0;
 
         float panicFactor = kart.PanicMeter / 100.0f;
         int damagePenalty = Mathf.RoundToInt(scoreYield * 0.4f * panicFactor);
-        int finalPayout = Mathf.Max(10, scoreYield - damagePenalty);
+        int finalPayout = Mathf.Max(10, scoreYield + cleanDrivingBonus + styleTip - damagePenalty);
+        FarePayoutBreakdown breakdown = new(scoreYield, cleanDrivingBonus, styleTip, damagePenalty, finalPayout);
 
         if (_playerStates.TryGetValue(id, out var state))
         {
@@ -560,7 +564,9 @@ public partial class GameManager : Node
         }
 
         kart.BroadcastFareCompletedAudio();
-        GD.Print($"Peer {id} completed taxi run! Payout: {finalPayout} (Base: {scoreYield}, Penalty: {damagePenalty})");
+        kart.SetLastFarePayout(breakdown);
+        GD.Print($"Peer {id} completed taxi run! Payout: {finalPayout} (Base: {scoreYield}, Clean: {cleanDrivingBonus}, Style: {styleTip}, Penalty: {damagePenalty})");
+        return breakdown;
     }
 
     public class PlayerState

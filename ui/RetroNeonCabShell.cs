@@ -109,6 +109,7 @@ public partial class RetroNeonCabShell : CanvasLayer
     private Button _audioButton;
     private Button _scanlineButton;
     private Button _crtButton;
+    private Label _vehicleLabel;
     private readonly Dictionary<int, Button> _pixelButtons = new();
 
     private FontFile _fontBody;
@@ -130,6 +131,7 @@ public partial class RetroNeonCabShell : CanvasLayer
     private bool _crtEnabled = true;
     private double _score;
     private double _driftMeters;
+    private ulong _lastFareReceiptSeen;
 
     public override void _Ready()
     {
@@ -552,6 +554,21 @@ public partial class RetroNeonCabShell : CanvasLayer
         start.Pressed += StartRun;
         menuButtons.AddChild(start);
 
+        HBoxContainer garageRow = new() { Name = "GarageSelector", Alignment = BoxContainer.AlignmentMode.Center };
+        garageRow.AddThemeConstantOverride("separation", 8);
+        Button previousCar = MakePixelButton("<", false, 48.0f, 42.0f);
+        previousCar.Name = "PreviousCarButton";
+        previousCar.Pressed += () => CycleVehicle(-1);
+        garageRow.AddChild(previousCar);
+        _vehicleLabel = MakeLabel("CAR: NEON CAB", _fontBody, 24, Hex("f5c451"), HorizontalAlignment.Center);
+        _vehicleLabel.CustomMinimumSize = new Vector2(248.0f, 42.0f);
+        garageRow.AddChild(WrapDarkBox("VehicleNameBox", _vehicleLabel));
+        Button nextCar = MakePixelButton(">", false, 48.0f, 42.0f);
+        nextCar.Name = "NextCarButton";
+        nextCar.Pressed += () => CycleVehicle(1);
+        garageRow.AddChild(nextCar);
+        menuButtons.AddChild(garageRow);
+
         Button multiplayer = MakePixelButton("MULTIPLAYER", true, 360.0f, 58.0f);
         multiplayer.Name = "MultiplayerButton";
         multiplayer.Pressed += () => ShowScreen(ShellScreen.Multiplayer);
@@ -572,6 +589,15 @@ public partial class RetroNeonCabShell : CanvasLayer
         menuButtons.AddChild(version);
 
         return screen;
+    }
+
+    private void CycleVehicle(int direction)
+    {
+        if (_kart == null)
+            return;
+        _kart.SetVehicleOption(_kart.VehicleOption + direction);
+        if (_vehicleLabel != null)
+            _vehicleLabel.Text = $"CAR: {_kart.VehicleName}";
     }
 
     private Control BuildMultiplayerScreen()
@@ -1133,9 +1159,16 @@ public partial class RetroNeonCabShell : CanvasLayer
                 int distance = destination == Vector3.Zero ? 0 : Mathf.RoundToInt(_kart.GlobalPosition.DistanceTo(destination));
 
                 if (_checkpointLabel != null)
-                    _checkpointLabel.Text = $"DROPOFF: {distance}m";
+                {
+                    float settle = mode?.GetDropoffSettleProgress(peerId) ?? 0.0f;
+                    _checkpointLabel.Text = settle > 0.0f
+                        ? $"BRAKE / ALIGN  {Mathf.RoundToInt(settle * 100.0f)}%"
+                        : $"DROPOFF: {distance}m";
+                }
                 if (_objectiveLabel != null)
-                    _objectiveLabel.Text = "DELIVER THE FARE  //  KEEP PANIC BELOW 100%";
+                    _objectiveLabel.Text = _kart.CurrentDriftPhase == Kart.DriftPhase.Holding
+                        ? $"STYLE CHARGE  {Mathf.RoundToInt(_kart.DriftCharge / _kart.DriftMaxChargeTime * 100.0f)}%"
+                        : "DELIVER THE FARE  //  KEEP PANIC BELOW 100%";
 
                 if (_driftMetersLabel != null)
                 {
@@ -1146,8 +1179,8 @@ public partial class RetroNeonCabShell : CanvasLayer
 
                 if (_statusLabel != null)
                 {
-                    _statusLabel.Text = "STATUS: HIRED";
-                    _statusLabel.AddThemeColorOverride("font_color", Hex("ff0055"));
+                    _statusLabel.Text = panic >= 75 ? "STATUS: CRITICAL" : panic >= 50 ? "STATUS: UNEASY" : "STATUS: HIRED";
+                    _statusLabel.AddThemeColorOverride("font_color", panic >= 75 ? Hex("ff0055") : panic >= 50 ? Hex("f5c451") : Hex("00f0ff"));
                 }
 
                 if (_panicBar != null)
@@ -1163,6 +1196,22 @@ public partial class RetroNeonCabShell : CanvasLayer
                             fillStyle.BgColor = panicColor;
                         }
                     }
+                }
+            }
+
+            if (_kart.LastFarePayoutMs > _lastFareReceiptSeen)
+            {
+                _lastFareReceiptSeen = _kart.LastFarePayoutMs;
+                var payout = _kart.LastFarePayout;
+                if (_stopLabel != null)
+                {
+                    _stopLabel.Visible = true;
+                    _stopLabel.Text = $"PAID ${payout.FinalPayout}  //  BASE ${payout.BaseFare}  +STYLE ${payout.StyleTip}  -PANIC ${payout.PanicDeduction}";
+                    _stopLabel.Modulate = Hex("f5c451");
+                    var receiptTween = CreateTween();
+                    receiptTween.TweenInterval(2.2f);
+                    receiptTween.TweenProperty(_stopLabel, "modulate:a", 0.0f, 0.35f);
+                    receiptTween.TweenCallback(Callable.From(() => _stopLabel.Visible = false));
                 }
             }
             else

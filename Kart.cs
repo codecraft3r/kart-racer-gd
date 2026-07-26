@@ -3,6 +3,17 @@ using System;
 
 public partial class Kart : RigidBody3D
 {
+    public enum DriftPhase { None, Initiate, Holding }
+    public enum ImpactSeverity { Glance, Bump, Crash }
+    private static readonly string[] VehicleNames = { "NEON CAB", "CITY TAXI", "SPORT SEDAN", "FUTURE RACER", "LUXURY SUV" };
+    private static readonly string[] VehiclePaths =
+    {
+        "",
+        "res://assets/kenny_car-kit/taxi.glb",
+        "res://assets/kenny_car-kit/sedan-sports.glb",
+        "res://assets/kenny_car-kit/race-future.glb",
+        "res://assets/kenny_car-kit/suv-luxury.glb"
+    };
     [ExportGroup("Input")]
     [Export] public int OwnerPeerId { get; set; } = 1;
     [Export] public bool UseLocalInput { get; set; } = true;
@@ -41,6 +52,8 @@ public partial class Kart : RigidBody3D
     [Export] public float DriftGripMultiplier = 0.32f;
     [Export] public float DriftSteeringBoost = 1.32f;
     [Export] public float DriftSustainLateralSpeed = 1.8f;
+    [Export] public float DriftMaxChargeTime = 1.8f;
+    [Export] public float DriftExitAcceleration = 5.5f;
 
     [ExportGroup("Visuals")]
     [Export] public float VisualRotationSpeed = 12.0f;
@@ -48,9 +61,16 @@ public partial class Kart : RigidBody3D
     [Export] public float NetworkSmoothingSpeed = 12.0f;
 
     public float DriftAmount { get; private set; }
+    public DriftPhase CurrentDriftPhase { get; private set; }
+    public float DriftCharge { get; private set; }
+    public int PendingStyleTip { get; private set; }
+    public int VehicleOption { get; private set; }
+    public int VehicleOptionCount => VehicleNames.Length;
+    public string VehicleName => VehicleNames[Mathf.Clamp(VehicleOption, 0, VehicleNames.Length - 1)];
 
     private RayCast3D[] _groundRays;
     private Node3D _visualContainer;
+    private Node _vehicleOptionVisual;
 
     // Expose speed to the UI (converting m/s to km/h)
     public float CurrentSpeedKmh => LinearVelocity.Length() * 3.6f;
@@ -66,6 +86,8 @@ public partial class Kart : RigidBody3D
     private Vector3 _groundNormal = Vector3.Up;
     private float _groundGraceTimer;
     private float _driftTimer;
+    private bool _driftWasHeld;
+    private readonly System.Collections.Generic.Dictionary<ulong, ulong> _collisionCooldowns = new();
 
     private Vector3 _netTargetPosition;
     private Vector3 _netTargetRotation;
@@ -74,11 +96,14 @@ public partial class Kart : RigidBody3D
     // Tactical Taxi variables
     public GameManager.CustomerData? ActivePassenger { get; set; }
     public float PanicMeter { get; private set; } = 0.0f;
+    public GameManager.FarePayoutBreakdown LastFarePayout { get; private set; }
+    public ulong LastFarePayoutMs { get; private set; }
     public float BoardingProgress { get; private set; } = 0.0f;
     private float _airtimeAccumulator = 0.0f;
     private int _lastBoardingAudioStep = -1;
     private ulong _lastCollisionAudioMs;
     private ulong _lastPanicWarningMs;
+    private Node3D _passengerCabinVisual;
 
     private const float InputDeadzone = 0.05f;
 
@@ -107,6 +132,7 @@ public partial class Kart : RigidBody3D
         BodyEntered += OnBodyCollision;
 
         EnsureLocalPlayerFeatures();
+        ApplyVehicleVisual();
     }
 
     public override void _Process(double delta)
@@ -232,22 +258,12 @@ public partial class Kart : RigidBody3D
         bool braking = Mathf.Abs(_forwardInput) > InputDeadzone &&
             Mathf.Abs(forwardSpeed) > 1.0f &&
             Mathf.Sign(_forwardInput) != Mathf.Sign(forwardSpeed);
-        bool driftTriggered = braking &&
+        bool driftTriggered = _handbrakeInput &&
             forwardSpeed > MinDriftSpeed &&
             Mathf.Abs(_steeringInput) >= DriftSteeringThreshold;
 
-        if (driftTriggered)
-        {
-            _driftTimer = DriftDuration;
-        }
-        else
-        {
-            _driftTimer = Mathf.Max(0.0f, _driftTimer - dt);
-        }
-
-        bool drifting = _driftTimer > 0.0f && Mathf.Abs(_steeringInput) > InputDeadzone;
-        if (drifting && Mathf.Abs(lateralSpeed) >= DriftSustainLateralSpeed && _forwardInput > 0.2f)
-            _driftTimer = Mathf.Max(_driftTimer, 0.25f);
+        bool drifting = driftTriggered && Mathf.Abs(lateralSpeed) >= DriftSustainLateralSpeed;
+        UpdateDriftState(drifting, dt, forwardDirection);
 
         DriftAmount = Mathf.MoveToward(DriftAmount, drifting ? 1.0f : 0.0f, dt * (drifting ? 7.0f : 3.5f));
         float gripScale = Mathf.Lerp(1.0f, DriftGripMultiplier, DriftAmount);
@@ -261,7 +277,7 @@ public partial class Kart : RigidBody3D
         ApplyCentralForce(-forwardDirection * forwardSpeed * RollingDrag * Mass);
         ApplyCentralForce(-groundNormal * GroundAdhesion * Mass);
 
-        if (_handbrakeInput)
+        if (_handbrakeInput && !drifting)
         {
             float hardStopForce = 45.0f; // Massive drag for instant stopping
             ApplyCentralForce(-planarVelocity * hardStopForce * Mass);
@@ -374,6 +390,60 @@ public partial class Kart : RigidBody3D
         }
     }
 
+    private void UpdateDriftState(bool drifting, float dt, Vector3 forwardDirection)
+    {
+        if (drifting)
+        {
+            if (CurrentDriftPhase == DriftPhase.None)
+            {
+                CurrentDriftPhase = DriftPhase.Initiate;
+                DriftCharge = 0.0f;
+                BroadcastAudioCue(AudioManager.Cue.CollisionLight, -14.0f, 1.35f);
+            }
+
+            DriftCharge = Mathf.Min(DriftMaxChargeTime, DriftCharge + dt);
+            if (DriftCharge >= 0.4f)
+                CurrentDriftPhase = DriftPhase.Holding;
+            _driftTimer = DriftDuration;
+        }
+        else if (_driftWasHeld && CurrentDriftPhase != DriftPhase.None)
+        {
+            if (CurrentDriftPhase == DriftPhase.Holding)
+            {
+                int earnedTip = Mathf.RoundToInt(Mathf.Clamp((DriftCharge - 0.4f) / (DriftMaxChargeTime - 0.4f), 0.0f, 1.0f) * 45.0f);
+                PendingStyleTip += earnedTip;
+                ApplyCentralImpulse(forwardDirection * (DriftExitAcceleration * Mass));
+                TriggerSpeechBubble(earnedTip > 0 ? $"SMOOTH! +${earnedTip}" : "NICE TURN!");
+            }
+            CurrentDriftPhase = DriftPhase.None;
+            DriftCharge = 0.0f;
+            _driftTimer = 0.0f;
+        }
+        _driftWasHeld = drifting;
+    }
+
+    public void CancelDriftReward()
+    {
+        CurrentDriftPhase = DriftPhase.None;
+        DriftCharge = 0.0f;
+        PendingStyleTip = 0;
+        _driftTimer = 0.0f;
+        _driftWasHeld = false;
+    }
+
+    public int ConsumeStyleTip()
+    {
+        int tip = PendingStyleTip;
+        PendingStyleTip = 0;
+        return tip;
+    }
+
+    public void SetLastFarePayout(GameManager.FarePayoutBreakdown breakdown)
+    {
+        LastFarePayout = breakdown;
+        LastFarePayoutMs = Time.GetTicksMsec();
+    }
+
     public void EnsureLocalPlayerFeatures()
     {
         if (!IsLocalPlayer || GetNodeOrNull<CompassArrow>("CompassArrow") != null)
@@ -444,16 +514,7 @@ public partial class Kart : RigidBody3D
         _forwardInput = Mathf.Abs(forwardAxis) > InputDeadzone ? forwardAxis : (_forwardTapTimer > 0.0f ? _forwardTapInput : 0.0f);
         _steeringInput = Mathf.Abs(steeringAxis) > InputDeadzone ? steeringAxis : (_steeringTapTimer > 0.0f ? _steeringTapInput : 0.0f);
         
-        bool joypadA = false;
-        foreach (int device in Input.GetConnectedJoypads())
-        {
-            if (Input.IsJoyButtonPressed(device, JoyButton.A))
-            {
-                joypadA = true;
-                break;
-            }
-        }
-        _handbrakeInput = Input.IsPhysicalKeyPressed(Key.Space) || joypadA;
+        _handbrakeInput = Input.IsActionPressed("drift");
 
         _forwardInput = Mathf.Clamp(_forwardInput, -1.0f, 1.0f);
         _steeringInput = Mathf.Clamp(_steeringInput, -1.0f, 1.0f);
@@ -628,32 +689,41 @@ public partial class Kart : RigidBody3D
             return;
         }
 
-        float speed = LinearVelocity.Length();
-        if (speed > 5.0f)
+        Vector3 otherVelocity = body is RigidBody3D rigidBody ? rigidBody.LinearVelocity : Vector3.Zero;
+        Vector3 otherPosition = body is Node3D body3D ? body3D.GlobalPosition : GlobalPosition - LinearVelocity;
+        Vector3 normal = GlobalPosition - otherPosition;
+        normal = normal.LengthSquared() > 0.001f ? normal.Normalized() : -LinearVelocity.Normalized();
+        float impactSpeed = Mathf.Max(0.0f, (LinearVelocity - otherVelocity).Dot(normal));
+        if (impactSpeed > 2.5f)
         {
             ulong now = Time.GetTicksMsec();
+            ulong key = body.GetInstanceId();
+            if (_collisionCooldowns.TryGetValue(key, out ulong lastHit) && now - lastHit < 450)
+                return;
+            _collisionCooldowns[key] = now;
+            ImpactSeverity severity = impactSpeed >= 13.0f ? ImpactSeverity.Crash : impactSpeed >= 6.0f ? ImpactSeverity.Bump : ImpactSeverity.Glance;
             if (now - _lastCollisionAudioMs >= 140)
             {
                 _lastCollisionAudioMs = now;
-                AudioManager.Cue cue = speed >= 18.0f
-                    ? AudioManager.Cue.CollisionHeavy
-                    : speed >= 10.0f
-                        ? AudioManager.Cue.CollisionMedium
-                        : AudioManager.Cue.CollisionLight;
-                float volumeDb = Mathf.Lerp(-7.0f, 1.0f, Mathf.Clamp((speed - 5.0f) / 20.0f, 0.0f, 1.0f));
+                AudioManager.Cue cue = severity == ImpactSeverity.Crash ? AudioManager.Cue.CollisionHeavy : severity == ImpactSeverity.Bump ? AudioManager.Cue.CollisionMedium : AudioManager.Cue.CollisionLight;
+                float volumeDb = Mathf.Lerp(-10.0f, 1.0f, Mathf.Clamp((impactSpeed - 2.5f) / 16.0f, 0.0f, 1.0f));
                 BroadcastAudioCue(cue, volumeDb, (float)GD.RandRange(0.92, 1.08));
             }
 
             if (ActivePassenger.HasValue)
             {
-                float panicIncrease = speed * 1.5f;
-                SetPanic(PanicMeter + panicIncrease);
-                TriggerSpeechBubble(GetHumorousCollisionPhrase());
+                if (severity != ImpactSeverity.Glance)
+                {
+                    float panicIncrease = severity == ImpactSeverity.Crash ? impactSpeed * 2.0f : impactSpeed * 0.65f;
+                    SetPanic(PanicMeter + panicIncrease);
+                    TriggerSpeechBubble(GetHumorousCollisionPhrase());
+                    CancelDriftReward();
+                }
             }
 
-            if (GameManager.Instance != null)
+            if (GameManager.Instance != null && severity != ImpactSeverity.Glance)
             {
-                GameManager.Instance.ApplyVehicleDamage(OwnerPeerId, Mathf.RoundToInt(speed * 0.8f));
+                GameManager.Instance.ApplyVehicleDamage(OwnerPeerId, Mathf.RoundToInt(impactSpeed * (severity == ImpactSeverity.Crash ? 1.1f : 0.25f)));
             }
         }
     }
@@ -663,6 +733,8 @@ public partial class Kart : RigidBody3D
         BroadcastAudioCue(AudioManager.Cue.PassengerBoard, -2.0f, (float)GD.RandRange(0.97, 1.03));
         ActivePassenger = data;
         PanicMeter = 0.0f;
+        CancelDriftReward();
+        CreateCabinPassenger(data);
         if (Multiplayer.IsServer())
         {
             Rpc(nameof(SyncPassengerStateRpc), true, (int)data.Distance, (int)data.Wealth, data.MaxAcceptableDamage, data.GroupSize, data.LoadTime, 0.0f);
@@ -671,14 +743,98 @@ public partial class Kart : RigidBody3D
 
     public bool HasPassenger() => ActivePassenger.HasValue;
 
+    public void SetVehicleOption(int option)
+    {
+        VehicleOption = Mathf.PosMod(option, VehicleNames.Length);
+        if (IsNodeReady())
+            ApplyVehicleVisual();
+    }
+
+    public string GetVehicleName() => VehicleName;
+    public int GetVehicleOptionCount() => VehicleOptionCount;
+
+    private void ApplyVehicleVisual()
+    {
+        if (_visualContainer == null)
+            return;
+
+        Node3D defaultCab = _visualContainer.GetNodeOrNull<Node3D>("NeonCabVisual");
+        if (defaultCab != null)
+            defaultCab.Visible = VehicleOption == 0;
+
+        if (_vehicleOptionVisual != null && GodotObject.IsInstanceValid(_vehicleOptionVisual))
+        {
+            _vehicleOptionVisual.QueueFree();
+            _vehicleOptionVisual = null;
+        }
+        if (VehicleOption == 0)
+            return;
+
+        PackedScene scene = GD.Load<PackedScene>(VehiclePaths[VehicleOption]);
+        if (scene == null)
+        {
+            GD.PushWarning($"Vehicle asset missing: {VehiclePaths[VehicleOption]}");
+            if (defaultCab != null) defaultCab.Visible = true;
+            return;
+        }
+
+        Node optionVisual = scene.Instantiate();
+        optionVisual.Name = "VehicleOptionVisual";
+        _visualContainer.AddChild(optionVisual);
+        if (optionVisual is Node3D optionMesh)
+        {
+            // Kenney's vehicle kit is authored larger than this arcade kart chassis.
+            optionMesh.Scale = Vector3.One * 0.9f;
+            optionMesh.Position = new Vector3(0.0f, 0.06f, 0.0f);
+            optionMesh.RotationDegrees = new Vector3(0.0f, 180.0f, 0.0f);
+        }
+        _vehicleOptionVisual = optionVisual;
+    }
+
     public void ClearPassenger()
     {
+        bool hadPassenger = ActivePassenger.HasValue;
         ActivePassenger = null;
         PanicMeter = 0.0f;
+        if (hadPassenger)
+            ReleaseCabinPassenger();
         if (Multiplayer.IsServer())
         {
             Rpc(nameof(SyncPassengerStateRpc), false, 0, 0, 0, 0, 0.0f, 0.0f);
         }
+    }
+
+    private void CreateCabinPassenger(GameManager.CustomerData data)
+    {
+        if (_passengerCabinVisual != null && GodotObject.IsInstanceValid(_passengerCabinVisual))
+            _passengerCabinVisual.QueueFree();
+
+        Color color = data.Wealth switch
+        {
+            GameManager.CustomerWealth.High => new Color(1.0f, 0.08f, 0.5f),
+            GameManager.CustomerWealth.Medium => new Color(0.05f, 0.88f, 1.0f),
+            _ => new Color(1.0f, 0.74f, 0.16f)
+        };
+        // Keep the silhouette inside the glass cabin; it becomes full-size only on exit.
+        var passenger = new PassengerActor { Name = "PassengerInCab", Position = new Vector3(0.22f, 0.14f, -0.08f), Scale = new Vector3(0.28f, 0.28f, 0.28f) };
+        _visualContainer.AddChild(passenger);
+        passenger.Build(color, "FARE ON BOARD", 0.4f);
+        _passengerCabinVisual = passenger;
+    }
+
+    private void ReleaseCabinPassenger()
+    {
+        if (_passengerCabinVisual == null || !GodotObject.IsInstanceValid(_passengerCabinVisual))
+            return;
+
+        _passengerCabinVisual.GetParent()?.RemoveChild(_passengerCabinVisual);
+        GetParent()?.AddChild(_passengerCabinVisual);
+        // Start at the curbside door rather than inside the taxi silhouette so the exit reads in chase view.
+        _passengerCabinVisual.GlobalPosition = GlobalPosition + GlobalTransform.Basis.X * 1.28f + Vector3.Up * 0.06f;
+        _passengerCabinVisual.Scale = Vector3.One;
+        if (_passengerCabinVisual is PassengerActor passenger)
+            passenger.ExitFrom(this);
+        _passengerCabinVisual = null;
     }
 
     public void SetPanic(float panic)
