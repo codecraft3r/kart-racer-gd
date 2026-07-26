@@ -5,8 +5,10 @@
 - `MultiplayerManager.cs` is an autoload that can create an ENet server or client on port `7000`, load the match scene, and reset to offline mode on disconnect/failure.
 - `MultiplayerLobby.cs` exposes Host, Join, Disconnect, and an IP/address field.
 - `GameManager.cs` has early server-side player state, match timer, spawn, respawn, customer, weapon, and economy scaffolding.
-- `Kart.cs` uses a server-authoritative input model, validates input by owning peer id, and a `MultiplayerSynchronizer` exists in `kart.tscn`.
-- The main project scene is still `default_3d.tscn`, which contains one local kart and no multiplayer flow.
+- `Kart.cs` uses server-authoritative physics with sequenced, unreliable owner input and sequenced server snapshots. `kart.tscn` does not use `MultiplayerSynchronizer`; replication is explicit.
+- `default_3d.tscn` hosts the production multiplayer flow. Its baked solo kart is hidden, frozen, and process-disabled before a network peer spawns dynamic peer-owned karts.
+- The local spawned kart on every peer sends input while all rigid bodies remain server-authoritative. Snapshots interpolate normally and snap only on first receipt or large corrections.
+- Track seed synchronization, late-join state sync, camera/shell retargeting, and server-side disconnect removal are already implemented.
 
 ## First Playable Multiplayer Test
 
@@ -15,11 +17,11 @@
   - Guarded `MultiplayerManager.Instance` against duplicate or missing instances.
   - Unsubscribes multiplayer signals on exit.
 
-- [ ] Decide the boot flow.
-  - Make `multiplayer_lobby.tscn` the main scene, or add the lobby UI to a boot scene.
+- [x] Decide the boot flow.
+  - `default_3d.tscn` is the match scene; `multiplayer_lobby.tscn` is legacy/debug-only.
   - [x] After Host or Join succeeds, transition into the shared match scene.
   - [x] Add an IP/address field instead of hardcoding `127.0.0.1`.
-  - Disable buttons while connecting and show connection failure/server disconnect status.
+  - [x] Disable buttons while connecting and show connection failure/server disconnect status.
 
 - [x] Put `GameManager` in the match scene or make it an autoload.
   - `default_3d.tscn` now instantiates `GameManager`.
@@ -34,24 +36,22 @@
 - [x] Fix local player ownership and input.
   - Kart authority now stays server-owned.
   - `OwnerPeerId` identifies the peer allowed to send input.
-  - `Kart._Process()` sends client input with `RpcId(1, nameof(SendInputRpc), forward, steer)`.
-  - `IsLocalPlayer` is set on each client for that client's owned kart after the kart exists locally.
+  - `Kart._PhysicsProcess()` sends sequenced client input before the frozen-replica early return.
+  - `IsLocalPlayer` and `UseLocalInput` are set only on each peer's matching dynamic kart.
 
 - [x] Validate server-authoritative input.
   - The server accepts input only from the peer that owns that kart.
+  - Stale sequences and wrong owners are rejected; unreceived remote input clears after 250 ms.
   - Latest input is stored on the owning kart after sender validation.
   - Input values are clamped on the server.
   - Keep transfer mode unreliable for frequent input, but send important events reliably.
 
-- [ ] Synchronize visible kart state.
-  - Position, rotation, and linear velocity are listed in `kart.tscn`.
-  - Add any missing visual state required for remote clients, especially yaw or visual container rotation if it is not derived cleanly from synced physics.
-  - Test whether `RigidBody3D` replication is stable enough, or whether server snapshots/interpolation are needed.
+- [x] Synchronize visible kart state.
+  - Server snapshots position, rotation, and linear velocity at 20 Hz.
+  - Clients discard stale snapshots, smoothly interpolate normal corrections, and snap first/large corrections.
 
-- [ ] Rework the camera for multiplayer.
-  - The current camera targets a single scene kart by NodePath.
-  - In network matches, attach or retarget the local camera to the local player's spawned kart.
-  - Keep remote karts visible without giving them active cameras.
+- [x] Rework the camera for multiplayer.
+  - The camera and shell retarget to the local dynamic kart during network play and restore the baked kart on disconnect.
 
 ## Match and Gameplay Networking
 
@@ -95,20 +95,17 @@
 
 ## Testing Checklist
 
-- [ ] Run two local instances: one host and one client on `127.0.0.1`.
-- [ ] Verify host sees both karts.
-- [ ] Verify client sees both karts.
-- [ ] Verify each instance controls only its own kart.
-- [ ] Verify movement is visible on the other instance.
-- [ ] Verify disconnect removes the correct kart on all peers.
+- [x] Run two local instances: one host and one client on `127.0.0.1`.
+- [x] Verify host sees both karts.
+- [x] Verify client sees both karts.
+- [x] Verify each instance controls only its own kart.
+- [x] Verify movement is visible on the other instance.
+- [x] Verify disconnect removes the correct kart on all peers.
+- [x] Run `tools/test_multiplayer_local.ps1` with an isolated `--network-port`; it checks movement, ownership, convergence, disconnect/reconnect, duplicate prevention, and rejected-input logs.
 - [ ] Verify host migration is intentionally unsupported or explicitly handled.
 - [ ] Test packet loss/latency once basic local play works.
 
-## Known Risks
+## Deferred Risks
 
-- The current lobby scene can call a null `MultiplayerManager.Instance` unless the manager is created elsewhere.
-- The current match scene is still single-player oriented.
-- Direct `AddChild` spawning on the server is not enough for clients unless it is paired with Godot multiplayer spawning or explicit RPC replication.
-- The input RPC path currently does not appear to send anything over the network.
-- Authority is currently contradictory between `GameManager.SpawnPlayer` and `Kart._Ready()`.
-- Local camera and local input selection are still tied to single-player assumptions.
+- Host migration, client prediction, and networked fare/economy/combat remain intentionally out of scope.
+- Test packet loss and latency after localhost reliability is continuously green.

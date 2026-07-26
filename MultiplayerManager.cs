@@ -18,7 +18,6 @@ public partial class MultiplayerManager : Node
 
     [Export] public string MatchScenePath = "res://default_3d.tscn";
 
-    private const int Port = 7000;
     private const int MaxClients = 8;
     private const string DefaultIp = "127.0.0.1";
     private bool _signalsConnected;
@@ -26,6 +25,7 @@ public partial class MultiplayerManager : Node
     private string _pendingJoinAddress = DefaultIp;
     private int _syncedSeed = 1337;
 
+    [Export] public int NetworkPort { get; set; } = 7000;
     public int SyncedSeed => _syncedSeed;
     public ConnectionState State => _state;
 
@@ -80,12 +80,13 @@ public partial class MultiplayerManager : Node
     {
         _syncedSeed = new System.Random().Next(1, 1000000);
         var peer = new ENetMultiplayerPeer();
-        Error err = peer.CreateServer(Port, MaxClients);
+        Error err = peer.CreateServer(NetworkPort, MaxClients);
         if (err != Error.Ok) return err;
 
         Multiplayer.MultiplayerPeer = peer;
-        GD.Print($"Hosting on port {Port} with seed {_syncedSeed}");
-        SetState(ConnectionState.Hosting, $"Hosting on port {Port}");
+        GameManager.Instance?.PrepareNetworkSession();
+        GD.Print($"Hosting on port {NetworkPort} with seed {_syncedSeed}");
+        SetState(ConnectionState.Hosting, $"Hosting on port {NetworkPort}");
         CallDeferred(nameof(LoadMatchScene));
         return Error.Ok;
     }
@@ -93,12 +94,13 @@ public partial class MultiplayerManager : Node
     public Error Join(string address = DefaultIp)
     {
         var peer = new ENetMultiplayerPeer();
-        Error err = peer.CreateClient(address, Port);
+        Error err = peer.CreateClient(address, NetworkPort);
         if (err != Error.Ok) return err;
 
         Multiplayer.MultiplayerPeer = peer;
-        GD.Print($"Joining {address}:{Port}");
-        SetState(ConnectionState.Connecting, $"Connecting to {address}:{Port}");
+        GameManager.Instance?.PrepareNetworkSession();
+        GD.Print($"Joining {address}:{NetworkPort}");
+        SetState(ConnectionState.Connecting, $"Connecting to {address}:{NetworkPort}");
         return Error.Ok;
     }
 
@@ -187,6 +189,15 @@ public partial class MultiplayerManager : Node
         for (int i = 0; i < args.Length; i++)
         {
             string arg = args[i];
+            if (arg.StartsWith("--network-port=", System.StringComparison.OrdinalIgnoreCase))
+            {
+                string portText = arg["--network-port=".Length..].Trim();
+                if (int.TryParse(portText, out int port) && port is > 0 and <= 65535)
+                    NetworkPort = port;
+                else
+                    GD.PushError($"Invalid --network-port value: {portText}");
+                continue;
+            }
             if (arg.Equals("--server", System.StringComparison.OrdinalIgnoreCase))
             {
                 CallDeferred(nameof(RunDedicatedServer));
