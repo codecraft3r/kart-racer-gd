@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dg4kliwlqpu4l"
-path="res://.godot/imported/colormap.png-2517a49cdd698b54712d9df5c41110f4.ctex"
+uid="uid://dwmolmyqg64c1"
+path="res://.godot/imported/review_future_racer_final.png-359049289262f838baa046e08e7d202c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/kenney_industrial/Textures/colormap.png"
-dest_files=["res://.godot/imported/colormap.png-2517a49cdd698b54712d9df5c41110f4.ctex"]
+source_file="res://artifacts/visual/review_future_racer_final.png"
+dest_files=["res://.godot/imported/review_future_racer_final.png-359049289262f838baa046e08e7d202c.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dg4kliwlqpu4l"
-path="res://.godot/imported/colormap.png-2517a49cdd698b54712d9df5c41110f4.ctex"
+uid="uid://boeqw8amtil5s"
+path="res://.godot/imported/review_dropoff_rain.png-6bf96353f5c0768a09da36d83265098c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/kenney_industrial/Textures/colormap.png"
-dest_files=["res://.godot/imported/colormap.png-2517a49cdd698b54712d9df5c41110f4.ctex"]
+source_file="res://artifacts/visual/review_dropoff_rain.png"
+dest_files=["res://.godot/imported/review_dropoff_rain.png-6bf96353f5c0768a09da36d83265098c.ctex"]
 
 [params]
 
