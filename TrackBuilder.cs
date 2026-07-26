@@ -49,9 +49,58 @@ public partial class TrackBuilder : Node3D
     private float[] _blockDepths = Array.Empty<float>();
     private readonly List<Vector3> _intersectionPositions = new();
     private readonly List<RepairShop> _repairShops = new();
-    // Block slots consumed by repair shops so PlaceBuildings/PlaceDecorations
-    // skip them — keeps the city from spawning a building inside a shop bay.
+    // Retained for decoration placement. Buildings use per-shop footprints so
+    // the rest of a repair-shop block remains available.
     private readonly HashSet<(int col, int row)> _repairShopSlots = new();
+    private readonly List<Footprint> _repairShopFootprints = new();
+    private bool _buildingCapacityWarningEmitted;
+
+    /// <summary>
+    /// A horizontal, axis-aligned footprint in TrackBuilder-local space. Road
+    /// blocks are axis-aligned and repair-shop rotations are orthogonal, so a
+    /// conservative AABB keeps placement deterministic without a physics query.
+    /// </summary>
+    private readonly struct Footprint
+    {
+        public readonly Vector2 Min;
+        public readonly Vector2 Max;
+
+        public Footprint(Vector2 min, Vector2 max)
+        {
+            Min = min;
+            Max = max;
+        }
+
+        public bool Intersects(Footprint other) =>
+            Min.X < other.Max.X && Max.X > other.Min.X &&
+            Min.Y < other.Max.Y && Max.Y > other.Min.Y;
+
+        public bool Contains(Footprint other) =>
+            other.Min.X >= Min.X && other.Max.X <= Max.X &&
+            other.Min.Y >= Min.Y && other.Max.Y <= Max.Y;
+
+        public static Footprint FromBounds(Aabb bounds) => new(
+            new Vector2(bounds.Position.X, bounds.Position.Z),
+            new Vector2(bounds.End.X, bounds.End.Z));
+    }
+
+    private readonly struct BuildingLot
+    {
+        public readonly int Column;
+        public readonly int Row;
+        public readonly int Slot;
+        public readonly Vector3 Position;
+
+        public BuildingLot(int column, int row, int slot, Vector3 position)
+        {
+            Column = column;
+            Row = row;
+            Slot = slot;
+            Position = position;
+        }
+    }
+
+    public int BuildingCapacityWarningCount { get; private set; }
 
     public IReadOnlyList<Vector3> IntersectionPositions => _intersectionPositions;
     public IReadOnlyList<RepairShop> RepairShops => _repairShops;
@@ -594,6 +643,7 @@ public partial class TrackBuilder : Node3D
                 DrivewayLength = cand.LaneLength
             };
             _repairShops.Add(shop);
+            _repairShopFootprints.Add(BuildRepairShopFootprint(cand));
             AddChild(shop);
         }
 
@@ -601,6 +651,22 @@ public partial class TrackBuilder : Node3D
     }
 
     public bool IsRepairShopSlot(int column, int row) => _repairShopSlots.Contains((column, row));
+
+    private static Footprint BuildRepairShopFootprint(RepairShopCandidate candidate)
+    {
+        // The lane occupies the full driveway length. The canopy posts protrude
+        // 0.39 m beyond each side of the lane; add the requested 1 m clearance
+        // so a generated building and its coarse collider cannot meet the shop.
+        const float safetyMargin = 1.0f;
+        const float canopyOverhang = 0.39f;
+        float crossAxis = candidate.LaneWidth + 2.0f * (canopyOverhang + safetyMargin);
+        float drivewayAxis = candidate.LaneLength + 2.0f * safetyMargin;
+        Vector2 halfSize = candidate.DrivewayAlongX
+            ? new Vector2(drivewayAxis, crossAxis) * 0.5f
+            : new Vector2(crossAxis, drivewayAxis) * 0.5f;
+        Vector2 center = new(candidate.Position.X, candidate.Position.Z);
+        return new Footprint(center - halfSize, center + halfSize);
+    }
 
     public RepairShop GetNearestRepairShop(Vector3 position)
     {
@@ -853,45 +919,118 @@ public partial class TrackBuilder : Node3D
         int columns = CityColumnCount();
         int rows = CityRowCount();
         int slotsPerBlock = Math.Max(1, BuildingsPerBlockMax);
-        int maxBuildings = columns * rows * slotsPerBlock;
-        int targetBuildingCount = Mathf.Min(Math.Max(0, BuildingCount), maxBuildings);
+        int targetBuildingCount = Math.Max(0, BuildingCount);
         int buildingIndex = 0;
 
-        for (int row = 0; row < rows && buildingIndex < targetBuildingCount; row++)
+        foreach (BuildingLot lot in BuildBuildingLots(columns, rows, slotsPerBlock))
         {
-            for (int column = 0; column < columns && buildingIndex < targetBuildingCount; column++)
+            if (buildingIndex >= targetBuildingCount) break;
+            if (TryPlaceBuildingInLot(lot, buildingIndex))
+                buildingIndex++;
+        }
+
+        if (buildingIndex < targetBuildingCount)
+            WarnBuildingCapacity(targetBuildingCount, buildingIndex, columns * rows * slotsPerBlock);
+    }
+
+    private IEnumerable<BuildingLot> BuildBuildingLots(int columns, int rows, int slotsPerBlock)
+    {
+        // Four corners retain the familiar industrial-block composition. The
+        // fifth slot is central, allowing non-shop blocks to absorb capacity
+        // that a repair bay removes without changing city dimensions or art.
+        Vector2[] normalizedSlots =
+        {
+            // Keep the lots inside the usable core of even the narrowest
+            // procedural block.  The imported buildings can have asymmetric
+            // local bounds, so the old 0.27 placement pushed valid candidates
+            // across an edge after rotation.
+            new Vector2(-0.10f, -0.10f),
+            new Vector2(0.10f, -0.10f),
+            new Vector2(-0.10f, 0.10f),
+            new Vector2(0.10f, 0.10f),
+            Vector2.Zero
+        };
+
+        var blocks = new List<(int Column, int Row)>(columns * rows);
+        for (int row = 0; row < rows; row++)
+        {
+            for (int column = 0; column < columns; column++)
+                blocks.Add((column, row));
+        }
+
+        // A seeded start offset gives every seed a stable layout while each pass
+        // still touches every city block before returning for another lot.
+        int start = blocks.Count > 0 ? _rng.RandiRange(0, blocks.Count - 1) : 0;
+        for (int slot = 0; slot < slotsPerBlock; slot++)
+        {
+            Vector2 normalized = normalizedSlots[Mathf.Min(slot, normalizedSlots.Length - 1)];
+            for (int offset = 0; offset < blocks.Count; offset++)
             {
-                if (IsRepairShopSlot(column, row)) continue;
-                for (int slot = 0; slot < slotsPerBlock && buildingIndex < targetBuildingCount; slot++)
-                {
-                    PlaceBuildingInBlock(column, row, slot, buildingIndex);
-                    buildingIndex++;
-                }
+                (int column, int row) = blocks[(start + offset) % blocks.Count];
+                Vector2 interior = BlockInteriorSize(column, row);
+                Vector3 position = BlockCenter(column, row) + new Vector3(
+                    normalized.X * interior.X,
+                    0.0f,
+                    normalized.Y * interior.Y);
+                yield return new BuildingLot(column, row, slot, position);
             }
         }
     }
 
-    private void PlaceBuildingInBlock(int column, int row, int slot, int buildingIndex)
+    private bool TryPlaceBuildingInLot(BuildingLot lot, int buildingIndex)
     {
         var scene = _buildingScenes[_rng.RandiRange(0, _buildingScenes.Length - 1)];
         var building = scene.Instantiate<Node3D>();
-        Vector3 blockCenter = BlockCenter(column, row);
-        Vector3 localOffset = BuildingSlotOffset(column, row, slot);
+        float jitterLimit = Mathf.Min(BuildingJitter * 0.02f, Mathf.Min(BlockInteriorSize(lot.Column, lot.Row).X, BlockInteriorSize(lot.Column, lot.Row).Y) * 0.01f);
 
-        building.Position = blockCenter + localOffset;
+        building.Position = lot.Position + new Vector3(
+            _rng.RandfRange(-jitterLimit, jitterLimit),
+            0.0f,
+            _rng.RandfRange(-jitterLimit, jitterLimit));
         building.Rotation = new Vector3(0.0f, OrthogonalRotation() + _rng.RandfRange(-0.06f, 0.06f), 0.0f);
         ScaleAndGroundNode(building, RandomRangeOrdered(BuildingFootprintMin, BuildingFootprintMax));
 
+        if (!TryGetLocalVisualBounds(building, out Aabb bounds))
+        {
+            building.Free();
+            return false;
+        }
+
+        Footprint footprint = Footprint.FromBounds(bounds);
+        bool outsideBlock = !BlockFootprint(lot.Column, lot.Row).Contains(footprint);
+        bool overlapsShop = _repairShopFootprints.Any(shop => shop.Intersects(footprint));
+        if (outsideBlock || overlapsShop)
+        {
+            building.Free();
+            return false;
+        }
+
         AddChild(building);
-        building.Name = $"BuildingBlock{column:00}_{row:00}_{slot:00}_{buildingIndex:000}";
-        AddBuildingCollision(building, buildingIndex);
+        building.Name = $"BuildingBlock{lot.Column:00}_{lot.Row:00}_{lot.Slot:00}_{buildingIndex:000}";
+        AddBuildingCollision(bounds, buildingIndex);
+        return true;
     }
 
-    private void AddBuildingCollision(Node3D building, int buildingIndex)
+    private void WarnBuildingCapacity(int requested, int generated, int candidateCapacity)
     {
-        if (!TryGetLocalVisualBounds(building, out Aabb bounds))
-            return;
+        if (_buildingCapacityWarningEmitted) return;
 
+        _buildingCapacityWarningEmitted = true;
+        BuildingCapacityWarningCount++;
+        GD.PushWarning($"TrackBuilder: building capacity reached; requested {requested}, generated {generated}, candidate capacity {candidateCapacity}.");
+    }
+
+    private Footprint BlockFootprint(int column, int row)
+    {
+        float x0 = VerticalStreetCoordinate(column) + VerticalStreetWidth(column) * 0.5f;
+        float x1 = VerticalStreetCoordinate(column + 1) - VerticalStreetWidth(column + 1) * 0.5f;
+        float z0 = HorizontalStreetCoordinate(row) + HorizontalStreetWidth(row) * 0.5f;
+        float z1 = HorizontalStreetCoordinate(row + 1) - HorizontalStreetWidth(row + 1) * 0.5f;
+        return new Footprint(new Vector2(x0, z0), new Vector2(x1, z1));
+    }
+
+    private void AddBuildingCollision(Aabb bounds, int buildingIndex)
+    {
         Vector3 size = bounds.Size;
         size.X = Mathf.Max(1.0f, size.X * 0.86f);
         size.Y = Mathf.Max(1.5f, size.Y);
