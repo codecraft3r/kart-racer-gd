@@ -1,0 +1,65 @@
+name: Verify Godot baseline
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: 4.6.3
+  GODOT_ARCHIVE: Godot_v4.6.3-stable_mono_linux_x86_64.zip
+  GODOT_SHA512: 962c4f5fd3a704de36c9dedcb2f5f6c973065ac8ed8fd6e12c7ebf7e48c3852d774bcef2ccf76b50b206c0c564ceea54315e2943e76e397529923e7de680508e
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.422
+
+      - name: Install headful capture support
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes xvfb
+
+      - name: Download verified Godot 4.6.3 Mono
+        run: |
+          curl --fail --location --retry 3 --output "$GODOT_ARCHIVE" "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/${GODOT_ARCHIVE}"
+          echo "${GODOT_SHA512}  ${GODOT_ARCHIVE}" | sha512sum --check --strict
+          unzip -q "$GODOT_ARCHIVE" -d "$RUNNER_TEMP/godot"
+          GODOT_BINARY="$(find "$RUNNER_TEMP/godot" -type f -name 'Godot_v4.6.3-stable_mono_linux_x86_64' -print -quit)"
+          test -n "$GODOT_BINARY"
+          chmod +x "$GODOT_BINARY"
+          echo "GODOT=$GODOT_BINARY" >> "$GITHUB_ENV"
+
+      - name: Verify pinned toolchain
+        run: pwsh -File ./tools/dev.ps1 verify -GodotPath "$GODOT"
+
+      - name: Build C# without warnings
+        run: pwsh -File ./tools/dev.ps1 build -GodotPath "$GODOT"
+
+      - name: Import, smoke test, and boot for 180 frames
+        run: pwsh -File ./tools/dev.ps1 test -GodotPath "$GODOT"
+
+      - name: Capture and check teardown diagnostics
+        run: xvfb-run --auto-servernum pwsh -File ./tools/dev.ps1 capture -GodotPath "$GODOT" -State gameplay
+
+      - name: Reject generated configuration or metadata changes
+        run: |
+          git diff --exit-code -- project.godot kart_racer.csproj global.json
+          test -z "$(git status --porcelain)"
+
+      - name: Upload visual capture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gameplay-capture
+          path: artifacts/visual/captures/
+          if-no-files-found: ignore
