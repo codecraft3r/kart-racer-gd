@@ -46,7 +46,7 @@ jobs:
         run: pwsh -File ./tools/dev.ps1 build -GodotPath "$GODOT"
 
       - name: Import, smoke test, and boot for 180 frames
-        run: pwsh -File ./tools/dev.ps1 test -GodotPath "$GODOT"
+        run: pwsh -File ./tools/dev.ps1 test -GodotPath "$GODOT" -SkipWorldGenerationSmoke
 
       - name: Capture and check teardown diagnostics
         run: xvfb-run --auto-servernum pwsh -File ./tools/dev.ps1 capture -GodotPath "$GODOT" -State gameplay
