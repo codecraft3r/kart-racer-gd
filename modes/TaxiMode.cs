@@ -46,6 +46,10 @@ public partial class TaxiMode : Node3D
     private readonly Dictionary<int, Vector3> _playerDestinations = new();
     // Track active drop-off area nodes per player: peerId -> Area3D node
     private readonly Dictionary<int, Area3D> _playerDropoffAreas = new();
+    private readonly Dictionary<int, Kart> _settlingDropoffs = new();
+    private readonly Dictionary<int, float> _dropoffSettleSeconds = new();
+    private const float DropoffSettleDuration = 0.5f;
+    private const float DropoffSettleSpeed = 2.2f;
 
     public override void _Ready()
     {
@@ -83,6 +87,8 @@ public partial class TaxiMode : Node3D
 
         if (_phase != MatchPhase.Active)
             return;
+
+        UpdateDropoffSettles((float)delta);
 
         _timeRemaining = Math.Max(0.0, _timeRemaining - delta);
         if (_timeRemaining <= 0.0)
@@ -493,6 +499,7 @@ public partial class TaxiMode : Node3D
         visual.AddChild(arrow);
 
         area.BodyEntered += (body) => OnDropoffAreaEntered(body, peerId);
+        area.BodyExited += (body) => OnDropoffAreaExited(body, peerId);
 
         AddChild(area);
         area.GlobalPosition = position;
@@ -507,13 +514,52 @@ public partial class TaxiMode : Node3D
         if (body is not Kart kart || kart.OwnerPeerId != peerId)
             return;
 
-        // Player arrived! Call GameManager to calculate fare payout and score
+        // Player arrived: the server confirms a brief, low-speed settle before payout.
         if (kart.ActivePassenger.HasValue)
         {
-            GameManager.Instance.AwardFarePayout(peerId);
-            ClearActiveFare(peerId);
+            _settlingDropoffs[peerId] = kart;
+            _dropoffSettleSeconds[peerId] = 0.0f;
         }
     }
+
+    private void OnDropoffAreaExited(Node body, int peerId)
+    {
+        if (body is Kart kart && kart.OwnerPeerId == peerId)
+        {
+            _settlingDropoffs.Remove(peerId);
+            _dropoffSettleSeconds.Remove(peerId);
+        }
+    }
+
+    private void UpdateDropoffSettles(float dt)
+    {
+        foreach (int peerId in _settlingDropoffs.Keys.ToArray())
+        {
+            Kart kart = _settlingDropoffs[peerId];
+            if (!IsInstanceValid(kart) || !kart.ActivePassenger.HasValue)
+            {
+                _settlingDropoffs.Remove(peerId);
+                _dropoffSettleSeconds.Remove(peerId);
+                continue;
+            }
+
+            if (kart.LinearVelocity.Length() > DropoffSettleSpeed)
+            {
+                _dropoffSettleSeconds[peerId] = 0.0f;
+                continue;
+            }
+
+            float settled = _dropoffSettleSeconds.GetValueOrDefault(peerId) + dt;
+            _dropoffSettleSeconds[peerId] = settled;
+            if (settled >= DropoffSettleDuration)
+            {
+                GameManager.Instance.AwardFarePayout(peerId);
+                ClearActiveFare(peerId);
+            }
+        }
+    }
+
+    public float GetDropoffSettleProgress(int peerId) => Mathf.Clamp(_dropoffSettleSeconds.GetValueOrDefault(peerId) / DropoffSettleDuration, 0.0f, 1.0f);
 
     public void ClearActiveFare(int peerId)
     {
@@ -521,6 +567,8 @@ public partial class TaxiMode : Node3D
             return;
 
         _playerDestinations.Remove(peerId);
+        _settlingDropoffs.Remove(peerId);
+        _dropoffSettleSeconds.Remove(peerId);
 
         if (_playerDropoffAreas.TryGetValue(peerId, out Area3D area) && IsInstanceValid(area))
         {

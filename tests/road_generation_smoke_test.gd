@@ -32,6 +32,7 @@ func _run() -> void:
 	var building_colliders := _count_children_with_prefix(track_builder, "WorldCollider")
 	var world_boundaries := _count_children_with_prefix(track_builder, "WorldBoundary")
 	var depot: Node3D = track_builder.get_node_or_null("TaxiDepot")
+	var distant_skyline: Node = root.get_node_or_null("DistantSkyline")
 
 	var city_columns := int(track_builder.get("CityColumns"))
 	var city_rows := int(track_builder.get("CityRows"))
@@ -60,6 +61,8 @@ func _run() -> void:
 	_expect(building_colliders == expected_buildings, "every generated building has coarse gameplay collision")
 	_expect(world_boundaries == 4, "city has four out-of-bounds barriers")
 	_expect(depot != null, "single-player taxi depot is generated")
+	_expect(distant_skyline != null, "distant skyline layer is present")
+	_expect(int(distant_skyline.call("GetTowerCount")) >= 60, "distant skyline has both parallax tower bands")
 
 	if get_meta("failed", false):
 		quit(1)

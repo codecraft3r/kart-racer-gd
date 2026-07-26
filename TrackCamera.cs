@@ -17,6 +17,7 @@ public partial class TrackCamera : Camera3D
     [Export] public float LookAheadDistance = 4.5f;
     [Export] public float VelocityHeadingWeight = 0.3f;
     [Export] public float DriftCameraOffset = 0.65f;
+    [Export] public float ObstructionPadding = 0.35f;
 
     [ExportGroup("Racing Feel")]
     [Export] public float MaxReferenceSpeed = 46.0f;
@@ -96,6 +97,19 @@ public partial class TrackCamera : Camera3D
         float distance = BaseDistance + SpeedPullback * speedT;
         float height = BaseHeight + SpeedLift * speedT;
         Vector3 targetPosition = _visualContainer.GlobalPosition + Vector3.Up * height - chaseForward * distance - right * slipT * DriftCameraOffset;
+        Vector3 obstructionAnchor = _visualContainer.GlobalPosition + Vector3.Up * (height * 0.7f);
+        var query = PhysicsRayQueryParameters3D.Create(obstructionAnchor, targetPosition);
+        query.CollideWithAreas = false;
+        query.CollideWithBodies = true;
+        if (_targetBody != null)
+            query.Exclude = new Godot.Collections.Array<Rid> { _targetBody.GetRid() };
+        var obstruction = GetWorld3D().DirectSpaceState.IntersectRay(query);
+        if (obstruction.Count > 0)
+        {
+            Vector3 point = obstruction["position"].AsVector3();
+            Vector3 fromHit = (targetPosition - obstructionAnchor).Normalized();
+            targetPosition = point - fromHit * ObstructionPadding;
+        }
         Vector3 smoothPosition = _hasSnapped ? GlobalPosition.Lerp(targetPosition, followBlend) : targetPosition;
 
         Vector3 lookTarget = _visualContainer.GlobalPosition + Vector3.Up * LookHeight + chaseForward * LookAheadDistance * Mathf.Lerp(0.35f, 1.0f, speedT);
