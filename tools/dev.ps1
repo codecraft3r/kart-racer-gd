@@ -162,7 +162,10 @@ switch ($Command) {
     }
     "test" {
         Assert-ToolchainConfiguration
-        Invoke-GodotChecked -Name "Godot import" -Arguments @("--headless", "--path", $ProjectRoot, "--import") -CheckDiagnostics
+        # A fresh CI checkout needs enough editor frames to finish every
+        # asynchronous texture, model, and audio import before smoke tests
+        # resolve resources from .godot/imported.
+        Invoke-GodotChecked -Name "Godot import" -Arguments @("--headless", "--path", $ProjectRoot, "--editor", "--quit-after", "1800") -CheckDiagnostics
         foreach ($test in Get-ChildItem (Join-Path $ProjectRoot "tests") -Filter "*smoke_test.gd" | Sort-Object Name) {
             if ($SkipWorldGenerationSmoke -and $test.Name -eq "road_generation_smoke_test.gd") {
                 Write-Host "Skipping known world-generation regression until #7 lands."
