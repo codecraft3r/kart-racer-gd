@@ -53,6 +53,47 @@ public partial class RetroNeonCabShell : CanvasLayer
     
     private bool _wasBoarding = false;
     private float _goLabelAlpha = 0.0f;
+
+    /// <summary>
+    /// Centralised kart-control prompt priority. Each frame every subsystem
+    /// (pickup zone, repair shop, ...) registers its desired prompt via
+    /// <see cref="RequestKartPrompt"/>; the highest-priority one renders on
+    /// the shared _stopLabel. Higher enum value = higher priority.
+    /// </summary>
+    public enum KartPrompt { None = 0, Stop = 1, Wait = 2, Go = 3 }
+    private KartPrompt _activePromptKind = KartPrompt.None;
+    private Color _activePromptTint = Colors.White;
+    private string _activePromptText = string.Empty;
+    // Time the current prompt was first requested, used for the GO fade.
+    private ulong _activePromptStartedMs;
+
+    // Tracks the previous frame's repair-shop-in-progress state so we can
+    // emit a one-shot GO when the repair finishes (without that we'd just
+    // flip back to STOP the frame after completion).
+    private bool _wasRepairInProgress;
+
+    /// <summary>
+    /// Request a kart-control prompt for this frame. Higher-priority prompts
+    /// replace lower-priority ones (Go > Wait > Stop). Equal-priority prompts
+    /// keep the first one (don't flicker between callers).
+    /// </summary>
+    public void RequestKartPrompt(KartPrompt kind, Color tint, string text)
+    {
+        if ((int)kind <= (int)KartPrompt.None) return;
+        if ((int)kind < (int)_activePromptKind) return;
+        if ((int)kind > (int)_activePromptKind)
+        {
+            _activePromptKind = kind;
+            _activePromptTint = tint;
+            _activePromptText = text;
+            _activePromptStartedMs = Time.GetTicksMsec();
+        }
+        else if (_activePromptText != text)
+        {
+            // Same priority but different caller (e.g. WAIT from repair shop
+            // vs WAIT from pickup zone); keep existing text to avoid flicker.
+        }
+    }
     private Label _resultSummaryLabel;
     private Label _resultStandingsLabel;
     private Button _resultPrimaryButton;
@@ -1031,12 +1072,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         TaxiMode mode = TaxiMode.Instance;
 
         if (_scoreLabel != null)
-        {
-            int shiftCash = mode?.GetScore(peerId) ?? 0;
-            _scoreLabel.Text = mode?.EndlessRunActive == true
-                ? $"QUOTA: ${shiftCash}/${mode.CurrentCashQuota}"
-                : $"CASH: ${cash}";
-        }
+            _scoreLabel.Text = $"CASH: ${cash}";
         if (_boostLabel != null)
             _boostLabel.Text = $"HP: {health}%";
         if (_speedometer != null)
@@ -1070,29 +1106,23 @@ public partial class RetroNeonCabShell : CanvasLayer
             bool isBoarding = _kart.BoardingProgress > 0.0f;
             if (_wasBoarding && !isBoarding && _kart.ActivePassenger.HasValue)
             {
-                _goLabelAlpha = 1.0f;
+                // Boarding just completed — kick the GO fade.
+                RequestKartPrompt(KartPrompt.Go, new Color(0.0f, 1.0f, 0.0f), ">> GO <<");
             }
             _wasBoarding = isBoarding;
+
+            // Clear any stale prompt state from the previous frame so each
+            // subsystem can re-register its own. Subsystems below call
+            // RequestKartPrompt with their desired priority.
+            _activePromptKind = KartPrompt.None;
 
             if (_kart.ActivePassenger.HasValue)
             {
                 if (_goLabelAlpha > 0.0f)
                 {
-                    if (_stopLabel != null)
-                    {
-                        _stopLabel.Visible = true;
-                        _stopLabel.Text = ">> GO <<";
-                        _stopLabel.Modulate = new Color(0.0f, 1.0f, 0.0f, _goLabelAlpha);
-                    }
+                    RequestKartPrompt(KartPrompt.Go, new Color(0.0f, 1.0f, 0.0f, _goLabelAlpha), ">> GO <<");
                     if (_kart.LinearVelocity.Length() > 2.0f)
-                    {
                         _goLabelAlpha -= (float)GetProcessDeltaTime() * 1.5f;
-                    }
-                }
-                else
-                {
-                    if (_stopLabel != null)
-                        _stopLabel.Visible = false;
                 }
 
                 var passenger = _kart.ActivePassenger.Value;
@@ -1137,9 +1167,6 @@ public partial class RetroNeonCabShell : CanvasLayer
             }
             else
             {
-                if (_stopLabel != null)
-                    _stopLabel.Visible = false;
-
                 if (_checkpointLabel != null)
                 {
                     Vector3 pickup = mode?.GetNearestPickupPosition(_kart.GlobalPosition) ?? Vector3.Zero;
@@ -1148,12 +1175,8 @@ public partial class RetroNeonCabShell : CanvasLayer
 
                     if (distance > 0 && distance <= 5 && _kart.LinearVelocity.Length() >= 0.8f && _kart.BoardingProgress == 0.0f)
                     {
-                        if (_stopLabel != null)
-                        {
-                            _stopLabel.Visible = true;
-                            _stopLabel.Text = ">> STOP <<";
-                            _stopLabel.Modulate = (Time.GetTicksMsec() % 500 < 250) ? Colors.White : Hex("ff0055");
-                        }
+                        Color flashTint = (Time.GetTicksMsec() % 500 < 250) ? Colors.White : Hex("ff0055");
+                        RequestKartPrompt(KartPrompt.Stop, flashTint, ">> STOP <<");
                     }
                 }
 
@@ -1172,13 +1195,9 @@ public partial class RetroNeonCabShell : CanvasLayer
                         int boardingPercent = Mathf.RoundToInt(_kart.BoardingProgress * 100.0f);
                         _statusLabel.Text = $"LOADING: {boardingPercent}%";
                         _statusLabel.AddThemeColorOverride("font_color", Hex("f5c451"));
-                        
-                        if (_stopLabel != null)
-                        {
-                            _stopLabel.Visible = true;
-                            _stopLabel.Text = ">> WAIT <<";
-                            _stopLabel.Modulate = (Time.GetTicksMsec() % 500 < 250) ? Colors.White : Hex("f5c451");
-                        }
+
+                        Color waitTint = (Time.GetTicksMsec() % 500 < 250) ? Colors.White : Hex("f5c451");
+                        RequestKartPrompt(KartPrompt.Wait, waitTint, ">> WAIT <<");
                     }
                     else
                     {
@@ -1200,6 +1219,69 @@ public partial class RetroNeonCabShell : CanvasLayer
             if (_driftMetersLabel != null)
                 _driftMetersLabel.Text = $"{Mathf.RoundToInt((float)_driftMeters):N0}m";
         }
+
+        UpdateRepairKartPrompt();
+        RenderActiveKartPrompt();
+    }
+
+    private void UpdateRepairKartPrompt()
+    {
+        if (_currentScreen != ShellScreen.Gameplay) return;
+        if (_kart == null || !GodotObject.IsInstanceValid(_kart)) return;
+
+        RepairShop shop = TrackBuilder.Instance?.GetNearestRepairShop(_kart.GlobalPosition);
+        if (shop == null || !GodotObject.IsInstanceValid(shop))
+        {
+            _wasRepairInProgress = false;
+            return;
+        }
+
+        if (!shop.TryGetPromptForLocalKart(out _, out bool inProgress, out _))
+        {
+            _wasRepairInProgress = false;
+            return;
+        }
+
+        // Detect the transition from in-progress -> done and emit a one-shot
+        // GO prompt. Higher priority than STOP so it wins on the frame of
+        // completion; the standard GO fade animation takes it from there.
+        if (_wasRepairInProgress && !inProgress)
+        {
+            RequestKartPrompt(KartPrompt.Go, new Color(0.0f, 1.0f, 0.0f), ">> GO <<");
+            _goLabelAlpha = 1.0f;
+        }
+        _wasRepairInProgress = inProgress;
+
+        // Only emit prompts when the shop is actively doing something:
+        //   WAIT while the repair timer ticks, GO on the frame of completion.
+        // No STOP prompt — the shop stays silent until it's actually working,
+        // so the prompt isn't noisy while the player is just driving in.
+        if (inProgress)
+        {
+            Color waitTint = (Time.GetTicksMsec() % 500 < 250) ? Colors.White : Hex("f5c451");
+            RequestKartPrompt(KartPrompt.Wait, waitTint, ">> WAIT <<");
+        }
+    }
+
+    /// <summary>
+    /// Single point that writes to _stopLabel. Reads the highest-priority
+    /// prompt registered this frame and applies it. Subsystems call
+    /// <see cref="RequestKartPrompt"/> during UpdateGameplayStats; this is the
+    /// final step.
+    /// </summary>
+    private void RenderActiveKartPrompt()
+    {
+        if (_stopLabel == null) return;
+
+        if (_activePromptKind == KartPrompt.None)
+        {
+            _stopLabel.Visible = false;
+            return;
+        }
+
+        _stopLabel.Visible = true;
+        _stopLabel.Text = _activePromptText;
+        _stopLabel.Modulate = _activePromptTint;
     }
 
     private void UpdatePauseStats()

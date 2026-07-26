@@ -48,8 +48,13 @@ public partial class TrackBuilder : Node3D
     private float[] _blockWidths = Array.Empty<float>();
     private float[] _blockDepths = Array.Empty<float>();
     private readonly List<Vector3> _intersectionPositions = new();
+    private readonly List<RepairShop> _repairShops = new();
+    // Block slots consumed by repair shops so PlaceBuildings/PlaceDecorations
+    // skip them — keeps the city from spawning a building inside a shop bay.
+    private readonly HashSet<(int col, int row)> _repairShopSlots = new();
 
     public IReadOnlyList<Vector3> IntersectionPositions => _intersectionPositions;
+    public IReadOnlyList<RepairShop> RepairShops => _repairShops;
 
 
     public override void _ExitTree()
@@ -90,6 +95,7 @@ public partial class TrackBuilder : Node3D
         GenerateTrackLights();
 
         LoadBuildingScenes();
+        GenerateRepairShops();
         PlaceBuildings();
         PlaceDecorations();
         GenerateNeonLandmarks();
@@ -447,6 +453,187 @@ public partial class TrackBuilder : Node3D
 
     }
 
+    /// <summary>
+    /// Drives the GDD's economy-based repair shop system. Spawns a small number
+    /// of single-bay drive-through repair shops across the city grid. Each shop
+    /// sits on a city block (between two parallel streets) and connects them
+    /// with a one-lane driveway. Orientation per block is chosen so the shop
+    /// bridges the pair of streets whose uninterrupted segment between the
+    /// flanking intersections is longest.
+    /// </summary>
+    [Export] public int RepairShopCount = 5;
+
+    private struct RepairShopCandidate
+    {
+        public int Column;
+        public int Row;
+        public float LaneLength;       // Driveway direction, shrunk to fit block interior minus margin
+        public float LaneWidth;        // Perpendicular, ~2/3 of the bridged street pair's width
+        public bool DrivewayAlongX;
+        public Vector3 Position;       // Interior center, NOT block center (so the box doesn't sit on the road)
+        public float YawRadians;
+    }
+
+    private void GenerateRepairShops()
+    {
+        int columns = CityColumnCount();
+        int rows = CityRowCount();
+        if (columns <= 0 || rows <= 0) return;
+
+        // Inset from the curb so the shop's collision box lives entirely inside
+        // the block interior and never spills onto the bounding streets.
+        const float CurbInset = 1.5f;
+
+        // Build candidates for every block. Each block yields two orientations;
+        // we keep the best one (longer uninterrupted segment between the two
+        // bounding intersections along the driveway axis).
+        var candidates = new List<RepairShopCandidate>(columns * rows);
+        for (int c = 0; c < columns; c++)
+        {
+            for (int r = 0; r < rows; r++)
+            {
+                float gapX = Mathf.Abs(VerticalStreetCoordinate(c + 1) - VerticalStreetCoordinate(c));
+                float gapZ = Mathf.Abs(HorizontalStreetCoordinate(r + 1) - HorizontalStreetCoordinate(r));
+
+                // Block interior spans — distance between the inner edges of the
+                // bounding street pairs. Box must fit inside these.
+                Vector2 interior = BlockInteriorSize(c, r);
+                float interiorWidth = interior.X;
+                float interiorDepth = interior.Y;
+
+                // Pick orientation by which parallel-street pair has the longer
+                // uninterrupted front/back segment.
+                bool alongX = gapZ >= gapX;
+
+                // Driveway length: the gap between the two bridged streets, but
+                // shrunk so the box doesn't sit on the road surface.
+                float laneLength = (alongX ? interiorWidth : interiorDepth) - 2.0f * CurbInset;
+                if (laneLength < 4.0f) continue;   // block too narrow to host a shop
+
+                // Lane width: ~2/3 of the bridged street pair's width, clamped
+                // to the perpendicular interior span minus margin.
+                float bridgedStreetWidth = alongX
+                    ? (VerticalStreetWidth(c) + VerticalStreetWidth(c + 1)) * 0.5f
+                    : (HorizontalStreetWidth(r) + HorizontalStreetWidth(r + 1)) * 0.5f;
+                float laneWidth = Mathf.Min(
+                    bridgedStreetWidth * (2.0f / 3.0f),
+                    (alongX ? interiorDepth : interiorWidth) - 2.0f * CurbInset);
+
+                // Interior center, NOT block center — shifts away from the road
+                // if the bounding street widths are asymmetric.
+                float cx = VerticalStreetCoordinate(c) + VerticalStreetWidth(c) * 0.5f + interiorWidth * 0.5f;
+                float cz = HorizontalStreetCoordinate(r) + HorizontalStreetWidth(r) * 0.5f + interiorDepth * 0.5f;
+                Vector3 interiorCenter = new Vector3(cx, 0.0f, cz);
+
+                candidates.Add(new RepairShopCandidate
+                {
+                    Column = c,
+                    Row = r,
+                    LaneLength = laneLength,
+                    LaneWidth = laneWidth,
+                    DrivewayAlongX = alongX,
+                    Position = interiorCenter,
+                    YawRadians = alongX ? Mathf.Pi * 0.5f : 0.0f,
+                });
+            }
+        }
+
+        // Greedy: pick the highest-laneLength candidates, but spread them out so
+        // they don't cluster in one corner. Use deterministic seeded RNG so the
+        // layout is reproducible per seed.
+        int target = Mathf.Min(RepairShopCount, candidates.Count);
+        var chosen = new List<RepairShopCandidate>();
+        var remaining = new List<RepairShopCandidate>(candidates);
+
+        // Sort by lane length descending to consider the longest first.
+        remaining.Sort((a, b) => b.LaneLength.CompareTo(a.LaneLength));
+
+        for (int i = 0; i < target && remaining.Count > 0; i++)
+        {
+            // Among the top tier (within 10% of the current max length), pick the
+            // one whose Manhattan distance to existing picks is greatest — spreads
+            // shops out across the grid.
+            float topLen = remaining[0].LaneLength;
+            float tierCutoff = topLen * 0.90f;
+            int tierEnd = 0;
+            while (tierEnd < remaining.Count && remaining[tierEnd].LaneLength >= tierCutoff)
+                tierEnd++;
+
+            int bestIdx = 0;
+            float bestMinDist = -1.0f;
+            for (int j = 0; j < tierEnd; j++)
+            {
+                var cand = remaining[j];
+                float minDist = float.MaxValue;
+                foreach (var existing in chosen)
+                {
+                    float d = Mathf.Abs(cand.Column - existing.Column) + Mathf.Abs(cand.Row - existing.Row);
+                    if (d < minDist) minDist = d;
+                }
+                if (chosen.Count == 0) minDist = 0.0f;
+                if (minDist > bestMinDist)
+                {
+                    bestMinDist = minDist;
+                    bestIdx = j;
+                }
+            }
+
+            chosen.Add(remaining[bestIdx]);
+            remaining.RemoveAt(bestIdx);
+        }
+
+        foreach (var cand in chosen)
+        {
+            _repairShopSlots.Add((cand.Column, cand.Row));
+            var shop = new RepairShop
+            {
+                Name = $"RepairShop_{cand.Column:00}_{cand.Row:00}",
+                Position = cand.Position,
+                Rotation = new Vector3(0.0f, cand.YawRadians, 0.0f),
+                LaneWidth = cand.LaneWidth,
+                DrivewayLength = cand.LaneLength
+            };
+            _repairShops.Add(shop);
+            AddChild(shop);
+        }
+
+        GD.Print($"TrackBuilder: spawned {_repairShops.Count} repair shop(s) across the grid.");
+    }
+
+    public bool IsRepairShopSlot(int column, int row) => _repairShopSlots.Contains((column, row));
+
+    public RepairShop GetNearestRepairShop(Vector3 position)
+    {
+        RepairShop best = null;
+        float bestDistSq = float.MaxValue;
+        foreach (var shop in _repairShops)
+        {
+            if (shop == null || !GodotObject.IsInstanceValid(shop)) continue;
+            float d = position.DistanceSquaredTo(shop.GlobalPosition);
+            if (d < bestDistSq)
+            {
+                bestDistSq = d;
+                best = shop;
+            }
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// Returns true if any repair shop in the city currently has an active
+    /// repair for the given peer. Used by <see cref="GameManager.ApplyVehicleDamage"/>
+    /// to suppress collision damage while a kart is being repaired.
+    /// </summary>
+    public bool IsPeerBeingRepaired(int peerId)
+    {
+        foreach (var shop in _repairShops)
+        {
+            if (shop != null && GodotObject.IsInstanceValid(shop) && shop.IsRepairingPeer(peerId))
+                return true;
+        }
+        return false;
+    }
+
     private void GenerateWorldBounds()
     {
         const float wallThickness = 2.0f;
@@ -674,6 +861,7 @@ public partial class TrackBuilder : Node3D
         {
             for (int column = 0; column < columns && buildingIndex < targetBuildingCount; column++)
             {
+                if (IsRepairShopSlot(column, row)) continue;
                 for (int slot = 0; slot < slotsPerBlock && buildingIndex < targetBuildingCount; slot++)
                 {
                     PlaceBuildingInBlock(column, row, slot, buildingIndex);
@@ -730,6 +918,7 @@ public partial class TrackBuilder : Node3D
         {
             int column = _rng.RandiRange(0, columns - 1);
             int row = _rng.RandiRange(0, rows - 1);
+            if (IsRepairShopSlot(column, row)) { i--; continue; }
             Vector3 blockCenter = BlockCenter(column, row);
             Vector2 blockSize = BlockInteriorSize(column, row);
 
