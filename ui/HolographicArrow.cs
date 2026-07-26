@@ -18,7 +18,7 @@ public partial class HolographicArrow : Node3D
     }
 
     [Export] public float FloatSpeed = 3.0f;
-    [Export] public float FloatAmplitude = 0.4f;
+    [Export] public float FloatAmplitude = 0.18f;
     [Export] public float RotationSpeed = 1.8f;
 
     public override void _Ready()
@@ -29,8 +29,8 @@ public partial class HolographicArrow : Node3D
         var cone = new CylinderMesh
         {
             TopRadius = 0.0f,
-            BottomRadius = 1.6f,
-            Height = 3.2f,
+            BottomRadius = 0.55f,
+            Height = 1.2f,
             RadialSegments = 5
         };
 
@@ -54,10 +54,7 @@ public partial class HolographicArrow : Node3D
         float hoverOffset = Mathf.Sin(_timeAccumulator * FloatSpeed) * FloatAmplitude;
         Position = new Vector3(Position.X, _baseY + hoverOffset, Position.Z);
         
-        // Spin around Y axis
-        RotateY(RotationSpeed * (float)delta);
-
-        // Dynamically adjust visibility based on local player perspective
+        // Dynamically adjust visibility based on the shared objective query.
         UpdateArrowVisibility();
     }
 
@@ -84,46 +81,34 @@ public partial class HolographicArrow : Node3D
             return;
         }
 
-        string grandParentName = grandparent.Name.ToString();
-
-        // 1. If it's attached to a PickupZone
-        if (grandparent is PickupZone pickupZone)
-        {
-            // If the player has a passenger, they shouldn't see pickup zone arrows
-            if (localKart.ActivePassenger.HasValue)
-            {
-                Visible = false;
-                return;
-            }
-
-            // If the player's vehicle health is too low (meaning damage is too high)
-            // for this customer's preferences, they cannot pick them up. Hide the arrow.
-            int playerHealth = GameManager.Instance != null ? GameManager.Instance.GetPlayerHealth(localKart.OwnerPeerId) : 100;
-            if (playerHealth < 100 - pickupZone.MaxAcceptableDamage)
-            {
-                Visible = false;
-                return;
-            }
-
-            Visible = true;
-        }
-        // 2. If it's attached to a Drop-off Area
-        else if (grandParentName.StartsWith("DropoffArea_"))
-        {
-            // Only show if the player currently has a passenger
-            if (!localKart.ActivePassenger.HasValue)
-            {
-                Visible = false;
-                return;
-            }
-
-            // Respect parent container's visibility (since TaxiMode already sets it
-            // to visible only for the local player peer who owns it)
-            Visible = (parentNode is Node3D parent3D) ? parent3D.Visible : true;
-        }
-        else
+        if (!TaxiMode.Instance.TryGetObjectiveForKart(localKart, out TaxiMode.ObjectiveTarget target))
         {
             Visible = false;
+            return;
+        }
+
+        if (grandparent is not Node3D markerNode)
+        {
+            Visible = false;
+            return;
+        }
+        Vector3 markerPosition = markerNode.GlobalPosition;
+        bool thisIsTarget = markerPosition.DistanceSquaredTo(target.WorldPosition) < 0.01f;
+        if (!thisIsTarget || target.Distance <= 5.5f)
+        {
+            Visible = false;
+            return;
+        }
+
+        Visible = true;
+        float scale = target.Distance > 45.0f ? 0.85f : 1.0f;
+        Scale = Vector3.One * scale;
+        var material = _mesh?.MaterialOverride as StandardMaterial3D;
+        if (material != null)
+        {
+            float alpha = target.Distance > 45.0f ? 0.38f : target.Distance <= 12.0f ? 0.24f : 0.50f;
+            material.AlbedoColor = new Color(target.Color.R, target.Color.G, target.Color.B, alpha);
+            material.Emission = target.Color * alpha;
         }
     }
 

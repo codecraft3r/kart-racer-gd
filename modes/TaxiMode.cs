@@ -5,6 +5,33 @@ using System.Linq;
 
 public partial class TaxiMode : Node3D
 {
+    public enum ObjectiveKind
+    {
+        Pickup,
+        Dropoff
+    }
+
+    /// <summary>
+    /// The one authoritative UI/world-marker objective for a kart.  Keeping
+    /// the target and its presentation colour together prevents the HUD and
+    /// the world beacons from disagreeing about the current fare state.
+    /// </summary>
+    public readonly struct ObjectiveTarget
+    {
+        public ObjectiveKind Kind { get; }
+        public Vector3 WorldPosition { get; }
+        public float Distance { get; }
+        public Color Color { get; }
+
+        public ObjectiveTarget(ObjectiveKind kind, Vector3 worldPosition, float distance, Color color)
+        {
+            Kind = kind;
+            WorldPosition = worldPosition;
+            Distance = distance;
+            Color = color;
+        }
+    }
+
     public enum MatchPhase
     {
         Idle,
@@ -100,6 +127,11 @@ public partial class TaxiMode : Node3D
         }
         else
             BroadcastMatchState();
+    }
+
+    public override void _Process(double delta)
+    {
+        UpdateDropoffMarkerVisuals();
     }
 
     public void StartEndlessRun()
@@ -244,6 +276,64 @@ public partial class TaxiMode : Node3D
     public int GetCurrentCashQuota() => CurrentCashQuota;
     public int GetTotalRunCash() => _totalRunCash;
 
+    public bool TryGetObjectiveForKart(Kart kart, out ObjectiveTarget target)
+    {
+        target = default;
+        if (kart == null || !GodotObject.IsInstanceValid(kart))
+            return false;
+
+        int peerId = kart.OwnerPeerId;
+        if (kart.ActivePassenger.HasValue)
+        {
+            Vector3 destination = GetPlayerDestination(peerId);
+            if (destination == Vector3.Zero)
+                destination = ActiveDestination;
+            if (destination == Vector3.Zero)
+                return false;
+
+            target = new ObjectiveTarget(
+                ObjectiveKind.Dropoff,
+                destination,
+                kart.GlobalPosition.DistanceTo(destination),
+                WealthColor(kart.ActivePassenger.Value.Wealth));
+            return true;
+        }
+
+        int health = GameManager.Instance?.GetPlayerHealth(peerId) ?? 100;
+        PickupZone nearest = null;
+        float nearestDistance = float.MaxValue;
+        foreach (PickupZone zone in _activeZones)
+        {
+            if (!GodotObject.IsInstanceValid(zone) || zone.IsQueuedForDeletion())
+                continue;
+            if (health < 100 - zone.MaxAcceptableDamage)
+                continue;
+
+            float distance = kart.GlobalPosition.DistanceTo(zone.GlobalPosition);
+            if (distance < nearestDistance)
+            {
+                nearest = zone;
+                nearestDistance = distance;
+            }
+        }
+
+        if (nearest == null)
+            return false;
+
+        target = new ObjectiveTarget(ObjectiveKind.Pickup, nearest.GlobalPosition, nearestDistance, WealthColor(nearest.Wealth));
+        return true;
+    }
+
+    public static Color WealthColor(GameManager.CustomerWealth wealth)
+    {
+        return wealth switch
+        {
+            GameManager.CustomerWealth.Medium => new Color(0.10f, 0.86f, 0.95f, 1.0f),
+            GameManager.CustomerWealth.High => new Color(0.93f, 0.16f, 0.50f, 1.0f),
+            _ => new Color(0.96f, 0.72f, 0.18f, 1.0f)
+        };
+    }
+
     private void SpawnPickupZones()
     {
         if (TrackBuilder.Instance == null)
@@ -364,6 +454,44 @@ public partial class TaxiMode : Node3D
         _playerDropoffAreas.Clear();
     }
 
+    private void UpdateDropoffMarkerVisuals()
+    {
+        int localPeerId = Multiplayer.HasMultiplayerPeer() ? Multiplayer.GetUniqueId() : 1;
+        Kart localKart = GameManager.Instance?.GetKart(localPeerId);
+        if (localKart == null || !GodotObject.IsInstanceValid(localKart))
+            return;
+
+        foreach (KeyValuePair<int, Area3D> entry in _playerDropoffAreas)
+        {
+            Area3D area = entry.Value;
+            if (!GodotObject.IsInstanceValid(area))
+                continue;
+            Node3D visual = area.GetNodeOrNull<Node3D>("Visual");
+            if (visual == null)
+                continue;
+
+            ObjectiveTarget target = default;
+            bool localObjective = entry.Key == localPeerId && TryGetObjectiveForKart(localKart, out target) &&
+                target.Kind == ObjectiveKind.Dropoff && target.WorldPosition.DistanceSquaredTo(area.GlobalPosition) < 0.01f;
+            visual.Visible = localObjective;
+            if (!localObjective)
+                continue;
+
+            float distance = localKart.GlobalPosition.DistanceTo(area.GlobalPosition);
+            float alpha = distance <= 6.0f ? 0.12f : distance <= 10.0f ? 0.18f : 0.30f;
+            foreach (Node child in visual.GetChildren())
+            {
+                if (child is MeshInstance3D mesh && mesh.MaterialOverride is StandardMaterial3D material)
+                {
+                    material.AlbedoColor = new Color(target.Color.R, target.Color.G, target.Color.B, alpha);
+                    material.Emission = target.Color * (0.25f + alpha);
+                }
+                else if (child is OmniLight3D light)
+                    light.LightEnergy = 0.45f;
+            }
+        }
+    }
+
     // Called by PickupZone when a player successfully boards a passenger
     public void OnPassengerBoarded(int peerId, GameManager.CustomerData customer)
     {
@@ -443,11 +571,8 @@ public partial class TaxiMode : Node3D
         }
 
         // Color based on wealth
-        Color beaconColor = new Color(0.0f, 0.95f, 1.0f, 0.55f); // Low: Cyan
-        if (wealth == GameManager.CustomerWealth.Medium)
-            beaconColor = new Color(1.0f, 0.82f, 0.22f, 0.55f); // Medium: Amber/Yellow
-        else if (wealth == GameManager.CustomerWealth.High)
-            beaconColor = new Color(1.0f, 0.0f, 0.5f, 0.55f); // High: Neon Pink
+        Color markerColor = WealthColor(wealth);
+        Color beaconColor = new(markerColor.R, markerColor.G, markerColor.B, 0.30f);
 
         // Create Drop-off Area3D
         var area = new Area3D { Name = $"DropoffArea_{peerId}", Monitoring = true, Monitorable = false };
@@ -455,23 +580,25 @@ public partial class TaxiMode : Node3D
         shape.Shape = new CylinderShape3D { Radius = 6.0f, Height = 4.0f };
         area.AddChild(shape);
 
-        // Visual Cylindrical Beacon
+        // A thin perimeter and brackets retain the interaction radius without
+        // painting an opaque disc over the road or the arriving kart.
         var visual = new Node3D { Name = "Visual", Visible = IsLocalPlayer(peerId) };
         area.AddChild(visual);
 
-        var beaconMesh = new CylinderMesh
+        var beaconMesh = new TorusMesh
         {
-            TopRadius = 6.0f,
-            BottomRadius = 6.0f,
-            Height = 0.25f,
-            RadialSegments = 32
+            InnerRadius = 5.55f,
+            OuterRadius = 6.0f,
+            Rings = 8,
+            RingSegments = 32
         };
         var beaconMaterial = new StandardMaterial3D
         {
             AlbedoColor = beaconColor,
             EmissionEnabled = true,
-            Emission = beaconColor,
-            Transparency = BaseMaterial3D.TransparencyEnum.Alpha
+            Emission = markerColor * 0.45f,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
         };
         var ring = new MeshInstance3D
         {
@@ -481,11 +608,24 @@ public partial class TaxiMode : Node3D
         };
         visual.AddChild(ring);
 
+        for (int index = 0; index < 4; index++)
+        {
+            float angle = index * Mathf.Pi * 0.5f;
+            Vector3 direction = new(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle));
+            visual.AddChild(new MeshInstance3D
+            {
+                Name = $"DropoffBracket{index}",
+                Mesh = new BoxMesh { Size = new Vector3(index % 2 == 0 ? 0.8f : 2.25f, 0.12f, index % 2 == 0 ? 2.25f : 0.8f) },
+                MaterialOverride = beaconMaterial,
+                Position = direction * 5.55f + Vector3.Up * 0.14f
+            });
+        }
+
         var light = new OmniLight3D
         {
             LightColor = beaconColor,
-            LightEnergy = 1.6f,
-            OmniRange = 22.0f,
+            LightEnergy = 0.45f,
+            OmniRange = 10.0f,
             Position = new Vector3(0, 4.0f, 0)
         };
         visual.AddChild(light);
@@ -493,8 +633,8 @@ public partial class TaxiMode : Node3D
         var arrow = new HolographicArrow
         {
             Name = "HolographicArrow",
-            ArrowColor = new Color(beaconColor.R, beaconColor.G, beaconColor.B, 1.0f),
-            Position = new Vector3(0.0f, 6.0f, 0.0f)
+            ArrowColor = markerColor,
+            Position = new Vector3(0.0f, 4.0f, 0.0f)
         };
         visual.AddChild(arrow);
 
