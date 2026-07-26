@@ -16,6 +16,10 @@ public partial class PickupZone : Area3D
     private CollisionShape3D _collisionShape;
     private Node3D _visual;
     private readonly List<PassengerActor> _passengers = new();
+    private readonly List<StandardMaterial3D> _markerMaterials = new();
+    private OmniLight3D _markerLight;
+    private HolographicArrow _markerArrow;
+    private Color _markerColor;
 
     public override void _Ready()
     {
@@ -36,15 +40,12 @@ public partial class PickupZone : Area3D
         AddChild(_visual);
 
         // Color based on wealth, using the same broadcast palette as the HUD.
-        Color zoneColor = new Color(0.96f, 0.72f, 0.18f, 0.58f); // Low: Fare yellow
-        if (Wealth == GameManager.CustomerWealth.Medium)
-            zoneColor = new Color(0.1f, 0.86f, 0.95f, 0.58f); // Medium: Cyan
-        else if (Wealth == GameManager.CustomerWealth.High)
-            zoneColor = new Color(0.93f, 0.16f, 0.5f, 0.58f); // High: Neon pink
+        _markerColor = TaxiMode.WealthColor(Wealth);
+        Color zoneColor = new(_markerColor.R, _markerColor.G, _markerColor.B, 0.30f);
 
         var beaconMesh = new TorusMesh
         {
-            InnerRadius = 4.1f,
+            InnerRadius = 4.65f,
             OuterRadius = 5.0f,
             Rings = 8,
             RingSegments = 32
@@ -57,6 +58,7 @@ public partial class PickupZone : Area3D
             Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
             ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
         };
+        _markerMaterials.Add(beaconMaterial);
         var ring = new MeshInstance3D
         {
             Mesh = beaconMesh,
@@ -82,22 +84,22 @@ public partial class PickupZone : Area3D
             _visual.AddChild(bracket);
         }
 
-        var light = new OmniLight3D
+        _markerLight = new OmniLight3D
         {
             LightColor = zoneColor,
-            LightEnergy = 0.75f,
-            OmniRange = 11.0f,
+            LightEnergy = 0.45f,
+            OmniRange = 10.0f,
             Position = new Vector3(0, 2.5f, 0)
         };
-        _visual.AddChild(light);
+        _visual.AddChild(_markerLight);
 
-        var arrow = new HolographicArrow
+        _markerArrow = new HolographicArrow
         {
             Name = "HolographicArrow",
             ArrowColor = new Color(zoneColor.R, zoneColor.G, zoneColor.B, 1.0f),
-            Position = new Vector3(0.0f, 6.0f, 0.0f)
+            Position = new Vector3(0.0f, 4.0f, 0.0f)
         };
-        _visual.AddChild(arrow);
+        _visual.AddChild(_markerArrow);
 
         // Visible customers turn the abstract pickup ring into a readable curbside scene.
         for (int index = 0; index < GroupSize; index++)
@@ -212,6 +214,46 @@ public partial class PickupZone : Area3D
                 }
             }
         }
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_visual == null || TaxiMode.Instance == null)
+            return;
+
+        Kart localKart = GameManager.Instance?.GetKart(GetLocalPeerId());
+        if (localKart == null || !GodotObject.IsInstanceValid(localKart) || localKart.ActivePassenger.HasValue)
+        {
+            _visual.Visible = false;
+            return;
+        }
+
+        int health = GameManager.Instance?.GetPlayerHealth(localKart.OwnerPeerId) ?? 100;
+        if (health < 100 - MaxAcceptableDamage)
+        {
+            _visual.Visible = false;
+            return;
+        }
+
+        _visual.Visible = true;
+        bool selected = TaxiMode.Instance.TryGetObjectiveForKart(localKart, out TaxiMode.ObjectiveTarget target) &&
+            target.Kind == TaxiMode.ObjectiveKind.Pickup && target.WorldPosition.DistanceSquaredTo(GlobalPosition) < 0.01f;
+        float distance = localKart.GlobalPosition.DistanceTo(GlobalPosition);
+        float alpha = selected ? distance <= 5.5f ? 0.14f : distance <= 12.0f ? 0.22f : 0.30f : 0.10f;
+        foreach (StandardMaterial3D material in _markerMaterials)
+        {
+            material.AlbedoColor = new Color(_markerColor.R, _markerColor.G, _markerColor.B, alpha);
+            material.Emission = _markerColor * (0.35f + alpha);
+        }
+        if (_markerLight != null)
+            _markerLight.LightEnergy = selected ? 0.45f : 0.12f;
+    }
+
+    private static int GetLocalPeerId()
+    {
+        return MultiplayerManager.Instance != null && MultiplayerManager.Instance.Multiplayer.HasMultiplayerPeer()
+            ? MultiplayerManager.Instance.Multiplayer.GetUniqueId()
+            : 1;
     }
 
     private void TriggerBoarding(Kart kart)

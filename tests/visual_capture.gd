@@ -13,6 +13,10 @@ func _initialize() -> void:
 			_state = argument.trim_prefix("--state=")
 		elif argument.begins_with("--output="):
 			_output = argument.trim_prefix("--output=")
+		elif argument.begins_with("--resolution="):
+			var parts := argument.trim_prefix("--resolution=").split("x")
+			if parts.size() == 2:
+				DisplayServer.window_set_size(Vector2i(int(parts[0]), int(parts[1])))
 
 	call_deferred("_run")
 

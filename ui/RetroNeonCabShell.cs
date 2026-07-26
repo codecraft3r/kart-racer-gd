@@ -44,6 +44,7 @@ public partial class RetroNeonCabShell : CanvasLayer
     private Button _joinButton;
     private Label _pauseRivalsLabel;
     private Label _checkpointLabel;
+    private Label _objectiveDirectionLabel;
     private Label _statusLabel;
     private ProgressBar _panicBar;
     private Label _stopLabel;
@@ -71,6 +72,14 @@ public partial class RetroNeonCabShell : CanvasLayer
     // emit a one-shot GO when the repair finishes (without that we'd just
     // flip back to STOP the frame after completion).
     private bool _wasRepairInProgress;
+
+    private enum FareHudState
+    {
+        Vacant,
+        Boarding,
+        Hired,
+        Settling
+    }
 
     /// <summary>
     /// Request a kart-control prompt for this frame. Higher-priority prompts
@@ -453,6 +462,13 @@ public partial class RetroNeonCabShell : CanvasLayer
         _crtWarp.AddChild(_creditsScreen);
         _crtWarp.AddChild(_resultsScreen);
 
+        ConfigureScreenFocus(_mainMenuScreen);
+        ConfigureScreenFocus(_multiplayerScreen);
+        ConfigureScreenFocus(_pauseScreen);
+        ConfigureScreenFocus(_settingsScreen);
+        ConfigureScreenFocus(_creditsScreen);
+        ConfigureScreenFocus(_resultsScreen);
+
         _audioButton = MakePixelButton("FX: ON", true, 112.0f, 34.0f);
         _audioButton.Name = "AudioToggleButton";
         AnchorTopRight(_audioButton, 16.0f, 16.0f, 116.0f, 36.0f);
@@ -533,23 +549,32 @@ public partial class RetroNeonCabShell : CanvasLayer
         subtitle.AddThemeConstantOverride("outline_size", 6);
         titleStack.AddChild(subtitle);
 
+        ScrollContainer menuScroll = new()
+        {
+            Name = "MainMenuScroll",
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
+        };
+        menuScroll.AnchorLeft = 0.5f;
+        menuScroll.AnchorRight = 0.5f;
+        menuScroll.AnchorTop = 0.39f;
+        menuScroll.AnchorBottom = 0.97f;
+        menuScroll.OffsetLeft = -316.0f;
+        menuScroll.OffsetRight = 316.0f;
+        menuScroll.OffsetTop = 0.0f;
+        menuScroll.OffsetBottom = 0.0f;
+        screen.AddChild(menuScroll);
+
         VBoxContainer menuButtons = new()
         {
             Name = "MainMenuButtons",
-            Alignment = BoxContainer.AlignmentMode.Center
+            Alignment = BoxContainer.AlignmentMode.Center,
+            CustomMinimumSize = new Vector2(600.0f, 0.0f),
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter
         };
-        menuButtons.AnchorLeft = 0.5f;
-        menuButtons.AnchorRight = 0.5f;
-        menuButtons.AnchorTop = 1.0f;
-        menuButtons.AnchorBottom = 1.0f;
-        menuButtons.OffsetLeft = -190.0f;
-        menuButtons.OffsetTop = -318.0f;
-        menuButtons.OffsetRight = 190.0f;
-        menuButtons.OffsetBottom = -70.0f;
         menuButtons.AddThemeConstantOverride("separation", 14);
-        screen.AddChild(menuButtons);
+        menuScroll.AddChild(menuButtons);
 
-        Button start = MakePixelButton("START DOWNTOWN SHIFT", true, 360.0f, 58.0f);
+        Button start = MakePixelButton("START DOWNTOWN SHIFT", true, 600.0f, 72.0f);
         start.Name = "StartRunButton";
         start.Pressed += StartRun;
         menuButtons.AddChild(start);
@@ -569,17 +594,17 @@ public partial class RetroNeonCabShell : CanvasLayer
         garageRow.AddChild(nextCar);
         menuButtons.AddChild(garageRow);
 
-        Button multiplayer = MakePixelButton("MULTIPLAYER", true, 360.0f, 58.0f);
+        Button multiplayer = MakePixelButton("MULTIPLAYER", true, 600.0f, 72.0f);
         multiplayer.Name = "MultiplayerButton";
         multiplayer.Pressed += () => ShowScreen(ShellScreen.Multiplayer);
         menuButtons.AddChild(multiplayer);
 
-        Button settings = MakePixelButton("SETTINGS", false, 360.0f, 58.0f);
+        Button settings = MakePixelButton("SETTINGS", false, 600.0f, 72.0f);
         settings.Name = "MainSettingsButton";
         settings.Pressed += () => OpenSettings("main");
         menuButtons.AddChild(settings);
 
-        Button credits = MakePixelButton("CREDITS", false, 360.0f, 58.0f);
+        Button credits = MakePixelButton("CREDITS", false, 600.0f, 72.0f);
         credits.Name = "CreditsButton";
         credits.Pressed += OpenCredits;
         menuButtons.AddChild(credits);
@@ -610,9 +635,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         ConfigureFullRect(grid);
         screen.AddChild(grid);
 
-        PanelContainer panel = MakePanel("MultiplayerPanel", 590.0f, 520.0f);
-        AnchorCenter(panel, 590.0f, 520.0f);
-        screen.AddChild(panel);
+        PanelContainer panel = AddScrollablePanel(screen, "MultiplayerPanel", 590.0f, 520.0f);
 
         VBoxContainer stack = new()
         {
@@ -672,27 +695,48 @@ public partial class RetroNeonCabShell : CanvasLayer
         };
         hudRow.AnchorLeft = 0.0f;
         hudRow.AnchorTop = 0.0f;
-        hudRow.OffsetLeft = 12.0f;
-        hudRow.OffsetTop = 12.0f;
-        hudRow.OffsetRight = 902.0f;
-        hudRow.OffsetBottom = 56.0f;
+        hudRow.OffsetLeft = 32.0f;
+        hudRow.OffsetTop = 32.0f;
+        hudRow.OffsetRight = 770.0f;
+        hudRow.OffsetBottom = 92.0f;
         hudRow.AddThemeConstantOverride("separation", 6);
         screen.AddChild(hudRow);
 
-        _scoreLabel = MakeLabel("CASH: $0", _fontBody, 21, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("ScorePill", _scoreLabel, Hex("f5c451"), 118.0f));
+        _scoreLabel = MakeLabel("CASH: $0", _fontBody, 30, Colors.White, HorizontalAlignment.Center);
+        hudRow.AddChild(WrapPill("ScorePill", _scoreLabel, Hex("f5c451"), 170.0f, 60.0f));
 
-        _boostLabel = MakeLabel("HP: 100%", _fontBody, 21, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("BoostPill", _boostLabel, Hex("ed3b8b"), 104.0f));
+        _boostLabel = MakeLabel("HP: 100%", _fontBody, 30, Colors.White, HorizontalAlignment.Center);
+        hudRow.AddChild(WrapPill("BoostPill", _boostLabel, Hex("ed3b8b"), 150.0f, 60.0f));
 
-        _timerLabel = MakeLabel("TIME: SOLO", _fontBody, 21, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("TimerPill", _timerLabel, Hex("f5c451"), 128.0f));
+        _timerLabel = MakeLabel("TIME: SOLO", _fontBody, 30, Colors.White, HorizontalAlignment.Center);
+        hudRow.AddChild(WrapPill("TimerPill", _timerLabel, Hex("f5c451"), 180.0f, 60.0f));
 
-        _rankLabel = MakeLabel("RANK: SOLO", _fontBody, 21, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("RankPill", _rankLabel, Hex("35e7f2"), 112.0f));
+        _rankLabel = MakeLabel("RANK: SOLO", _fontBody, 30, Colors.White, HorizontalAlignment.Center);
+        hudRow.AddChild(WrapPill("RankPill", _rankLabel, Hex("35e7f2"), 160.0f, 60.0f));
 
-        _checkpointLabel = MakeLabel("FARE: SEARCHING...", _fontBody, 21, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("CheckpointPill", _checkpointLabel, Hex("ed3b8b"), 190.0f));
+        PanelContainer objectivePanel = new()
+        {
+            Name = "ObjectiveIndicator",
+            CustomMinimumSize = new Vector2(360.0f, 60.0f),
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        objectivePanel.AddThemeStyleboxOverride("panel", MakePillStyle(Hex("35e7f2")));
+        objectivePanel.AnchorLeft = 0.5f;
+        objectivePanel.AnchorRight = 0.5f;
+        objectivePanel.AnchorTop = 0.0f;
+        objectivePanel.AnchorBottom = 0.0f;
+        objectivePanel.OffsetLeft = -180.0f;
+        objectivePanel.OffsetRight = 180.0f;
+        objectivePanel.OffsetTop = 32.0f;
+        objectivePanel.OffsetBottom = 92.0f;
+        HBoxContainer objectiveRow = new() { Alignment = BoxContainer.AlignmentMode.Center };
+        _objectiveDirectionLabel = MakeLabel("▲", _fontOrbitron, 40, Hex("35e7f2"), HorizontalAlignment.Center);
+        _objectiveDirectionLabel.CustomMinimumSize = new Vector2(52.0f, 0.0f);
+        _checkpointLabel = MakeLabel("PICKUP: SEARCHING", _fontBody, 30, Colors.White, HorizontalAlignment.Center);
+        objectiveRow.AddChild(_objectiveDirectionLabel);
+        objectiveRow.AddChild(_checkpointLabel);
+        objectivePanel.AddChild(objectiveRow);
+        screen.AddChild(objectivePanel);
 
         VBoxContainer statusContainer = new VBoxContainer();
         statusContainer.AddThemeConstantOverride("separation", 2);
@@ -703,7 +747,7 @@ public partial class RetroNeonCabShell : CanvasLayer
             MinValue = 0.0,
             MaxValue = 100.0,
             Value = 0.0,
-            CustomMinimumSize = new Vector2(170.0f, 10.0f),
+            CustomMinimumSize = new Vector2(360.0f, 12.0f),
             ShowPercentage = false
         };
         var bgStyle = new StyleBoxFlat { BgColor = Hex("111122"), CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4, CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4 };
@@ -713,28 +757,28 @@ public partial class RetroNeonCabShell : CanvasLayer
         _panicBar.Visible = false; // Hide by default until hired
         statusContainer.AddChild(_panicBar);
 
-        _statusLabel = MakeLabel("STATUS: VACANT", _fontBody, 21, Hex("00ff00"), HorizontalAlignment.Center);
-        statusContainer.AddChild(WrapPill("StatusPill", _statusLabel, Hex("111122"), 170.0f));
+        _statusLabel = MakeLabel("STATUS: VACANT", _fontBody, 30, Hex("00ff00"), HorizontalAlignment.Center);
+        statusContainer.AddChild(WrapPill("StatusPill", _statusLabel, Hex("111122"), 360.0f, 50.0f));
 
         statusContainer.AnchorLeft = 0.5f;
         statusContainer.AnchorRight = 0.5f;
         statusContainer.AnchorTop = 1.0f;
         statusContainer.AnchorBottom = 1.0f;
-        statusContainer.OffsetLeft = -85.0f;
-        statusContainer.OffsetRight = 85.0f;
-        statusContainer.OffsetTop = -80.0f;
-        statusContainer.OffsetBottom = -20.0f;
+        statusContainer.OffsetLeft = -180.0f;
+        statusContainer.OffsetRight = 180.0f;
+        statusContainer.OffsetTop = -110.0f;
+        statusContainer.OffsetBottom = -32.0f;
         screen.AddChild(statusContainer);
 
         _stopLabel = MakeLabel(">> STOP <<", _fontOrbitron, 48, Hex("ff0055"), HorizontalAlignment.Center);
         _stopLabel.AnchorLeft = 0.5f;
         _stopLabel.AnchorRight = 0.5f;
-        _stopLabel.AnchorTop = 0.33f;
-        _stopLabel.AnchorBottom = 0.33f;
+        _stopLabel.AnchorTop = 1.0f;
+        _stopLabel.AnchorBottom = 1.0f;
         _stopLabel.OffsetLeft = -200.0f;
         _stopLabel.OffsetRight = 200.0f;
-        _stopLabel.OffsetTop = -30.0f;
-        _stopLabel.OffsetBottom = 30.0f;
+        _stopLabel.OffsetTop = -180.0f;
+        _stopLabel.OffsetBottom = -120.0f;
         _stopLabel.Visible = false;
         screen.AddChild(_stopLabel);
 
@@ -742,17 +786,17 @@ public partial class RetroNeonCabShell : CanvasLayer
         shiftTag.Name = "ShiftTag";
         shiftTag.AnchorLeft = 0.0f;
         shiftTag.AnchorTop = 0.0f;
-        shiftTag.OffsetLeft = 16.0f;
-        shiftTag.OffsetTop = 61.0f;
-        shiftTag.OffsetRight = 290.0f;
-        shiftTag.OffsetBottom = 81.0f;
+        shiftTag.OffsetLeft = 32.0f;
+        shiftTag.OffsetTop = 96.0f;
+        shiftTag.OffsetRight = 310.0f;
+        shiftTag.OffsetBottom = 118.0f;
         shiftTag.AddThemeColorOverride("font_outline_color", Hex("090717"));
         shiftTag.AddThemeConstantOverride("outline_size", 4);
         screen.AddChild(shiftTag);
 
         Button pause = MakePixelButton("PAUSE [ESC]", false, 148.0f, 40.0f);
         pause.Name = "PauseButton";
-        AnchorTopRight(pause, 28.0f, 12.0f, 148.0f, 40.0f);
+        AnchorTopRight(pause, 32.0f, 32.0f, 210.0f, 60.0f);
         pause.Pressed += TogglePause;
         screen.AddChild(pause);
 
@@ -796,9 +840,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         ConfigureFullRect(checkerboard);
         screen.AddChild(checkerboard);
 
-        PanelContainer panel = MakePanel("PausePanel", 454.0f, 420.0f);
-        AnchorCenter(panel, 454.0f, 420.0f);
-        screen.AddChild(panel);
+        PanelContainer panel = AddScrollablePanel(screen, "PausePanel", 454.0f, 420.0f);
 
         VBoxContainer stack = new()
         {
@@ -867,9 +909,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         ConfigureFullRect(grid);
         screen.AddChild(grid);
 
-        PanelContainer panel = MakePanel("ResultsPanel", 600.0f, 470.0f);
-        AnchorCenter(panel, 600.0f, 470.0f);
-        screen.AddChild(panel);
+        PanelContainer panel = AddScrollablePanel(screen, "ResultsPanel", 600.0f, 470.0f);
 
         VBoxContainer stack = new()
         {
@@ -922,9 +962,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         ConfigureFullRect(grid);
         screen.AddChild(grid);
 
-        PanelContainer panel = MakePanel("SettingsPanel", 560.0f, 470.0f);
-        AnchorCenter(panel, 560.0f, 470.0f);
-        screen.AddChild(panel);
+        PanelContainer panel = AddScrollablePanel(screen, "SettingsPanel", 560.0f, 470.0f);
 
         VBoxContainer stack = new()
         {
@@ -995,9 +1033,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         ConfigureFullRect(grid);
         screen.AddChild(grid);
 
-        PanelContainer panel = MakePanel("CreditsPanel", 454.0f, 430.0f);
-        AnchorCenter(panel, 454.0f, 430.0f);
-        screen.AddChild(panel);
+        PanelContainer panel = AddScrollablePanel(screen, "CreditsPanel", 454.0f, 430.0f);
 
         VBoxContainer stack = new()
         {
@@ -1269,8 +1305,82 @@ public partial class RetroNeonCabShell : CanvasLayer
                 _driftMetersLabel.Text = $"{Mathf.RoundToInt((float)_driftMeters):N0}m";
         }
 
+        UpdateObjectiveIndicator(mode);
+        ApplyFarePresentation(mode, peerId);
         UpdateRepairKartPrompt();
         RenderActiveKartPrompt();
+    }
+
+    private void UpdateObjectiveIndicator(TaxiMode mode)
+    {
+        if (_checkpointLabel == null || _objectiveDirectionLabel == null || _kart == null || mode == null)
+            return;
+
+        if (!mode.TryGetObjectiveForKart(_kart, out TaxiMode.ObjectiveTarget target))
+        {
+            _checkpointLabel.Text = "FARE: SEARCHING";
+            _objectiveDirectionLabel.Visible = false;
+            return;
+        }
+
+        string verb = target.Kind == TaxiMode.ObjectiveKind.Dropoff ? "DROPOFF" : "PICKUP";
+        _checkpointLabel.Text = $"{verb}: {Mathf.RoundToInt(target.Distance)}m";
+        _checkpointLabel.AddThemeColorOverride("font_color", target.Color);
+        _objectiveDirectionLabel.Visible = true;
+        _objectiveDirectionLabel.AddThemeColorOverride("font_color", target.Color);
+
+        Camera3D camera = GetViewport().GetCamera3D();
+        if (camera == null)
+            return;
+
+        Vector3 toTarget = target.WorldPosition - _kart.GlobalPosition;
+        toTarget.Y = 0.0f;
+        Vector3 forward = -camera.GlobalTransform.Basis.Z;
+        forward.Y = 0.0f;
+        if (toTarget.LengthSquared() > 0.001f && forward.LengthSquared() > 0.001f)
+            _objectiveDirectionLabel.Rotation = forward.Normalized().SignedAngleTo(toTarget.Normalized(), Vector3.Up);
+    }
+
+    private void ApplyFarePresentation(TaxiMode mode, int peerId)
+    {
+        if (_kart == null || !GodotObject.IsInstanceValid(_kart) || _statusLabel == null)
+            return;
+
+        float settle = mode?.GetDropoffSettleProgress(peerId) ?? 0.0f;
+        FareHudState state = settle > 0.0f && _kart.ActivePassenger.HasValue
+            ? FareHudState.Settling
+            : _kart.BoardingProgress > 0.0f
+                ? FareHudState.Boarding
+                : _kart.ActivePassenger.HasValue
+                    ? FareHudState.Hired
+                    : FareHudState.Vacant;
+
+        switch (state)
+        {
+            case FareHudState.Boarding:
+                _statusLabel.Text = $"STATUS: BOARDING {Mathf.RoundToInt(_kart.BoardingProgress * 100.0f)}%";
+                _statusLabel.AddThemeColorOverride("font_color", Hex("f5c451"));
+                _checkpointLabel.Text = "PICKUP: HOLD POSITION";
+                if (_panicBar != null) _panicBar.Visible = false;
+                break;
+            case FareHudState.Settling:
+                _statusLabel.Text = $"STATUS: SETTLING {Mathf.RoundToInt(settle * 100.0f)}%";
+                _statusLabel.AddThemeColorOverride("font_color", Hex("f5c451"));
+                _checkpointLabel.Text = $"DROPOFF: SETTLE {Mathf.RoundToInt(settle * 100.0f)}%";
+                if (_panicBar != null) _panicBar.Visible = true;
+                break;
+            case FareHudState.Hired:
+                int panic = Mathf.RoundToInt(_kart.PanicMeter);
+                _statusLabel.Text = panic >= 75 ? "STATUS: CRITICAL" : panic >= 50 ? "STATUS: UNEASY" : "STATUS: HIRED";
+                _statusLabel.AddThemeColorOverride("font_color", panic >= 75 ? Hex("ff0055") : panic >= 50 ? Hex("f5c451") : Hex("00f0ff"));
+                if (_panicBar != null) _panicBar.Visible = true;
+                break;
+            default:
+                _statusLabel.Text = "STATUS: VACANT";
+                _statusLabel.AddThemeColorOverride("font_color", Hex("00ff00"));
+                if (_panicBar != null) _panicBar.Visible = false;
+                break;
+        }
     }
 
     private void UpdateRepairKartPrompt()
@@ -1645,12 +1755,12 @@ public partial class RetroNeonCabShell : CanvasLayer
         parent.AddChild(item);
     }
 
-    private PanelContainer WrapPill(string name, Label label, Color accentColor, float minimumWidth = 126.0f)
+    private PanelContainer WrapPill(string name, Label label, Color accentColor, float minimumWidth = 126.0f, float minimumHeight = 42.0f)
     {
         PanelContainer panel = new()
         {
             Name = name,
-            CustomMinimumSize = new Vector2(minimumWidth, 42),
+            CustomMinimumSize = new Vector2(minimumWidth, minimumHeight),
             MouseFilter = Control.MouseFilterEnum.Ignore
         };
         panel.AddThemeStyleboxOverride("panel", MakePillStyle(accentColor));
@@ -1679,6 +1789,50 @@ public partial class RetroNeonCabShell : CanvasLayer
             CustomMinimumSize = new Vector2(width, height)
         };
         panel.AddThemeStyleboxOverride("panel", MakePanelStyle());
+        return panel;
+    }
+
+    private PanelContainer AddScrollablePanel(Control screen, string name, float width, float height)
+    {
+        MarginContainer safeArea = new()
+        {
+            Name = $"{name}SafeArea",
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        ConfigureFullRect(safeArea);
+        safeArea.AddThemeConstantOverride("margin_left", 32);
+        safeArea.AddThemeConstantOverride("margin_top", 32);
+        safeArea.AddThemeConstantOverride("margin_right", 32);
+        safeArea.AddThemeConstantOverride("margin_bottom", 32);
+        screen.AddChild(safeArea);
+
+        CenterContainer viewportCenter = new()
+        {
+            Name = $"{name}ViewportCenter",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
+        safeArea.AddChild(viewportCenter);
+
+        ScrollContainer scroll = new()
+        {
+            Name = $"{name}Scroll",
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
+        viewportCenter.AddChild(scroll);
+
+        CenterContainer panelCenter = new()
+        {
+            Name = $"{name}Center",
+            CustomMinimumSize = new Vector2(width, height),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        scroll.AddChild(panelCenter);
+
+        PanelContainer panel = MakePanel(name, width, height);
+        panelCenter.AddChild(panel);
         return panel;
     }
 
@@ -1816,8 +1970,62 @@ public partial class RetroNeonCabShell : CanvasLayer
 
     private void FocusFirstButton(Node parent)
     {
-        Button button = FindFirstButton(parent);
-        button?.GrabFocus();
+        Control control = FindFirstFocusable(parent);
+        control?.GrabFocus();
+    }
+
+    private void ConfigureScreenFocus(Control screen)
+    {
+        List<Control> focusable = new();
+        CollectFocusableControls(screen, focusable);
+        for (int index = 0; index < focusable.Count; index++)
+        {
+            Control control = focusable[index];
+            Control previous = focusable[(index - 1 + focusable.Count) % focusable.Count];
+            Control next = focusable[(index + 1) % focusable.Count];
+            control.FocusNeighborTop = previous.GetPath();
+            control.FocusNeighborBottom = next.GetPath();
+            control.FocusNeighborLeft = previous.GetPath();
+            control.FocusNeighborRight = next.GetPath();
+            control.FocusEntered += () => EnsureFocusedControlVisible(control);
+        }
+    }
+
+    private static void CollectFocusableControls(Node parent, List<Control> output)
+    {
+        foreach (Node child in parent.GetChildren())
+        {
+            if (child is Control control && control.FocusMode == Control.FocusModeEnum.All)
+                output.Add(control);
+            CollectFocusableControls(child, output);
+        }
+    }
+
+    private static void EnsureFocusedControlVisible(Control control)
+    {
+        Node current = control.GetParent();
+        while (current != null)
+        {
+            if (current is ScrollContainer scroll)
+            {
+                scroll.EnsureControlVisible(control);
+                return;
+            }
+            current = current.GetParent();
+        }
+    }
+
+    private Control FindFirstFocusable(Node parent)
+    {
+        foreach (Node child in parent.GetChildren())
+        {
+            if (child is Control control && control.FocusMode == Control.FocusModeEnum.All)
+                return control;
+            Control nested = FindFirstFocusable(child);
+            if (nested != null)
+                return nested;
+        }
+        return null;
     }
 
     private Button FindFirstButton(Node parent)
