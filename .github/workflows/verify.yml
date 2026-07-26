@@ -34,7 +34,7 @@ jobs:
           curl --fail --location --retry 3 --output "$GODOT_ARCHIVE" "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/${GODOT_ARCHIVE}"
           echo "${GODOT_SHA512}  ${GODOT_ARCHIVE}" | sha512sum --check --strict
           unzip -q "$GODOT_ARCHIVE" -d "$RUNNER_TEMP/godot"
-          GODOT_BINARY="$(find "$RUNNER_TEMP/godot" -type f -name 'Godot*' ! -name '*.pck' -print -quit)"
+          GODOT_BINARY="$(find "$RUNNER_TEMP/godot" -type f \( -name 'Godot*_linux_x86_64' -o -name 'Godot*_linux.x86_64' \) -print -quit)"
           test -n "$GODOT_BINARY"
           chmod +x "$GODOT_BINARY"
           echo "GODOT=$GODOT_BINARY" >> "$GITHUB_ENV"
