@@ -3,6 +3,7 @@ using Godot;
 /// <summary>Speed and drift-reactive light streaks, exhaust glow, and brake lamps for the taxi.</summary>
 public partial class DrivingVfx : Node3D
 {
+    private static readonly StringName MoveBackwardAction = "move_backward";
     private Kart _kart;
     private MeshInstance3D[] _streaks;
     private StandardMaterial3D[] _streakMaterials;
@@ -10,6 +11,7 @@ public partial class DrivingVfx : Node3D
     private StandardMaterial3D _exhaustMaterial;
     private MeshInstance3D[] _brakeLamps;
     private StandardMaterial3D[] _brakeMaterials;
+    private bool? _lastBraking;
 
     public override void _Ready()
     {
@@ -44,6 +46,7 @@ public partial class DrivingVfx : Node3D
 
     public override void _Process(double delta)
     {
+        using var perf = PerfProbe.Measure(PerfHotspot.DrivingVfxProcess);
         if (_kart == null || !GodotObject.IsInstanceValid(_kart)) return;
         float speed = _kart.LinearVelocity.Length();
         float intensity = Mathf.Clamp((speed - 7.0f) / 14.0f, 0.0f, 1.0f) * Mathf.Lerp(0.25f, 1.0f, _kart.DriftAmount);
@@ -59,12 +62,16 @@ public partial class DrivingVfx : Node3D
         _exhaust.Visible = flame > 0.08f;
         _exhaust.Scale = new Vector3(0.7f + flame * 0.55f, 0.8f + Mathf.Sin((float)Time.GetTicksMsec() * 0.02f) * 0.16f, 1.0f + flame * 1.6f);
         _exhaustMaterial.AlbedoColor = new Color(1.0f, 0.08f + flame * 0.35f, 0.45f + flame * 0.45f, flame * 0.75f);
-        bool braking = _kart.CurrentDriftPhase != Kart.DriftPhase.None || (_kart.LinearVelocity.Length() > 2.0f && Input.IsActionPressed("move_backward"));
-        for (int i = 0; i < _brakeLamps.Length; i++)
+        bool braking = _kart.CurrentDriftPhase != Kart.DriftPhase.None || (_kart.LinearVelocity.Length() > 2.0f && Input.IsActionPressed(MoveBackwardAction));
+        if (_lastBraking != braking)
         {
-            float brakeEnergy = braking ? 3.0f : 0.45f;
-            _brakeMaterials[i].EmissionEnergyMultiplier = brakeEnergy;
-            _brakeMaterials[i].AlbedoColor = braking ? new Color(1f, 0.03f, 0.05f) : new Color(0.22f, 0.01f, 0.02f);
+            _lastBraking = braking;
+            for (int i = 0; i < _brakeLamps.Length; i++)
+            {
+                float brakeEnergy = braking ? 3.0f : 0.45f;
+                _brakeMaterials[i].EmissionEnergyMultiplier = brakeEnergy;
+                _brakeMaterials[i].AlbedoColor = braking ? new Color(1f, 0.03f, 0.05f) : new Color(0.22f, 0.01f, 0.02f);
+            }
         }
     }
 }

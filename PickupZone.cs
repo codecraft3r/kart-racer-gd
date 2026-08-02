@@ -1,7 +1,6 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 public partial class PickupZone : Area3D
 {
@@ -142,21 +141,29 @@ public partial class PickupZone : Area3D
 
     public override void _PhysicsProcess(double delta)
     {
+        using var perf = PerfProbe.Measure(PerfHotspot.PickupZonePhysics);
         if (!Multiplayer.IsServer() || TaxiMode.Instance == null || !TaxiMode.Instance.MatchActive)
             return;
 
         if (_overlappingKarts.Count == 0)
             return;
 
-        // 1. Filter karts that are valid, stopped, and don't have passengers
-        var validKarts = _overlappingKarts
-            .Where(k => IsInstanceValid(k) &&
-                k.LinearVelocity.Length() < 0.8f &&
-                !k.ActivePassenger.HasValue &&
-                GameManager.Instance.GetPlayerHealth(k.OwnerPeerId) >= 100 - MaxAcceptableDamage)
-            .ToList();
+        Kart selectedKart = null;
+        int selectedHealth = int.MinValue;
+        foreach (Kart kart in _overlappingKarts)
+        {
+            if (!IsInstanceValid(kart) || kart.LinearVelocity.Length() >= 0.8f || kart.ActivePassenger.HasValue)
+                continue;
 
-        if (validKarts.Count == 0)
+            int health = GameManager.Instance.GetPlayerHealth(kart.OwnerPeerId);
+            if (health < 100 - MaxAcceptableDamage || health <= selectedHealth)
+                continue;
+
+            selectedKart = kart;
+            selectedHealth = health;
+        }
+
+        if (selectedKart == null)
         {
             // Decay boarding progress for any moving karts in the zone
             foreach (var kart in _overlappingKarts)
@@ -173,16 +180,7 @@ public partial class PickupZone : Area3D
             return;
         }
 
-        // 2. If multiple karts are stopped, select the one with the highest health
-        Kart selectedKart = validKarts[0];
-        if (validKarts.Count > 1)
-        {
-            selectedKart = validKarts
-                .OrderByDescending(k => GameManager.Instance.GetPlayerHealth(k.OwnerPeerId))
-                .First();
-        }
-
-        // 3. Decay other stopped/valid karts' progress, increment selected kart's progress
+        // Decay other stopped/valid karts' progress, increment selected kart's progress.
         foreach (var kart in _overlappingKarts)
         {
             if (!IsInstanceValid(kart)) continue;

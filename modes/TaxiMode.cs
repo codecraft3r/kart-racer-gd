@@ -673,6 +673,7 @@ public partial class TaxiMode : Node3D
 
     private void UpdateDropoffSettles(float dt)
     {
+        using var perf = PerfProbe.Measure(PerfHotspot.TaxiDropoffSettles);
         foreach (int peerId in _settlingDropoffs.Keys.ToArray())
         {
             Kart kart = _settlingDropoffs[peerId];
@@ -823,6 +824,7 @@ public partial class TaxiMode : Node3D
                 continue;
             Vector3 dest = _playerDestinations.TryGetValue(id, out Vector3 val) ? val : Vector3.Zero;
             RpcId(id, nameof(SyncFullStateRpc), _timeRemaining, _matchActive, _winnerPeerId, (int)_phase, _countdownRemaining, dest, peerIds, scores);
+            PerfProbe.Count(PerfEvent.FullStateRpcSent);
         }
 
         PublishLocalEvents();
@@ -831,7 +833,10 @@ public partial class TaxiMode : Node3D
     private void BroadcastMatchState()
     {
         foreach (int id in Multiplayer.GetPeers())
+        {
             RpcId(id, nameof(SyncMatchStateRpc), _timeRemaining, _matchActive, _winnerPeerId, (int)_phase, _countdownRemaining);
+            PerfProbe.Count(PerfEvent.MatchStateRpcSent);
+        }
 
         PublishLocalEvents();
     }

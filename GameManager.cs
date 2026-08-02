@@ -157,11 +157,14 @@ public partial class GameManager : Node
 
     private void SpawnSoloRival(int rivalIndex)
     {
+        using var perf = PerfProbe.Measure(PerfHotspot.KartSceneSpawn);
         int aiId = 100 + rivalIndex;
         if (_playerKarts.ContainsKey(aiId))
             return;
 
-        var kartScene = GD.Load<PackedScene>(KartScenePath);
+        PackedScene kartScene;
+        using (PerfProbe.Measure(PerfHotspot.KartSceneLoad))
+            kartScene = GD.Load<PackedScene>(KartScenePath);
         var aiKart = kartScene.Instantiate<Kart>();
         aiKart.Name = aiId.ToString();
         aiKart.OwnerPeerId = aiId;
@@ -344,10 +347,13 @@ public partial class GameManager : Node
     [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = true, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
     private void SpawnPlayerRpc(int id, Vector3 position)
     {
+        using var perf = PerfProbe.Measure(PerfHotspot.KartSceneSpawn);
         if (_playerKarts.ContainsKey(id))
             return;
 
-        var kartScene = GD.Load<PackedScene>(KartScenePath);
+        PackedScene kartScene;
+        using (PerfProbe.Measure(PerfHotspot.KartSceneLoad))
+            kartScene = GD.Load<PackedScene>(KartScenePath);
         var kart = kartScene.Instantiate<Kart>();
 
         kart.Name = id.ToString();
@@ -490,6 +496,7 @@ public partial class GameManager : Node
                 kart.Rotation,
                 kart.LinearVelocity
             );
+            PerfProbe.Count(PerfEvent.SnapshotRpcSent);
         }
     }
 

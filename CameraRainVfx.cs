@@ -8,6 +8,7 @@ public partial class CameraRainVfx : MultiMeshInstance3D
 {
     [Export] public int DropCount = 104;
     private readonly Vector3[] _drops = new Vector3[104];
+    private readonly RandomNumberGenerator _rng = new();
     private Kart _kart;
     private float _speed;
 
@@ -34,26 +35,27 @@ public partial class CameraRainVfx : MultiMeshInstance3D
             CustomAabb = new Aabb(new Vector3(-18.0f, -11.0f, -33.0f), new Vector3(36.0f, 23.0f, 33.0f))
         };
 
-        var rng = new RandomNumberGenerator { Seed = 8088 };
+        _rng.Seed = 8088;
         for (int index = 0; index < DropCount; index++)
         {
-            _drops[index] = NewDrop(rng, true);
+            _drops[index] = NewDrop(_rng, true);
             SetDropTransform(index);
         }
     }
 
     public override void _Process(double delta)
     {
+        using var perf = PerfProbe.Measure(PerfHotspot.CameraRainProcess);
         if (Multimesh == null) return;
         _speed = _kart != null && GodotObject.IsInstanceValid(_kart) ? _kart.LinearVelocity.Length() : 0.0f;
         float fallSpeed = 13.0f + _speed * 1.18f;
-        var rng = new RandomNumberGenerator { Seed = (ulong)Time.GetTicksMsec() };
+        _rng.Seed = (ulong)Time.GetTicksMsec();
         for (int index = 0; index < DropCount; index++)
         {
             _drops[index].Y -= fallSpeed * (float)delta;
             _drops[index].Z += _speed * 0.14f * (float)delta;
             if (_drops[index].Y < -10.0f || _drops[index].Z > -1.1f)
-                _drops[index] = NewDrop(rng, false);
+                _drops[index] = NewDrop(_rng, false);
             SetDropTransform(index);
         }
     }

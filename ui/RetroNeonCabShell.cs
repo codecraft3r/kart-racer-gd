@@ -2275,8 +2275,18 @@ internal partial class RetroCheckerboardOverlay : Control
 
 internal partial class RetroSpeedometer : Control
 {
+    private static readonly Color RingColor = Color.FromHtml("#00f0ff");
+    private static readonly Color MajorTickColor = Color.FromHtml("#fcd34d");
+    private static readonly Color MinorTickColor = Color.FromHtml("#efeff5");
+    private static readonly Color UnitColor = Color.FromHtml("#f5c451");
+    private static readonly Color NeedleColor = Color.FromHtml("#ff007f");
+    private static readonly string[] MajorTickLabels = { "0", "20", "40", "60", "80", "100" };
     private readonly FontFile _fontBody;
     private readonly FontFile _fontPixel;
+    private readonly Vector2[] _needlePoints = new Vector2[3];
+    private readonly Color[] _needleColors = new Color[3];
+    private int _lastRoundedSpeed = int.MinValue;
+    private string _speedText = "000";
 
     public float CurrentSpeed { get; set; } = 0.0f;
     public float MaxSpeed { get; set; } = 100.0f;
@@ -2286,10 +2296,14 @@ internal partial class RetroSpeedometer : Control
         _fontBody = fontBody;
         _fontPixel = fontPixel;
         MouseFilter = MouseFilterEnum.Ignore;
+        _needleColors[0] = NeedleColor;
+        _needleColors[1] = NeedleColor;
+        _needleColors[2] = NeedleColor;
     }
 
     public override void _Draw()
     {
+        using var perf = PerfProbe.Measure(PerfHotspot.RetroSpeedometerDraw);
         Vector2 size = Size;
         Vector2 center = size * 0.5f;
         float radius = Mathf.Min(size.X, size.Y) * 0.45f;
@@ -2298,10 +2312,9 @@ internal partial class RetroSpeedometer : Control
         DrawCircle(center, radius, new Color(0.025f, 0.02f, 0.08f, 0.88f));
 
         // 2. Draw circular border ring (glow style using neon cyan)
-        Color ringColor = Color.FromHtml("#00f0ff");
         float startAngleRad = Mathf.DegToRad(135.0f);
         float endAngleRad = Mathf.DegToRad(405.0f);
-        DrawArc(center, radius - 4.0f, startAngleRad, endAngleRad, 64, ringColor, 4.0f);
+        DrawArc(center, radius - 4.0f, startAngleRad, endAngleRad, 64, RingColor, 4.0f);
 
         // 3. Draw tick marks and values
         for (int s = 0; s <= 100; s += 10)
@@ -2315,7 +2328,7 @@ internal partial class RetroSpeedometer : Control
             float tickStart = radius - (isMajor ? 16.0f : 10.0f);
             float tickEnd = radius - 6.0f;
 
-            Color tickColor = isMajor ? Color.FromHtml("#fcd34d") : Color.FromHtml("#efeff5");
+            Color tickColor = isMajor ? MajorTickColor : MinorTickColor;
             DrawLine(center + dir * tickStart, center + dir * tickEnd, tickColor, isMajor ? 2.5f : 1.5f);
 
             // Draw numbers for major ticks
@@ -2323,9 +2336,9 @@ internal partial class RetroSpeedometer : Control
             {
                 float textDist = radius - 30.0f;
                 Vector2 textPos = center + dir * textDist;
-                string valStr = s.ToString();
+                string valStr = MajorTickLabels[s / 20];
                 Vector2 stringSize = _fontPixel.GetStringSize(valStr, HorizontalAlignment.Center, -1, 10);
-                DrawString(_fontPixel, textPos + new Vector2(0, stringSize.Y * 0.35f), valStr, HorizontalAlignment.Center, -1, 10, Color.FromHtml("#fcd34d"));
+                DrawString(_fontPixel, textPos + new Vector2(0, stringSize.Y * 0.35f), valStr, HorizontalAlignment.Center, -1, 10, MajorTickColor);
             }
         }
 
@@ -2333,15 +2346,20 @@ internal partial class RetroSpeedometer : Control
         Vector2 boxPos = center + new Vector2(-40.0f, -42.0f);
         Vector2 boxSize = new Vector2(80.0f, 32.0f);
         DrawRect(new Rect2(boxPos, boxSize), new Color(0.0f, 0.0f, 0.0f, 0.5f), true);
-        DrawRect(new Rect2(boxPos, boxSize), Color.FromHtml("#00f0ff"), false, 1.5f);
+        DrawRect(new Rect2(boxPos, boxSize), RingColor, false, 1.5f);
 
         // 5. Draw digital speed value inside the frame
-        string speedStr = Mathf.RoundToInt(CurrentSpeed).ToString("000");
-        DrawString(_fontBody, center + new Vector2(0, -18.0f), speedStr, HorizontalAlignment.Center, -1, 26, Colors.White);
+        int roundedSpeed = Mathf.RoundToInt(CurrentSpeed);
+        if (roundedSpeed != _lastRoundedSpeed)
+        {
+            _lastRoundedSpeed = roundedSpeed;
+            _speedText = roundedSpeed.ToString("000");
+        }
+        DrawString(_fontBody, center + new Vector2(0, -18.0f), _speedText, HorizontalAlignment.Center, -1, 26, Colors.White);
 
         // 6. Draw speed unit text ("MPH") below the center pin
         string unitStr = "MPH";
-        DrawString(_fontPixel, center + new Vector2(0, 36.0f), unitStr, HorizontalAlignment.Center, -1, 11, Color.FromHtml("#f5c451"));
+        DrawString(_fontPixel, center + new Vector2(0, 36.0f), unitStr, HorizontalAlignment.Center, -1, 11, UnitColor);
 
         // 7. Draw tapered neon needle pointing to current speed
         float clampedSpeed = Mathf.Clamp(CurrentSpeed, 0.0f, MaxSpeed);
@@ -2350,15 +2368,17 @@ internal partial class RetroSpeedometer : Control
         Vector2 needleDir = new Vector2(Mathf.Cos(needleAngleRad), Mathf.Sin(needleAngleRad));
         float needleLength = radius - 14.0f;
 
-        Color needleColor = Color.FromHtml("#ff007f"); // neon pink/red
         Vector2 perp = new Vector2(-needleDir.Y, needleDir.X);
         Vector2 p1 = center + perp * 3.5f;
         Vector2 p2 = center - perp * 3.5f;
         Vector2 p3 = center + needleDir * needleLength;
-        DrawPolygon(new Vector2[] { p1, p2, p3 }, new Color[] { needleColor, needleColor, needleColor });
+        _needlePoints[0] = p1;
+        _needlePoints[1] = p2;
+        _needlePoints[2] = p3;
+        DrawPolygon(_needlePoints, _needleColors);
 
         // 8. Center Pin (layered circles)
-        DrawCircle(center, 9.0f, Color.FromHtml("#ff007f"));
-        DrawCircle(center, 4.0f, Color.FromHtml("#fcd34d"));
+        DrawCircle(center, 9.0f, NeedleColor);
+        DrawCircle(center, 4.0f, MajorTickColor);
     }
 }
