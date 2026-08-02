@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://8sk8eoxjx5d3"]
+[gd_scene load_steps=15 format=3 uid="uid://8sk8eoxjx5d3"]
 
 [ext_resource type="PackedScene" uid="uid://cjlrpc3gabifw" path="res://kart.tscn" id="1_jvk4k"]
 [ext_resource type="Script" uid="uid://c24b6dbw8m32t" path="res://TrackCamera.cs" id="2_ta3w6"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://modes/TaxiMode.cs" id="7_checkpoint"]
 [ext_resource type="Script" path="res://CameraRainVfx.cs" id="8_rain_vfx"]
 [ext_resource type="Script" path="res://DistantSkyline.cs" id="9_distant_skyline"]
+[ext_resource type="Script" path="res://perf/PerfBenchmark.cs" id="10_perf_benchmark"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_night"]
 sky_top_color = Color(0.006, 0.004, 0.04, 1)
@@ -108,6 +109,10 @@ script = ExtResource("9_distant_skyline")
 
 [node name="GameManager" type="Node" parent="."]
 script = ExtResource("6_game_manager")
+
+[node name="PerfBenchmark" type="Node" parent="."]
+process_mode = 3
+script = ExtResource("10_perf_benchmark")
 
 [node name="Modes" type="Node3D" parent="."]
 

@@ -41,6 +41,7 @@ public partial class KartAIController : Node
 
     public override void _PhysicsProcess(double delta)
     {
+        using var perf = PerfProbe.Measure(PerfHotspot.AiControllerPhysics);
         if (_kart == null || !GodotObject.IsInstanceValid(_kart))
             return;
 
@@ -59,25 +60,7 @@ public partial class KartAIController : Node
         }
         else
         {
-            // Find nearest active pickup zone
-            float nearestDist = float.MaxValue;
-            PickupZone nearestZone = null;
-
-            foreach (var child in TaxiMode.Instance.GetChildren())
-            {
-                if (child is PickupZone zone && GodotObject.IsInstanceValid(zone))
-                {
-                    float dist = _kart.GlobalPosition.DistanceSquaredTo(zone.GlobalPosition);
-                    if (dist < nearestDist)
-                    {
-                        nearestDist = dist;
-                        nearestZone = zone;
-                    }
-                }
-            }
-
-            if (nearestZone != null)
-                targetPos = nearestZone.GlobalPosition;
+            targetPos = TaxiMode.Instance.GetNearestPickupPosition(_kart.GlobalPosition);
         }
 
         if (targetPos == Vector3.Zero)

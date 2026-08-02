@@ -59,6 +59,7 @@ public partial class AudioManager : Node
     private const int LocalPoolSize = 12;
     private readonly Dictionary<Cue, CueDefinition> _cues = new();
     private readonly List<AudioStreamPlayer> _localPlayers = new();
+    private readonly List<AudioStreamPlayer3D> _worldPlayers = new();
     private int _nextLocalPlayer;
 
     private AudioStreamPlayer _cityAmbience;
@@ -172,6 +173,7 @@ public partial class AudioManager : Node
 
     public void PlayWorld(Cue cue, Vector3 position, float volumeDb = 0.0f, float pitchScale = 1.0f, float maxDistance = 80.0f)
     {
+        using var perf = PerfProbe.Measure(PerfHotspot.AudioWorldOneShot);
         if (!_cues.TryGetValue(cue, out CueDefinition definition))
             return;
 
@@ -179,22 +181,34 @@ public partial class AudioManager : Node
         if (stream == null)
             return;
 
-        var player = new AudioStreamPlayer3D
+        AudioStreamPlayer3D player = AcquireWorldPlayer();
+        player.Name = $"OneShot_{cue}";
+        player.Stream = stream;
+        player.Bus = definition.Bus;
+        player.VolumeDb = volumeDb;
+        player.PitchScale = pitchScale;
+        player.MaxDistance = maxDistance;
+        player.UnitSize = 7.0f;
+        player.GlobalPosition = position;
+        player.Play();
+    }
+
+    private AudioStreamPlayer3D AcquireWorldPlayer()
+    {
+        foreach (AudioStreamPlayer3D player in _worldPlayers)
         {
-            Name = $"OneShot_{cue}",
-            Stream = stream,
-            Bus = definition.Bus,
-            VolumeDb = volumeDb,
-            PitchScale = pitchScale,
-            MaxDistance = maxDistance,
-            UnitSize = 7.0f,
+            if (!player.Playing)
+                return player;
+        }
+
+        var created = new AudioStreamPlayer3D
+        {
             ProcessMode = ProcessModeEnum.Pausable
         };
-
-        AddChild(player);
-        player.GlobalPosition = position;
-        player.Finished += player.QueueFree;
-        player.Play();
+        AddChild(created);
+        _worldPlayers.Add(created);
+        PerfProbe.Count(PerfEvent.WorldAudioPlayerCreated);
+        return created;
     }
 
     private void LoadCueLibrary()

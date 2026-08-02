@@ -643,6 +643,7 @@ public partial class Kart : RigidBody3D
 
     private void UpdateGroundContact(float delta)
     {
+        using var perf = PerfProbe.Measure(PerfHotspot.KartGroundRaycasts);
         Vector3 normalSum = Vector3.Zero;
         int contactCount = 0;
         bool centerContact = false;
@@ -651,6 +652,7 @@ public partial class Kart : RigidBody3D
         {
             RayCast3D ray = _groundRays[i];
             ray.ForceRaycastUpdate();
+            PerfProbe.Count(PerfEvent.GroundRaycastQuery);
             if (!ray.IsColliding())
                 continue;
 
@@ -986,7 +988,10 @@ public partial class Kart : RigidBody3D
     {
         Vector3 position = GlobalPosition;
         if (Multiplayer.HasMultiplayerPeer())
+        {
             Rpc(nameof(PlayKartAudioCueRpc), (int)cue, position, volumeDb, pitchScale);
+            PerfProbe.Count(PerfEvent.AudioRpcSent);
+        }
         else
             PlayKartAudioCueRpc((int)cue, position, volumeDb, pitchScale);
     }

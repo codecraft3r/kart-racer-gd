@@ -25,6 +25,7 @@ public partial class VehicleAudioController : Node3D
 
     public override void _Process(double delta)
     {
+        using var perf = PerfProbe.Measure(PerfHotspot.VehicleAudioProcess);
         if (!IsInstanceValid(_kart))
             return;
 
