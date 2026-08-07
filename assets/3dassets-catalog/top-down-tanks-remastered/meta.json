@@ -1,0 +1,70 @@
+{
+  "slug": "top-down-tanks-remastered",
+  "url": "https://kenney.nl/assets/top-down-tanks-remastered",
+  "title": "Top-down Tanks Remastered · Kenney",
+  "og_description": "Download this package (180 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/top-down-tanks-remastered/eed7ec6571-1677666778/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/top-down-tanks-remastered/f24c234ed5-1774771973/kenney_top-down-tanks-remastered.zip",
+  "fetched_at": "2026-08-03T22:46:28.362583+00:00",
+  "enriched_at": "2026-08-03T22:50:00.000000+00:00",
+  "asset_count": 180,
+  "category": "2D-sprites",
+  "subcategory": "vehicles",
+  "style_tags": [
+    "top-down",
+    "cartoon",
+    "clean-vector",
+    "vibrant",
+    "military",
+    "tanks",
+    "2d-game",
+    "flat-shaded"
+  ],
+  "palette": [
+    "#7BC85A",
+    "#D4B886",
+    "#9CA3AF",
+    "#C84B3B",
+    "#3B82C8",
+    "#1F2937",
+    "#EAB308",
+    "#8B5A2B"
+  ],
+  "use_cases": [
+    "top-down tank shooters",
+    "arcade battle games",
+    "mobile strategy games",
+    "RTS unit sprites",
+    "tower defense vehicles",
+    "2D action prototypes"
+  ],
+  "visual_summary": "Top-down 2D cartoon tank battle scene split between grassy and sandy biomes joined by a paved road. Includes color-varied tanks (red, green, blue, gray, black) with rotating turrets, military props (oil barrels, crates, sandbags, road signs, anti-tank mines), destructible cover (bushes, rocks, wooden barriers), and bright star-burst explosion FX. Clean flat-shaded vector look with thick outlines, friendly proportions, and high readability for action gameplay.",
+  "zip_inventory": {
+    "total_files": 397,
+    "by_ext": {
+      ".png": 382,
+      ".xml": 4,
+      ".svg": 1,
+      ".swf": 1,
+      ".txt": 1,
+      ".url": 2,
+      "": 6
+    },
+    "top_level": [
+      "License.txt",
+      "PNG",
+      "Preview.png",
+      "Sample.png",
+      "Spritesheet",
+      "Tilesheet",
+      "Vector",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "sample_png_dims": [
+      {"path": "PNG/Default size/barrelBlack_side.png", "size": [20, 28], "mode": "RGBA"},
+      {"path": "PNG/Default size/barrelGreen_top.png", "size": [24, 24], "mode": "RGBA"}
+    ]
+  },
+  "og_image_local": "preview.png"
+}

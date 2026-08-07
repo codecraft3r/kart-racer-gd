@@ -1,0 +1,70 @@
+{
+  "slug": "brick-kit",
+  "url": "https://kenney.nl/assets/brick-kit",
+  "title": "Brick Kit",
+  "og_description": "Download this package (290 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/brick-kit/9127eb4267-1716980998/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/brick-kit/46a22f3d08-1716981002/kenney_brick-kit.zip",
+  "fetched_at": "2026-08-03T22:44:36.503743+00:00",
+  "enriched_at": "2026-08-03T22:45:00+00:00",
+  "asset_count": 290,
+  "category": "3D-models",
+  "subcategory": "modular-bricks",
+  "style_tags": [
+    "isometric",
+    "low-poly",
+    "modular",
+    "lego-style",
+    "beveled",
+    "colorful",
+    "clean",
+    "cartoon"
+  ],
+  "palette": [
+    "#d9433a",
+    "#3fa654",
+    "#3f6fd9",
+    "#f0a93b",
+    "#9aa0a6",
+    "#2b2b35"
+  ],
+  "use_cases": [
+    "modular level building",
+    "sandbox and creative games",
+    "educational kids apps",
+    "isometric city/castle builders",
+    "rapid game prototyping",
+    "voxel-adjacent toy aesthetics"
+  ],
+  "visual_summary": "Isometric 3D modular brick kit in a clean low-poly LEGO-style. Saturated primary colors (red, green, blue, yellow, gray) on beveled brick pieces assembled into houses, trees, walls, and free-floating tiles, with soft studio lighting on a dark checkered backdrop.",
+  "zip_inventory": {
+    "total_files": 1499,
+    "by_ext": {
+      ".png": 301,
+      ".fbx": 296,
+      ".glb": 296,
+      ".mtl": 296,
+      ".obj": 296,
+      ".url": 3,
+      ".txt": 1,
+      ".html": 1
+    },
+    "top_level": {
+      "Models": 1195,
+      "Previews": 297,
+      "License.txt": 1,
+      "Overview.html": 1,
+      "Preview.png": 1,
+      "Sample.png": 1,
+      "View Documentation.url": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1
+    },
+    "sample_png_dims": [
+      {"path": "Models/FBX format/Textures/colormap.png", "size": [512, 512], "mode": "P"},
+      {"path": "Previews/bevel-hq-brick-1x1-round.png", "size": [64, 64], "mode": "P"}
+    ],
+    "formats": ["FBX", "GLB", "OBJ+MTL"]
+  },
+  "og_image_local": "preview.png"
+}

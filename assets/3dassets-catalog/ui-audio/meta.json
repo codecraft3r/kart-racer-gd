@@ -1,0 +1,59 @@
+{
+  "slug": "ui-audio",
+  "url": "https://kenney.nl/assets/ui-audio",
+  "title": "UI Audio · Kenney",
+  "title_clean": "UI Audio",
+  "og_description": "Download this package (50 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/ui-audio/2dbeff8f75-1677590482/preview-6.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/ui-audio/490d233f68-1677590494/kenney_ui-audio.zip",
+  "fetched_at": "2026-08-03T22:49:00.933541+00:00",
+  "enriched_at": "2026-08-03T22:49:00.933541+00:00",
+  "asset_count": 50,
+  "category": "audio",
+  "subcategory": "ui-sfx",
+  "style_tags": [
+    "flat",
+    "vector",
+    "minimalist",
+    "game-ui",
+    "sfx",
+    "foley",
+    "ui-feedback"
+  ],
+  "palette": [
+    "teal-green (#3DBFA0)",
+    "white",
+    "light-gray",
+    "dark-gray",
+    "black"
+  ],
+  "use_cases": [
+    "button click feedback",
+    "mouse hover/rollover",
+    "toggle and switch confirmations",
+    "general UI feedback in games and apps",
+    "casual and mobile game sound design"
+  ],
+  "visual_summary": "Flat 2D vector preview on a teal-green background showing a stylized speaker icon centered on a white circular plate, paired with a small black rounded-square settings/toggles icon. The illustration is a visual stand-in for the package's contents: 50 short UI sound effects (clicks, mouseclicks, mouse releases, rollovers, and switch toggles) delivered as .ogg files.",
+  "zip_inventory": {
+    "total_files": 56,
+    "by_extension": {
+      ".ogg": 52,
+      ".url": 2,
+      ".txt": 1,
+      "(none)": 1
+    },
+    "top_level": [
+      "Audio/",
+      "License.txt",
+      "Preview.ogg",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "audio_folders": {
+      "Audio/": 51
+    },
+    "format": "OGG Vorbis"
+  }
+}

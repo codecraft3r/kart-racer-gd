@@ -1,0 +1,28 @@
+{
+  "slug": "music-jingles",
+  "url": "https://kenney.nl/assets/music-jingles",
+  "title": "Music Jingles · Kenney",
+  "og_description": "Download this package (85 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/music-jingles/ef8668e122-1677590390/preview-5.png",
+  "download_url": "https://kenney.nl/media/pages/assets/music-jingles/f37e530b9e-1677590399/kenney_music-jingles.zip",
+  "fetched_at": "2026-08-03T22:47:53.324884+00:00",
+  "enriched_at": "2026-08-03T22:48:00+00:00",
+  "asset_count": 85,
+  "category": "audio",
+  "subcategory": "music jingles",
+  "style_tags": ["chiptune", "retro", "modern", "electronic", "jazz"],
+  "palette": ["#2ECC9B", "#485C5B", "#D9E8EA", "#FEFEFE", "#2C3E3D"],
+  "use_cases": ["menu music", "victory fanfare", "level complete", "UI feedback", "transitions"],
+  "visual_summary": "Flat Kenney-style speaker icon with a music-note badge, set on a bright mint-green background. The image is purely a cover graphic for an audio pack; the music itself spans chiptune, pizzicato, sax, steel-drum, and hit-style jingles.",
+  "zip_inventory": {
+    "total_files": 95,
+    "by_ext": {"ogg": 86, "url": 2, "": 6, "txt": 1},
+    "top_level": ["Audio", "License.txt", "Preview.ogg", "Visit Kenney.url", "Visit Patreon.url"],
+    "sample_audio_meta": [
+      {"name": "Preview.ogg", "size": 155244},
+      {"name": "Audio/8-Bit jingles/jingles_NES00.ogg", "size": 39948},
+      {"name": "Audio/8-Bit jingles/jingles_NES01.ogg", "size": 11758}
+    ]
+  },
+  "og_image_local": "preview.png"
+}

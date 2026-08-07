@@ -1,0 +1,79 @@
+{
+  "slug": "space-kit",
+  "url": "https://kenney.nl/assets/space-kit",
+  "title": "Space Kit",
+  "og_description": "Download this package (150 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/space-kit/28e67de6d9-1677698968/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/space-kit/20874c75ac-1677698978/kenney_space-kit.zip",
+  "fetched_at": "2026-08-03T22:46:03.935134+00:00",
+  "enriched_at": "2026-08-03T22:50:00.000000+00:00",
+  "asset_count": 150,
+  "category": "2D-sprites",
+  "subcategory": "isometric-game-kit",
+  "style_tags": [
+    "isometric",
+    "low-poly",
+    "flat-shaded",
+    "sci-fi",
+    "mars",
+    "space-colony",
+    "2.5D",
+    "voxel-friendly",
+    "colorful",
+    "tile-based"
+  ],
+  "palette": [
+    "#d57a4d",
+    "#b85a3a",
+    "#e8e8e8",
+    "#c5c5c5",
+    "#f5b820",
+    "#2a2a2a",
+    "#1a1f3a"
+  ],
+  "use_cases": [
+    "Sci-fi strategy games",
+    "Base-building and colony sims",
+    "Space exploration / planetary colonization",
+    "Isometric tower defense",
+    "2.5D casual / mobile games",
+    "Educational space content",
+    "Concept mockups and prototypes"
+  ],
+  "visual_summary": "A vibrant isometric Mars colony diorama on a dark navy background. Rust-orange terraced terrain hosts a launch pad with a white-and-gold rocket and a winding monorail/pipe system, plus grey-and-yellow habitat modules, hangars, a satellite dish, mining rigs, a rover, cargo crates, and astronauts in white spacesuits. Rendered in Kenney's signature low-poly, flat-shaded, softly beveled style with a warm Mars palette and bright yellow accents.",
+  "zip_inventory": {
+    "total_files": 1702,
+    "by_ext": {
+      ".png": 772,
+      ".mtl": 153,
+      ".dae": 153,
+      ".obj": 153,
+      ".fbx": 153,
+      ".glb": 153,
+      ".stl": 153,
+      "(none)": 8,
+      ".url": 3,
+      ".txt": 1
+    },
+    "top_level": {
+      "Models": 924,
+      "Isometric": 625,
+      "Side": 147,
+      "Preview.png": 1,
+      "Sample.png": 1,
+      "License.txt": 1,
+      "Instructions.url": 1,
+      "Patreon.url": 1,
+      "Kenney.url": 1
+    },
+    "sample_png_dims": [
+      {"file": "Isometric/alien_E.png", "width": 512, "height": 512},
+      {"file": "Isometric/alien_N.png", "width": 512, "height": 512},
+      {"file": "Isometric/alien_NE.png", "width": 512, "height": 512},
+      {"file": "Isometric/astronautA_E.png", "width": 512, "height": 512},
+      {"file": "Isometric/astronautA_N.png", "width": 512, "height": 512}
+    ],
+    "notes": "Two parallel representations per asset: 2D isometric PNG sprites (8 directions each, 512x512) AND 3D model files in obj/fbx/glb/dae/stl+mtl formats. Side-view PNGs also included."
+  }
+}

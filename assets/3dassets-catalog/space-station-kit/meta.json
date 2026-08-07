@@ -1,0 +1,48 @@
+{
+  "slug": "space-station-kit",
+  "url": "https://kenney.nl/assets/space-station-kit",
+  "title": "Space Station Kit",
+  "og_description": "Download this package (90 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/space-station-kit/a795b59757-1712749915/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/space-station-kit/6475288f2e-1712749919/kenney_space-station-kit.zip",
+  "fetched_at": "2026-08-03T22:44:57.213423+00:00",
+  "enriched_at": "2026-08-03T22:46:00+00:00",
+  "asset_count": 90,
+  "category": "3D-models",
+  "subcategory": "sci-fi modular space station kit",
+  "style_tags": ["low-poly", "isometric", "cartoon", "modular", "clean-shaded", "game-ready"],
+  "palette": ["lavender-gray", "orange", "yellow", "cool-gray", "rust-orange (asteroids)"],
+  "use_cases": ["sci-fi base builders", "space station level design", "isometric strategy/tycoon games", "modular prototyping", "VR/3D educational scenes"],
+  "visual_summary": "Isometric low-poly 3D modular kit for building sci-fi space stations: floors, walls, stairs, railings, pipes, computer consoles, seating, equipment, crates, ladders, antennas, and decorative asteroid rocks. Clean cartoon shading with a lavender-and-orange palette against a dark grid backdrop. Geometry exports for OBJ, FBX and GLB with matching colormap textures.",
+  "zip_inventory": {
+    "total_files": 506,
+    "by_ext": {
+      ".txt": 1,
+      ".fbx": 97,
+      ".png": 104,
+      ".glb": 97,
+      ".mtl": 97,
+      ".obj": 97,
+      ".html": 1,
+      ".url": 3
+    },
+    "top_level": [
+      "License.txt",
+      "Models (FBX/GLB/OBJ + Textures)",
+      "Overview.html",
+      "Preview.png",
+      "Preview (Variation A).png",
+      "Previews/",
+      "Sample.png",
+      "View Documentation.url",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "sample_png_dims": [
+      "Models/Textures/colormap.png 512x512",
+      "Preview.png 918x515",
+      "Previews/balcony-floor-center.png 64x64"
+    ]
+  },
+  "og_image_local": "preview.png"
+}

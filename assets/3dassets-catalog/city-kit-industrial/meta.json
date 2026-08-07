@@ -1,0 +1,73 @@
+{
+  "slug": "city-kit-industrial",
+  "url": "https://kenney.nl/assets/city-kit-industrial",
+  "title": "City Kit (Industrial)",
+  "og_description": "Download this package (25 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/city-kit-industrial/18dcc5d6ce-1750838287/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/city-kit-industrial/5fcb837741-1750838303/kenney_city-kit-industrial_1.0.zip",
+  "fetched_at": "2026-08-03T22:41:52.158516+00:00",
+  "enriched_at": "2026-08-03T22:45:00+00:00",
+  "asset_count": 25,
+  "category": "3D Models",
+  "subcategory": "Environment / Industrial",
+  "style_tags": [
+    "low-poly",
+    "isometric",
+    "flat-shaded",
+    "voxel-ish",
+    "clean",
+    "modular",
+    "stylized"
+  ],
+  "palette": [
+    "#3a4a5a",
+    "#d9dde2",
+    "#8a93a0",
+    "#e8a23a",
+    "#5fb04a",
+    "#1f2a36"
+  ],
+  "use_cases": [
+    "city-builder games",
+    "factory/warehouse sims",
+    "isometric strategy games",
+    "top-down tycoon prototypes",
+    "modular diorama scenes",
+    "industrial district environments"
+  ],
+  "visual_summary": "A modular set of 25 stylized low-poly 3D industrial buildings rendered in a clean isometric view. The kit features warehouses, factories, refineries, smokestacks, storage tanks, pipes, and road infrastructure, all built on a consistent grid with a cool gray and white palette accented by orange factory doors and tanks, plus small green trees for life. Flat shading, no outlines, and soft lighting give it a friendly, toy-like quality that still reads as a believable industrial district.",
+  "zip_inventory": {
+    "total_files": 150,
+    "by_ext": {
+      "txt": 1,
+      "fbx": 25,
+      "png": 36,
+      "glb": 25,
+      "mtl": 25,
+      "obj": 25,
+      "html": 1,
+      "url": 3,
+      "(none)": 9
+    },
+    "top_level": {
+      "License.txt": 1,
+      "Models": 114,
+      "Overview.html": 1,
+      "Preview.png": 1,
+      "Sample.png": 1,
+      "Preview (Variation A).png": 1,
+      "Preview (Variation B).png": 1,
+      "Preview (Variation C).png": 1,
+      "Previews": 26,
+      "View Documentation.url": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1
+    },
+    "png_count": 36,
+    "sample_png_dims": [
+      [512, 512]
+    ],
+    "model_formats": ["fbx", "glb", "obj", "mtl"]
+  },
+  "og_image_local": "preview.png"
+}

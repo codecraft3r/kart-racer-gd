@@ -1,0 +1,60 @@
+{
+  "slug": "voiceover-pack-fighter",
+  "url": "https://kenney.nl/assets/voiceover-pack-fighter",
+  "title": "Voiceover Pack (Fighter) · Kenney",
+  "og_description": "Download this package (45 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/voiceover-pack-fighter/3ba8f3be6e-1677589824/preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/voiceover-pack-fighter/6ceb77c6f1-1677589837/kenney_voiceover-pack-fighter.zip",
+  "fetched_at": "2026-08-03T22:46:28.376690+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "title_clean": "Voiceover Pack (Fighter)",
+  "asset_count": 45,
+  "category": "audio",
+  "subcategory": "voiceover-game-announcer",
+  "style_tags": [
+    "voice",
+    "announcer",
+    "fighting-game",
+    "short-callouts",
+    "arcade",
+    "retro",
+    "energetic",
+    "CC0"
+  ],
+  "palette": [
+    "teal/mint-green (#4ECCA3)",
+    "white",
+    "light-grey",
+    "dark-slate/charcoal"
+  ],
+  "use_cases": [
+    "fighting-game announcer voice lines",
+    "round and match call-outs (round 1-5, fight, final round, sudden death)",
+    "match result announcements (you win, you lose, flawless victory, game over)",
+    "game mode intros (arcade, story, survival, battle, deathmatch, championship)",
+    "combo / multi-kill callouts",
+    "player slot prompts (player 1, player 2, choose your character)",
+    "prototype audio for arcade, brawler, and combat prototypes"
+  ],
+  "visual_summary": "Kenney brand cover on a flat teal/mint background: a white circular disc holding a simplified grey loudspeaker icon, paired with a small dark rounded-square chat-style badge showing a crossed-swords combat glyph. Minimal, flat, friendly modern illustration that signals 'audio + fighting/combat'.",
+  "zip_inventory": {
+    "total_files": 51,
+    "by_ext": {
+      "": 1,
+      ".ogg": 47,
+      ".txt": 1,
+      ".url": 2
+    },
+    "top_level": {
+      "Audio/": 47,
+      "License.txt": 1,
+      "Preview.ogg": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1
+    },
+    "audio_format": "Ogg Vorbis",
+    "audio_count": 47,
+    "audio_layout": "All clips in a single Audio/ folder, lowercase_underscore filenames matching the spoken line (e.g. fight.ogg, round_1.ogg, you_win.ogg, combo_breaker.ogg, sudden_death.ogg)"
+  },
+  "og_image_local": "preview.png"
+}

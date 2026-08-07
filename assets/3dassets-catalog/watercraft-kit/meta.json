@@ -1,0 +1,100 @@
+{
+  "slug": "watercraft-kit",
+  "url": "https://kenney.nl/assets/watercraft-kit",
+  "title": "Watercraft Kit · Kenney",
+  "title_clean": "Watercraft Kit",
+  "og_description": "Download this package (45 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/watercraft-kit/0a7953e9b7-1713354133/preview.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/watercraft-kit/a335cfed49-1713519620/kenney_watercraft-pack.zip",
+  "fetched_at": "2026-08-03T22:45:14.200335+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 45,
+  "category": "3D-models",
+  "subcategory": "vehicles/watercraft",
+  "style_tags": [
+    "low-poly",
+    "isometric",
+    "stylized",
+    "mini",
+    "clean",
+    "game-ready",
+    "PBR-textured",
+    "cartoon",
+    "voxel-friendly"
+  ],
+  "palette": [
+    "white",
+    "red",
+    "orange",
+    "teal-green",
+    "blue",
+    "yellow",
+    "brown-wood",
+    "gray"
+  ],
+  "use_cases": [
+    "racing games",
+    "naval combat",
+    "casual mobile games",
+    "ship-simulator",
+    "low-poly world-building",
+    "maritime tycoon",
+    "children's games",
+    "endless runner",
+    "educational prototypes"
+  ],
+  "visual_summary": "A low-poly 3D collection of stylized watercraft presented in an isometric view on a dark checkered backdrop. Includes two large white-and-red ocean liners, a teal submarine, two wooden galleons with billowing white sails, numerous small motorboats and speedboats in primary colors (red, blue, green, yellow, orange), sailboats, tugboats, fishing boats, rowboats, buoys, docks/ramps, gates, and multi-colored shipping containers. Geometry is chunky and faceted, materials are matte with simple PBR colormap textures, no rigging or animation.",
+  "zip_inventory": {
+    "total_files": 248,
+    "by_ext": {
+      "fbx": 46,
+      "glb": 46,
+      "mtl": 46,
+      "obj": 46,
+      "png": 50,
+      "txt": 1,
+      "html": 1,
+      "url": 3
+    },
+    "top_level": {
+      "License.txt": 1,
+      "Models": 195,
+      "Overview.html": 1,
+      "Preview.png": 1,
+      "Previews": 47,
+      "View Documentation.url": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1
+    },
+    "sample_png": [
+      {
+        "name": "Preview.png",
+        "size": [
+          918,
+          515
+        ]
+      },
+      {
+        "name": "Previews/arrow-standing.png",
+        "size": [
+          64,
+          64
+        ]
+      },
+      {
+        "name": "Models/OBJ format/Textures/colormap.png",
+        "size": [
+          512,
+          512
+        ]
+      }
+    ],
+    "model_count_actual": 46,
+    "formats": [
+      "OBJ+MTL",
+      "FBX",
+      "GLB"
+    ]
+  }
+}

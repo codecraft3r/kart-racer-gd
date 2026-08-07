@@ -1,0 +1,75 @@
+{
+  "slug": "factory-kit",
+  "url": "https://kenney.nl/assets/factory-kit",
+  "title": "Factory Kit · Kenney",
+  "og_description": "Download this package (140 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/factory-kit/7e1e831724-1777639590/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/factory-kit/edaac9d4f6-1777639602/kenney_factory-kit_3.0.zip",
+  "fetched_at": "2026-08-03T22:34:55.359671+00:00",
+  "enriched_at": "2026-08-03T22:35:00Z",
+  "title_clean": "Factory Kit",
+  "asset_count": 140,
+  "category": "3D Models",
+  "subcategory": "Industrial / Factory",
+  "style_tags": [
+    "low-poly",
+    "isometric",
+    "3D",
+    "cartoon",
+    "stylized",
+    "flat-shaded",
+    "modular",
+    "factory",
+    "industrial",
+    "machinery"
+  ],
+  "palette": [
+    "soft purple / lavender (machinery, walls)",
+    "bright orange (accents, crates, cones)",
+    "navy blue (floor, dark base)",
+    "dark gray (structural elements)",
+    "white (highlights, screens)"
+  ],
+  "use_cases": [
+    "Factory / industrial level design for games",
+    "Manufacturing, automation or tycoon games",
+    "Top-down or isometric game scenes",
+    "Educational games about industry or robotics",
+    "Modular scene construction with conveyors, pipes, hoppers and robotic arms"
+  ],
+  "visual_summary": "Low-poly stylized 3D factory kit featuring modular industrial equipment — robotic arms, conveyor belts (straight, corners, junctions, slopes), catwalks, hoppers, pipes (incl. glass variants), crates, control panels, doors, cranes and traffic cones — in a clean cartoon style. Soft purple/lavender machinery accented by bright orange highlights sits on a dark navy checkered floor, with isometric camera-ready assets ideal for tycoon, automation, or factory-themed game scenes.",
+  "zip_inventory": {
+    "total_files": 736,
+    "by_extension": {
+      "png": 150,
+      "fbx": 143,
+      "glb": 143,
+      "mtl": 143,
+      "obj": 143,
+      "url": 3,
+      "html": 1,
+      "txt": 1
+    },
+    "top_level_entries": [
+      "License.txt",
+      "Models",
+      "Overview.html",
+      "Preview (Variation A).png",
+      "Preview.png",
+      "Previews",
+      "Sample.png",
+      "View Documentation.url",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "sample_png_dims": [
+      "Models/Textures/colormap.png 512x512 RGBA",
+      "Models/FBX format/Textures/colormap.png 512x512 RGBA",
+      "Models/GLB format/Textures/colormap.png 512x512 RGBA",
+      "Models/Textures/variation-a.png 512x512 RGBA",
+      "Preview.png 918x515 P",
+      "Previews/arrow-basic.png 64x64 P"
+    ]
+  },
+  "og_image_local": "preview.png"
+}

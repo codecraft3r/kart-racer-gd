@@ -1,0 +1,77 @@
+{
+  "slug": "top-down-tanks",
+  "url": "https://kenney.nl/assets/top-down-tanks",
+  "title": "Top-Down Tanks",
+  "og_description": "Download this package (85 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/top-down-tanks/23b047722f-1677699016/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/top-down-tanks/0385fcb3e0-1677699019/kenney_top-down-tanks.zip",
+  "fetched_at": "2026-08-03T22:48:01.665673+00:00",
+  "enriched_at": "2026-08-03T22:48:01.665673+00:00",
+  "asset_count": 85,
+  "category": "2D-sprites",
+  "subcategory": "top-down-vehicles",
+  "style_tags": [
+    "top-down",
+    "2D",
+    "cartoon",
+    "flat-color",
+    "vector-style",
+    "retro-arcade",
+    "tank",
+    "military",
+    "game-ready"
+  ],
+  "palette": [
+    "blue (#3B97D3)",
+    "beige/tan (#E1A95F)",
+    "olive green (#5C8A3A)",
+    "dark gray (#2C2C2C)",
+    "silver (#BFC4C9)",
+    "sand (#F0D9A8)",
+    "grass green (#7CC05A)"
+  ],
+  "use_cases": [
+    "top-down tank shooters",
+    "mobile arcade games",
+    "HTML5 / web games",
+    "rapid prototyping",
+    "GameMaker / Unity / Godot 2D projects",
+    "tutorial or jam-style game art"
+  ],
+  "visual_summary": "Top-down 2D game-art pack of cartoon tanks, bullets, smoke puffs and battlefield props. Tanks ship in four body color schemes (blue, beige, green, dark) with optional silver turrets, plus matching _outline variants. Battlefields in the sample use sand, hex-tiled dirt and grass tiles, with trees, bushes, sandbag walls, crates and oil drums as obstacles. Bullets are 12x26 px; tanks and obstacles sit in roughly the 50-80 px range. Solid flat fills, no gradients, slightly chunky/chibi proportions, clean silhouettes readable at small size.",
+  "zip_inventory": {
+    "total_files": 101,
+    "by_ext": {
+      "png": 89,
+      "svg": 1,
+      "swf": 1,
+      "txt": 1,
+      "xml": 1,
+      "(directory)": 8
+    },
+    "top_level": ["(root)", "PNG", "Spritesheet", "Vector"],
+    "png_subdirs": {
+      "Bullets": 24,
+      "Environment": 5,
+      "Obstacles": 11,
+      "Smoke": 24,
+      "Tanks": 22
+    },
+    "root_files": [
+      "Vector/vector_tanks.svg",
+      "Vector/vector_tanks.swf",
+      "license.txt",
+      "preview.png",
+      "sample.png",
+      "Spritesheet/sheet_tanks.png",
+      "Spritesheet/sheet_tanks.xml"
+    ],
+    "sample_png_dims": [
+      {"path": "preview.png", "size": [918, 515], "mode": "RGBA"},
+      {"path": "sample.png", "size": [918, 515], "mode": "RGBA"},
+      {"path": "PNG/Bullets/bulletBeige.png", "size": [12, 26], "mode": "RGBA"},
+      {"path": "PNG/Bullets/bulletBeige_outline.png", "size": [20, 34], "mode": "RGBA"}
+    ]
+  },
+  "og_image_local": "preview.png"
+}

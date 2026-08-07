@@ -1,0 +1,54 @@
+{
+  "slug": "car-kit",
+  "url": "https://kenney.nl/assets/car-kit",
+  "title": "Car Kit · Kenney",
+  "og_description": "Download this package (45 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/car-kit/81f9d77bc7-1775131953/preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/car-kit/1a312ec241-1775131960/kenney_car-kit.zip",
+  "fetched_at": "2026-08-03T22:34:55.207141+00:00",
+  "enriched_at": "2026-08-03T22:35:00+00:00",
+  "asset_count": 45,
+  "category": "3D-models",
+  "subcategory": "vehicles",
+  "style_tags": ["low-poly", "isometric", "cartoon", "modern", "flat"],
+  "palette": ["#E8763A", "#5BB85B", "#4A90D9", "#F5C842", "#D9453D", "#6B6F7F"],
+  "use_cases": ["racing games", "city builders", "vehicle customization", "casual mobile games"],
+  "visual_summary": "A collection of 45 low-poly 3D vehicles rendered in an isometric view, including cars, trucks, tractors, ambulances, race cars, small robots, and modular car parts (bumpers, wheels, crates, cones). Models use flat-shaded faceted geometry with a bright, saturated palette of oranges, greens, blues, yellows, and reds, accented by white and gray for cabs and tires.",
+  "zip_inventory": {
+    "total_files": 268,
+    "by_ext": {
+      ".txt": 1,
+      ".fbx": 50,
+      ".png": 54,
+      ".glb": 50,
+      ".mtl": 50,
+      ".obj": 50,
+      ".html": 1,
+      ".url": 3
+    },
+    "top_level": [
+      "License.txt",
+      "Models",
+      "Overview.html",
+      "Preview.png",
+      "Previews",
+      "View Documentation.url",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "sample_png_dims": [
+      "Models/FBX format/Textures/colormap.png 512x512 RGBA",
+      "Models/GLB format/Textures/colormap.png 512x512 RGBA",
+      "Models/OBJ format/Textures/colormap.png 512x512 RGBA",
+      "Preview.png 918x515 P",
+      "Previews/ambulance.png 64x64 P",
+      "Previews/box.png 64x64 P",
+      "Previews/cone-flat.png 64x64 P",
+      "Previews/cone.png 64x64 P",
+      "Previews/debris-bolt.png 64x64 P",
+      "Previews/debris-bumper.png 64x64 P"
+    ],
+    "png_count": 54
+  },
+  "og_image_local": "preview.png"
+}

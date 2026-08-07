@@ -1,0 +1,34 @@
+{
+  "slug": "tanks",
+  "url": "https://kenney.nl/assets/tanks",
+  "title": "Tanks",
+  "og_description": "Download this package (80 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/tanks/349c5518b6-1677579060/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/tanks/d0bbede612-1677579063/kenney_tanks.zip",
+  "fetched_at": "2026-08-03T22:46:27.128503+00:00",
+  "enriched_at": "2026-08-03T23:10:00+00:00",
+  "asset_count": 80,
+  "category": "2D-sprites",
+  "subcategory": "vehicles-tanks",
+  "style_tags": ["flat", "vector", "cartoon", "side-scroller", "military", "vehicles", "arcade", "clean-shapes", "no-outline"],
+  "palette": ["#5BB04A", "#7BC164", "#A8DC8A", "#B8D8E8", "#8FB8D8", "#D9C49A", "#A88858", "#4A4A4A", "#7A7A7A", "#E94B3C", "#F4A93C", "#F8D43A"],
+  "use_cases": ["2D side-scrolling tank battles", "top-down combat shooters", "defense/turret games", "mobile arcade action", "tower-defense unit art", "retro remake prototypes", "school/edu game projects"],
+  "visual_summary": "A 2D tank-battle sprite pack in Kenney's signature flat-vector style. Multiple tank hulls in green, tan/sand, and gray, each swappable with several turret/cannon variants plus muzzle flashes. Includes rolling treads animation frames, six bullet/missile projectiles with matching in-flight sprites, 12-frame explosion sequence, a wooden crate prop, arrow UI indicators, and a flying airstrike missile. Clean rounded shapes, no black outlines, bright saturated palette of grass green, sky blue, sandy beige, steel gray, and warm red/orange explosion pops. Side-view, slight 3/4 read on turrets, designed for both side-scroller and top-down use.",
+  "zip_inventory": {
+    "total_files": 186,
+    "by_ext": {"png": 181, "txt": 1, "xml": 2, "svg": 1, "swf": 1},
+    "top_level": {"<root>": 4, "PNG": 176, "Spritesheet": 4, "Vector": 2},
+    "subfolders": {"PNG/Default size": 88, "PNG/Retina": 88, "Spritesheet": 2},
+    "sample_png_dims": [
+      "tank_arrowEmpty.png 91x48 RGBA",
+      "tank_bullet1.png 17x14 RGBA",
+      "tank_bulletFly.png 62x14 RGBA",
+      "tank_explosion1.png 64x64 RGBA",
+      "tank_body (4-frame treads sets) 50x50 to 184x137 RGBA",
+      "tank_turret variants up to 184x137 RGBA",
+      "spritesheets 1024x512 and 1024x2048 P (paletted)"
+    ],
+    "format_notes": "All PNGs RGBA. Spritesheets use paletted PNG mode (P) — decode via PIL or convert in engine."
+  },
+  "og_image_local": "preview.png"
+}

@@ -1,0 +1,65 @@
+{
+  "slug": "yellow-paint-pack",
+  "url": "https://kenney.nl/assets/yellow-paint-pack",
+  "title": "Yellow Paint Pack",
+  "og_description": "Download this package (10 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/yellow-paint-pack/b7c95fcedd-1707675344/preview.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/yellow-paint-pack/737aca1ec1-1707675361/kenney_yellow-paint-pack.zip",
+  "fetched_at": "2026-08-03T22:45:36.481615+00:00",
+  "enriched_at": "2026-08-03T22:50:00.000000+00:00",
+  "asset_count": 10,
+  "category": "2D-sprites",
+  "subcategory": "decorative-splats",
+  "style_tags": [
+    "flat",
+    "vector",
+    "cartoon",
+    "splatter",
+    "drip",
+    "signage",
+    "minimal",
+    "high-contrast"
+  ],
+  "palette": {
+    "primary": "#F5C518",
+    "secondary": "#FFFFFF",
+    "accent": "#000000",
+    "notes": "Single bright yellow on transparent/white; reads as hazard / caution / highlighter paint."
+  },
+  "use_cases": [
+    "Directional signage (arrows for UI or 3D scenes)",
+    "Hazard, warning or caution indicators",
+    "Decorative splatter, splash and drip VFX",
+    "Level decoration on platforms, blocks and walls",
+    "Stylized graffiti or painted-on labels",
+    "In-world stickers, badges or highlight markers"
+  ],
+  "visual_summary": "A set of 10 flat, vector-style yellow paint graphics: four dripping arrows (up, down, left, right), circular and irregular splat/splash blots, and three dripping paint bars/edges. Each asset has an irregular outline with downward drips, evoking fresh, wet, glossy paint. Delivered in PNG (transparent) and SVG (resolution-independent). Preview demonstrates the shapes applied as decals on white 3D blocks against a dark background.",
+  "zip_inventory": {
+    "total_files": 47,
+    "by_ext": {
+      ".png": 27,
+      ".svg": 13,
+      ".txt": 1,
+      ".url": 2,
+      "(none)": 4
+    },
+    "top_level": {
+      "PNG": 29,
+      "Vector": 14,
+      "License.txt": 1,
+      "Preview.png": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1
+    },
+    "sample_png_dims": [
+      {"name": "Preview.png", "size": [918, 515], "mode": "P"},
+      {"name": "PNG/Default/paint_arrow_down.png", "size": [106, 109], "mode": "P"},
+      {"name": "PNG/Default/paint_arrow_left.png", "size": [200, 123], "mode": "P"},
+      {"name": "PNG/Default/paint_arrow_right.png", "size": [200, 129], "mode": "P"},
+      {"name": "PNG/Default/paint_arrow_up.png", "size": [106, 141], "mode": "P"}
+    ],
+    "notes": "PNGs are paletted (mode P) with transparent backgrounds; dimensions vary per sprite (irregular painted outlines, not uniformly sized)."
+  }
+}

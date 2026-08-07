@@ -1,0 +1,62 @@
+{
+  "slug": "animated-characters-protagonists",
+  "url": "https://kenney.nl/assets/animated-characters-protagonists",
+  "title": "Animated Characters Protagonists \u00b7 Kenney",
+  "og_description": "Download this package (8 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/animated-characters-protagonists/98921ae406-1674931821/preview.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/animated-characters-protagonists/608191acc4-1774773108/kenney_animated-characters-protagonists.zip",
+  "fetched_at": "2026-08-03T22:46:11.321876+00:00",
+  "enriched_at": "2026-08-03T22:46:30+00:00",
+  "asset_count": 8,
+  "category": "3D-models",
+  "subcategory": "animated-characters",
+  "style_tags": [
+    "low-poly",
+    "cartoon",
+    "modern",
+    "stylized",
+    "flat"
+  ],
+  "palette": [
+    "#1F2C38",
+    "#E93031",
+    "#165077",
+    "#F49573",
+    "#FFFFFF",
+    "#1E1E1E"
+  ],
+  "use_cases": [
+    "Hero characters for stylized 3D games",
+    "Platformers, brawlers, and adventure games",
+    "Character prototyping and animation retargeting",
+    "Mobile and casual 3D projects needing ready-made rigs"
+  ],
+  "visual_summary": "A pack of four stylized 3D cartoon protagonists \u2014 a criminal male, cyborg female, skater female and skater male \u2014 built from a single rigged medium-character mesh with four 1024\u00d71024 painted skins and three FBX animation clips (idle, jump, run).",
+  "zip_inventory": {
+    "total_files": 20,
+    "by_ext": {
+      ".fbx": 4,
+      ".png": 5,
+      ".svg": 4,
+      ".txt": 1,
+      ".url": 2
+    },
+    "top_level": [
+      "Animations",
+      "License.txt",
+      "Model",
+      "Preview.png",
+      "Skins",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "sample_png_dims": [
+      ["Skins/criminalMaleA.png", [1024, 1024], "RGBA"],
+      ["Skins/cyborgFemaleA.png", [1024, 1024], "RGBA"],
+      ["Skins/skaterFemaleA.png", [1024, 1024], "RGBA"],
+      ["Skins/skaterMaleA.png", [1024, 1024], "RGBA"],
+      ["Preview.png", [918, 515], "P"]
+    ]
+  }
+}

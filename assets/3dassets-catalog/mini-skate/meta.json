@@ -1,0 +1,87 @@
+{
+  "slug": "mini-skate",
+  "url": "https://kenney.nl/assets/mini-skate",
+  "title": "Mini Skate · Kenney",
+  "cleaned_title": "Mini Skate",
+  "og_description": "Download this package (20 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/mini-skate/f6068b9ce8-1709221252/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/mini-skate/00b0c2b304-1709221152/kenney_mini-skate.zip",
+  "fetched_at": "2026-08-03T22:45:31.079591+00:00",
+  "enriched_at": "2026-08-03T22:50:00.000000+00:00",
+  "asset_count": 20,
+  "category": "3D-models",
+  "subcategory": "skate-park",
+  "style_tags": [
+    "low-poly",
+    "mini",
+    "cartoon",
+    "isometric",
+    "flat-shaded",
+    "stylized"
+  ],
+  "palette": [
+    "coral-orange",
+    "periwinkle-blue",
+    "soft-purple",
+    "warm-wood",
+    "charcoal",
+    "off-white"
+  ],
+  "use_cases": [
+    "skateboarding games",
+    "arcade sports games",
+    "low-poly mobile games",
+    "level prototyping",
+    "toy/diorama scenes"
+  ],
+  "visual_summary": "Miniature 3D skate park kit with low-poly, flat-shaded ramps, halfpipes, rails, benches, grind boxes, and skateboards in a coral-orange and periwinkle-blue palette. Two chunky cartoon skater characters pose mid-trick against a dark checkered background, giving the pack a playful, toy-like, isometric feel.",
+  "zip_inventory": {
+    "archive": "kenney_mini-skate.zip",
+    "total_files": 120,
+    "by_ext": {
+      ".png": 26,
+      ".fbx": 20,
+      ".glb": 20,
+      ".obj": 20,
+      ".mtl": 20,
+      ".html": 1,
+      ".txt": 1,
+      ".url": 3,
+      "": 9
+    },
+    "top_level": {
+      "Models": 92,
+      "Previews": 21,
+      "License.txt": 1,
+      "Overview.html": 1,
+      "Preview.png": 1,
+      "Sample.png": 1,
+      "View Documentation.url": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1
+    },
+    "sample_png_dims": {
+      "Models/FBX format/Textures/colormap.png": [
+        512,
+        512
+      ],
+      "Models/GLB format/Textures/colormap.png": [
+        512,
+        512
+      ],
+      "Models/OBJ format/Textures/colormap.png": [
+        512,
+        512
+      ],
+      "Models/Textures/variation-a.png": [
+        512,
+        512
+      ],
+      "Preview.png": [
+        918,
+        515
+      ]
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "slug": "isometric-miniature-prototype",
+  "url": "https://kenney.nl/assets/isometric-miniature-prototype",
+  "title": "Isometric Miniature Prototype · Kenney",
+  "og_description": "Download this package (60 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/isometric-miniature-prototype/a3dd150426-1674932123/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/isometric-miniature-prototype/8c46fe34a0-1674932174/kenney_isometric-miniature-prototype.zip",
+  "fetched_at": "2026-08-03T22:46:13.652482+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 60,
+  "category": "tile-set",
+  "subcategory": "isometric-blocks-and-characters",
+  "style_tags": ["isometric", "flat", "modern", "vector", "low-poly"],
+  "palette": ["#E8A04C", "#B26A1F", "#8B5A1F", "#F5EBD9", "#E0CFB0", "#FFFCEF"],
+  "use_cases": ["isometric level prototyping", "game dioramas and mockups", "architecture and room layout", "educational visualizations"],
+  "visual_summary": "A modular isometric (2:1 dimetric) tile-set of warm orange miniature blocks, walls, stairs, columns, doors, fences and a small set of humanoid characters, rendered in a clean flat-shaded vector style on a soft cream floor. Each tile is provided in 4 cardinal angles (E/N/S/W) so scenes can be assembled like a paper diorama with consistent lighting and minimal visual noise.",
+  "zip_inventory": {
+    "total_files": 662,
+    "by_ext": {"png": 651, "url": 3, "txt": 1, "zip": 2},
+    "top_level": ["Angle", "Characters", "Isometric", "Information.png", "Instructions.url", "Kenney.url", "License.txt", "Patreon.url", "Preview.png", "Sample.png", "Samples"],
+    "sample_png_dims": [
+      {"file": "Angle/sloperCornerInner_N.png", "size": [256, 512], "mode": "P"},
+      {"file": "Isometric/stairs_S.png", "size": [256, 512], "mode": "P"},
+      {"file": "Angle/doorwayMiddleBottom_E.png", "size": [256, 512], "mode": "P"},
+      {"file": "Characters/Human/Human_1_Idle0.png", "size": [256, 512], "mode": "P"},
+      {"file": "Angle/slabQuarter_E.png", "size": [256, 512], "mode": "P"}
+    ]
+  },
+  "og_image_local": "preview.png"
+}

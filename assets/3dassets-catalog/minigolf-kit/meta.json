@@ -1,0 +1,78 @@
+{
+  "slug": "minigolf-kit",
+  "url": "https://kenney.nl/assets/minigolf-kit",
+  "title": "Minigolf Kit",
+  "og_description": "Download this package (125 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/minigolf-kit/a3692bcf7b-1741163840/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/minigolf-kit/3ae60d8b01-1741163874/kenney_minigolf-kit.zip",
+  "fetched_at": "2026-08-03T22:43:01.540530+00:00",
+  "enriched_at": "2026-08-03T22:45:00+00:00",
+  "asset_count": 125,
+  "category": "3D-models",
+  "subcategory": "environment",
+  "style_tags": [
+    "low-poly",
+    "cartoon",
+    "stylized",
+    "isometric",
+    "flat-shaded",
+    "vibrant",
+    "mini-golf"
+  ],
+  "palette": [
+    "#7BC96F",
+    "#E97A4A",
+    "#8B5A3C",
+    "#F2D9B6",
+    "#D94436",
+    "#3F6FBF",
+    "#2C2F3A"
+  ],
+  "use_cases": [
+    "minigolf arcade games",
+    "casual mobile mini-games",
+    "level and course design",
+    "stylized 3D environment props",
+    "rapid prototyping of golf / sports prototypes",
+    "VR / WebGL golf experiences"
+  ],
+  "visual_summary": "A stylized 3D minigolf course kit rendered in a low-poly, cartoon aesthetic. Bright green felt-style fairways are bordered by warm orange-coral rails, with wooden brown obstacles, a small windmill, arched bridges, ramps, and red/blue pin flags. Pieces are presented in a clean isometric overview on a dark slate checkered backdrop, emphasising modular course-building. Models are supplied in FBX, GLB, and OBJ formats with 512x512 P-mode color textures.",
+  "zip_inventory": {
+    "total_files": 655,
+    "by_extension": {
+      ".txt": 1,
+      "": 9,
+      ".fbx": 126,
+      ".png": 137,
+      ".glb": 126,
+      ".mtl": 126,
+      ".obj": 126,
+      ".html": 1,
+      ".url": 3
+    },
+    "top_level": [
+      "License.txt",
+      "Models",
+      "Overview.html",
+      "Preview (Spline Concave).png",
+      "Preview (Spline Default).png",
+      "Preview (Variation A).png",
+      "Preview (Variation B).png",
+      "Preview.png",
+      "Previews",
+      "Sample.png",
+      "View Documentation.url",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "model_formats": ["FBX", "GLB", "OBJ"],
+    "model_count": 126,
+    "texture_count_png": 137,
+    "sample_png_dimensions": [
+      {"path": "Models/Textures/variation-a.png", "size": "512x512", "mode": "P"},
+      {"path": "Models/Textures/variation-b.png", "size": "512x512", "mode": "P"},
+      {"path": "Preview.png", "size": "918x515", "mode": "P"}
+    ]
+  },
+  "og_image_local": "preview.png"
+}

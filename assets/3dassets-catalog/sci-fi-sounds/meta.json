@@ -1,0 +1,61 @@
+{
+  "slug": "sci-fi-sounds",
+  "url": "https://kenney.nl/assets/sci-fi-sounds",
+  "title": "Sci-fi Sounds · Kenney",
+  "cleaned_title": "Sci-fi Sounds",
+  "og_description": "Download this package (70 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/sci-fi-sounds/112ea5fed7-1677589328/audiopreview_scifi.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/sci-fi-sounds/6b296f9ecf-1677589334/kenney_sci-fi-sounds.zip",
+  "fetched_at": "2026-08-03T22:46:00.084607+00:00",
+  "enriched_at": "2026-08-03T22:55:00.000000+00:00",
+  "asset_count": 73,
+  "category": "audio",
+  "subcategory": "sci-fi-sfx",
+  "style_tags": [
+    "sci-fi",
+    "8-bit-stylized",
+    "retro-futuristic",
+    "flat-icon",
+    "vector-illustration",
+    "minimal"
+  ],
+  "palette": [
+    "#3DDC97",
+    "#FFFFFF",
+    "#2C2C2C",
+    "#A5D5C9",
+    "#4A4A4A"
+  ],
+  "use_cases": [
+    "indie sci-fi games",
+    "space shooters",
+    "retro arcade games",
+    "computer/terminal UIs",
+    "robot and drone SFX",
+    "laser and weapon audio",
+    "engine and vehicle loops",
+    "door and hatch interfaces"
+  ],
+  "visual_summary": "Preview art on a vibrant mint-green background. A pale circle frames a flat, stylized loudspeaker icon in white and muted teal, with a small dark rounded-square badge in front of it showing a cartoon UFO. Minimal vector style, rounded shapes, no gradients, communicates audio + sci-fi theme at a glance.",
+  "zip_inventory": {
+    "total_files": 78,
+    "by_ext": {
+      "ogg": 73,
+      "txt": 1,
+      "url": 2,
+      "ini": 1,
+      "": 1
+    },
+    "top_level": [
+      "License.txt",
+      "Patreon.url",
+      "Kenney.url",
+      "Audio"
+    ],
+    "audio_format": "ogg",
+    "audio_count": 73,
+    "audio_subdirs": [],
+    "note": "Files are flat in Audio/ with snake_case grouped prefixes (e.g. computerNoise_000..NNN, doorClose_000, engineCircular_000, laser_000)."
+  }
+}

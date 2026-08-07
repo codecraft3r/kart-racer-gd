@@ -1,0 +1,79 @@
+{
+  "slug": "city-kit-commercial",
+  "url": "https://kenney.nl/assets/city-kit-commercial",
+  "title": "City Kit (Commercial)",
+  "og_description": "Download this package (50 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/city-kit-commercial/ca60ea54ef-1747481474/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/city-kit-commercial/a742d900eb-1753115042/kenney_city-kit-commercial_2.1.zip",
+  "fetched_at": "2026-08-03T22:41:52.158516+00:00",
+  "enriched_at": "2026-08-04T00:00:00+00:00",
+  "asset_count": 50,
+  "category": "3D Models",
+  "subcategory": "Urban / Commercial Buildings",
+  "style_tags": [
+    "low-poly",
+    "isometric",
+    "voxel-like",
+    "flat-shaded",
+    "clean",
+    "modern",
+    "stylized",
+    "vector-look"
+  ],
+  "palette": [
+    "#FFFFFF",
+    "#2A2D34",
+    "#9AA4AD",
+    "#3D5A80",
+    "#A8D8EA",
+    "#4CAF50",
+    "#2E7D32",
+    "#F2A93B",
+    "#E76F51"
+  ],
+  "use_cases": [
+    "city builder / tycoon games",
+    "isometric strategy and management sims",
+    "mobile casual and hyper-casual games",
+    "urban planning prototypes and mockups",
+    "low-poly 3D scenes for animation or VR",
+    "commercial block compositions (offices, shops, hotels, plazas)"
+  ],
+  "visual_summary": "Low-poly isometric 3D city block composed of modern commercial buildings — white-and-gray multi-story offices, shopfronts with awnings, hotels, a tall glass tower, and a highway overpass. Buildings sit on dark gray roads with light sidewalks, accented by small green trees, a park patch, billboards, and street furniture. Flat-shaded surfaces, soft window highlights, and a tight white/charcoal/blue palette give it a clean, stylized Kenney look.",
+  "zip_inventory": {
+    "total_files": 228,
+    "by_ext": {
+      ".png": 50,
+      ".obj": 41,
+      ".mtl": 41,
+      ".fbx": 41,
+      ".glb": 41,
+      ".txt": 1,
+      ".html": 1,
+      ".url": 3,
+      "": 9
+    },
+    "top_level": [
+      "License.txt",
+      "Models",
+      "Overview.html",
+      "Preview.png",
+      "Preview (Variation A).png",
+      "Preview (Variation B).png",
+      "Previews",
+      "Sample.png",
+      "View Documentation.url",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "sample_png_dims": [
+      "Models/FBX format/Textures/colormap.png 512x512 RGBA",
+      "Models/GLB format/Textures/colormap.png 512x512 RGBA",
+      "Models/OBJ format/Textures/colormap.png 512x512 RGBA",
+      "Models/Textures/variation-a.png 512x512 RGBA",
+      "Models/Textures/variation-b.png 512x512 RGBA"
+    ],
+    "zip_filename": "kenney_city-kit-commercial_2.1.zip"
+  },
+  "og_image_local": "preview.png"
+}

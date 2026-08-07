@@ -1,0 +1,118 @@
+{
+  "slug": "isometric-roads",
+  "url": "https://kenney.nl/assets/isometric-roads",
+  "title": "Isometric Roads · Kenney",
+  "cleaned_title": "Isometric Roads",
+  "og_description": "Download this package (95 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/isometric-roads/aff462257f-1677695242/preview.jpg",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/isometric-roads/d3b7757a28-1677695247/kenney_isometric-roads.zip",
+  "fetched_at": "2026-08-03T22:49:00.856552+00:00",
+  "enriched_at": "2026-08-04T00:00:00Z",
+  "asset_count": 95,
+  "category": "2D-sprites",
+  "subcategory": "isometric-tileset",
+  "style_tags": [
+    "isometric",
+    "low-poly",
+    "vector-flat",
+    "clean-edges",
+    "modular",
+    "top-down-3-4",
+    "casual-game",
+    "city-builder"
+  ],
+  "palette": [
+    "#7BBF4A",
+    "#5DA636",
+    "#3D7A24",
+    "#3F4248",
+    "#6E7178",
+    "#9DA3AB",
+    "#7DC9E8",
+    "#B5E2F2",
+    "#E8D9A6",
+    "#A07A4A",
+    "#F4E8C2",
+    "#FFFFFF"
+  ],
+  "use_cases": [
+    "isometric city builders",
+    "town and village sims",
+    "transport and road puzzles",
+    "casual mobile strategy",
+    "low-poly tycoon games",
+    "tile-based world maps"
+  ],
+  "visual_summary": "Modular isometric tile set for road, water, beach, hill, bridge, lot and tree placement. Each tile is rendered at a 3/4 axonometric angle on a rhombus footprint, with crisp 2-tone vector shading, no outlines, and chunky bevelled edges. Roads and parking lots use dark asphalt grey with white lane stripes; terrain tiles layer green grass, light blue water, and tan sand. Directional variants use N/S/E/W and NEx/NWx/ESx/SWx cardinal+suffix codes so tiles snap into continuous networks. Accent props (4 conifer and deciduous tree sprites) and 2 small bridges round out the kit for procedural or hand-built isometric maps.",
+  "zip_inventory": {
+    "zip_file": "kenney_isometric-roads.zip",
+    "total_files": 102,
+    "by_ext": {
+      "png": 96,
+      "jpg": 1,
+      "svg": 1,
+      "ai": 1,
+      "swf": 1,
+      "txt": 1
+    },
+    "top_level": {
+      "readme.txt": 1,
+      "roadTiles.ai": 1,
+      "roadTiles.svg": 1,
+      "roadTiles.swf": 1,
+      "png": 97,
+      "preview.jpg": 1
+    },
+    "png_count": 96,
+    "png_dimensions_sample": [
+      [
+        "png/beach.png",
+        [
+          100,
+          65
+        ],
+        "RGBA"
+      ],
+      [
+        "png/beachCornerES.png",
+        [
+          100,
+          58
+        ],
+        "RGBA"
+      ],
+      [
+        "png/beachCornerNE.png",
+        [
+          100,
+          65
+        ],
+        "RGBA"
+      ],
+      [
+        "png/road.png",
+        "tbd",
+        "RGBA"
+      ],
+      [
+        "png/water.png",
+        "tbd",
+        "RGBA"
+      ]
+    ],
+    "category_breakdown": {
+      "road": 15,
+      "water": 13,
+      "beach": 13,
+      "river": 12,
+      "hill": 8,
+      "lot": 8,
+      "end_exit": 8,
+      "crossroad": 5,
+      "tree": 4,
+      "grass_dirt": 4,
+      "bridge": 2
+    }
+  }
+}

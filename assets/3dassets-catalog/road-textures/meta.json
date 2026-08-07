@@ -1,0 +1,45 @@
+{
+  "slug": "road-textures",
+  "url": "https://kenney.nl/assets/road-textures",
+  "title": "Road Textures",
+  "og_description": "Download this package (90 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/road-textures/ff59060e3f-1677578345/preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/road-textures/dbe293b0ed-1677578348/kenney_road-textures.zip",
+  "fetched_at": "2026-08-03T22:46:16.935769+00:00",
+  "enriched_at": "2026-08-03T23:00:00+00:00",
+  "asset_count": 90,
+  "category": "tile-set",
+  "subcategory": "roads-and-urban",
+  "style_tags": ["top-down", "flat", "vector", "modular", "clean-lines", "isometric-friendly", "minimal", "stylized"],
+  "palette": ["#2A2F33", "#3FA34D", "#7FC8E8", "#FFFFFF", "#F2D6A0", "#5BA9D6", "#1F2429"],
+  "use_cases": ["top-down driving games", "city builders", "isometric urban scenes", "traffic sims", "pedestrian areas", "tile-based maps", "game jams", "educational prototypes"],
+  "visual_summary": "Modular top-down road and sidewalk tile set with two clear lanes of art. The upper portion shows dark asphalt road segments on green grass: roundabouts of two sizes, four-way and three-way intersections, T-junctions, dead-ends, straight runs, gentle curves, crossings, and small connector nubs. The lower portion shows light blue pedestrian and pavement tiles including straight sidewalks, corners, T-junctions, crossings, round plazas, and sandy-beige dirt patches. All tiles are 64x64, flat-shaded, crisp-edged, and clearly designed to snap together on a grid for procedural or hand-built city maps.",
+  "og_image_local": "preview.png",
+  "zip_inventory": {
+    "total_files": 288,
+    "by_ext": {
+      "png": 276,
+      "svg": 2,
+      "url": 2,
+      "txt": 1
+    },
+    "top_level": {
+      "Tilesheet": 3,
+      "Vector": 2,
+      "Kenney.url": 1,
+      "License.txt": 1,
+      "Patreon.url": 1,
+      "Preview.png": 1,
+      "Legacy": 84,
+      "PNG": 195
+    },
+    "sample_png_dims": [
+      "Tilesheet/roadTextures_tilesheet.png: 768x512",
+      "Tilesheet/roadTextures_tilesheet@2.png: 1536x1024",
+      "Preview.png: 918x515",
+      "Legacy/PNG/roadTile1.png: 64x64",
+      "Legacy/PNG/roadTile10.png: 64x64",
+      "Legacy/PNG/roadTile11.png: 64x64"
+    ]
+  }
+}

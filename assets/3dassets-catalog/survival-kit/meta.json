@@ -1,0 +1,101 @@
+{
+  "slug": "survival-kit",
+  "url": "https://kenney.nl/assets/survival-kit",
+  "title": "Survival Kit · Kenney",
+  "title_clean": "Survival Kit",
+  "og_description": "Download this package (80 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/survival-kit/4c1d761236-1712149236/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/survival-kit/4065a8185b-1712149243/kenney_survival-kit.zip",
+  "fetched_at": "2026-08-03T22:45:01.222700+00:00",
+  "enriched_at": "2026-08-04T00:00:00+00:00",
+  "asset_count": 80,
+  "category": "3D-models",
+  "subcategory": "low-poly 3D props",
+  "style_tags": [
+    "low-poly",
+    "flat-shaded",
+    "cartoon",
+    "stylized",
+    "diorama",
+    "vibrant",
+    "hand-painted",
+    "isometric-friendly"
+  ],
+  "palette": [
+    "forest green",
+    "autumn orange",
+    "warm brown",
+    "weathered grey-blue",
+    "sandy beige",
+    "soft red accent",
+    "cerulean blue accent"
+  ],
+  "use_cases": [
+    "stylized survival or camping game scenes",
+    "open-world forest, campsite and outpost prototypes",
+    "mobile hyper-casual and low-poly PC/console titles",
+    "game-jam, MVP and educational 3D demos",
+    "VR/AR dioramas and Three.js/Blender showcases",
+    "base-building and resource-gathering prototypes"
+  ],
+  "visual_summary": "Isometric diorama of 80 low-poly 3D survival props (tents, watchtower, campfire, log pile, fence, pine trees, rocks, lantern, axe, signpost, bed, bench, tarp, bottles, skulls) on sandy ground with green grass patches, autumn-orange and green pines, and weathered wood and stone elements; flat-shaded, rounded, chunky cartoon silhouettes in a vibrant Kenney signature palette of forest green, autumn orange, warm brown and cool grey-blue.",
+  "zip_inventory": {
+    "zip_file": "kenney_survival-kit.zip",
+    "total_files": 421,
+    "by_ext": {
+      "png": 87,
+      "fbx": 80,
+      "glb": 80,
+      "mtl": 80,
+      "obj": 80,
+      "url": 3,
+      "txt": 1,
+      "html": 1
+    },
+    "top_level": [
+      "License.txt",
+      "Models",
+      "Overview.html",
+      "Preview (Variation A).png",
+      "Preview.png",
+      "Previews",
+      "Sample.png",
+      "View Documentation.url",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "sample_png_dims": [
+      {
+        "name": "Models/FBX format/Textures/colormap.png",
+        "w": 512,
+        "h": 512,
+        "mode": "P"
+      },
+      {
+        "name": "Models/GLB format/Textures/colormap.png",
+        "w": 512,
+        "h": 512,
+        "mode": "P"
+      },
+      {
+        "name": "Models/OBJ format/Textures/colormap.png",
+        "w": 512,
+        "h": 512,
+        "mode": "P"
+      },
+      {
+        "name": "Models/Textures/variation-a.png",
+        "w": 512,
+        "h": 512,
+        "mode": "P"
+      },
+      {
+        "name": "Preview (Variation A).png",
+        "w": 918,
+        "h": 515,
+        "mode": "P"
+      }
+    ]
+  }
+}

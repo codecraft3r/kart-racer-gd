@@ -1,0 +1,86 @@
+{
+  "slug": "skyboxes",
+  "url": "https://kenney.nl/assets/skyboxes",
+  "title": "Skyboxes · Kenney",
+  "og_description": "Download this package (5 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/skyboxes/d32d55b81b-1784123468/sample-day.png",
+  "download_url": "https://kenney.nl/media/pages/assets/skyboxes/6736ff5c10-1784123473/kenney_skyboxes.zip",
+  "fetched_at": "2026-08-03T22:25:41.092900+00:00",
+  "enriched_at": "2026-08-03T22:30:00+00:00",
+  "asset_count": 5,
+  "category": "3D-models",
+  "subcategory": "skybox equirectangular textures (cube maps)",
+  "style_tags": [
+    "realistic",
+    "modern",
+    "photographic"
+  ],
+  "palette": [
+    "#85b3f0",
+    "#abbde7",
+    "#b5c9f2",
+    "#ffffff",
+    "#4a7fc5",
+    "#e6f0fa"
+  ],
+  "use_cases": [
+    "first-person 3D games",
+    "flying/racing simulators",
+    "open-world exploration",
+    "VR experiences"
+  ],
+  "visual_summary": "Five photorealistic equirectangular (4096x2048) sky textures for use as cube-mapped skyboxes in 3D engines. The pack covers day, morning, night, alien, and space atmospheres with soft gradient skies, scattered cloud layers, and visible celestial bodies (sun, moon, stars) in a clean, modern illustrative style.",
+  "og_image_local": "preview.png",
+  "zip_inventory": {
+    "total_files": 13,
+    "by_ext": {
+      ".png": 8,
+      ".txt": 1,
+      ".url": 3
+    },
+    "top_level": [
+      "Instructions.url",
+      "License.txt",
+      "Preview.png",
+      "Sample (Day).png",
+      "Sample (Night).png",
+      "Skyboxes",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "sample_png_dims": {
+      "Preview.png": [
+        918,
+        515
+      ],
+      "Sample (Day).png": [
+        918,
+        515
+      ],
+      "Sample (Night).png": [
+        918,
+        515
+      ],
+      "Skyboxes/skybox-alien.png": [
+        4096,
+        2048
+      ],
+      "Skyboxes/skybox-day.png": [
+        4096,
+        2048
+      ],
+      "Skyboxes/skybox-morning.png": [
+        4096,
+        2048
+      ],
+      "Skyboxes/skybox-night.png": [
+        4096,
+        2048
+      ],
+      "Skyboxes/skybox-space.png": [
+        4096,
+        2048
+      ]
+    }
+  }
+}

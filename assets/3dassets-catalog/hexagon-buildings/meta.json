@@ -1,0 +1,61 @@
+{
+  "slug": "hexagon-buildings",
+  "url": "https://kenney.nl/assets/hexagon-buildings",
+  "title": "Hexagon Buildings · Kenney",
+  "og_description": "Download this package (80 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/hexagon-buildings/d6884fb456-1677669578/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/hexagon-buildings/9d582923eb-1677669588/kenney_hexagon-buildings.zip",
+  "fetched_at": "2026-08-03T22:48:18.248525+00:00",
+  "enriched_at": "2026-08-04T00:00:00.000000+00:00",
+  "asset_count": 80,
+  "category": "2D-sprites",
+  "subcategory": "isometric-tiles",
+  "style_tags": [
+    "isometric",
+    "low-poly",
+    "vector",
+    "flat",
+    "cartoon",
+    "modern"
+  ],
+  "palette": [
+    "#A8AEB4",
+    "#D85A2A",
+    "#7AB957",
+    "#B8E0EC",
+    "#8B5A3C"
+  ],
+  "use_cases": [
+    "tower defense games",
+    "turn-based strategy",
+    "city builders on hex grids",
+    "board-game style maps"
+  ],
+  "visual_summary": "Isometric hexagonal tile set of stylized low-poly buildings — gray stone towers with orange pointy and rounded roofs, hexagonal grass and water platforms, accented with small green trees and flags. Rendered in a clean, flat-shaded cartoon style optimized for hex-grid strategy and city-building games.",
+  "zip_inventory": {
+    "total_files": 94,
+    "by_ext": {
+      ".png": 87,
+      ".xml": 1,
+      ".svg": 1,
+      ".swf": 1,
+      ".txt": 1,
+      "": 3
+    },
+    "top_level": [
+      "Spritesheet",
+      "Tiles",
+      "Vector",
+      "license.txt",
+      "preview.png",
+      "sample.png"
+    ],
+    "sample_png_dims": {
+      "preview.png": [750, 532],
+      "sample.png": [425, 504],
+      "Tiles/door.png": [8, 21],
+      "Spritesheet/sheet.png": [1024, 1024]
+    }
+  }
+}

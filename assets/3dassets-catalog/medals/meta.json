@@ -1,0 +1,130 @@
+{
+  "slug": "medals",
+  "url": "https://kenney.nl/assets/medals",
+  "title": "Medals",
+  "og_description": "Download this package (27 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/medals/547993004d-1677699967/preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/medals/4ed820ff57-1677699973/kenney_medals.zip",
+  "fetched_at": "2026-08-03T22:48:18.226524+00:00",
+  "enriched_at": "2026-08-04T00:34:38.404665+00:00",
+  "asset_count": 27,
+  "category": "2D-sprites",
+  "subcategory": "achievement-medals",
+  "style_tags": [
+    "flat",
+    "vector",
+    "cartoon",
+    "ribbon",
+    "circular-medallion",
+    "rank-insignia",
+    "shiny"
+  ],
+  "palette": [
+    "gold",
+    "silver",
+    "bronze",
+    "red",
+    "blue",
+    "white",
+    "green",
+    "purple",
+    "yellow"
+  ],
+  "use_cases": [
+    "game-achievements",
+    "leaderboards",
+    "trophy-cabinets",
+    "rank-systems",
+    "event-rewards",
+    "ui-badges",
+    "quiz-rewards",
+    "kids-game-rewards"
+  ],
+  "visual_summary": "A grid of 24 ribbon-and-medallion achievement icons (3 rows x 8) on a blue background. Each medal pairs a colored striped ribbon (red/white, blue/white, gold, green/white, purple) with a circular metallic disc in gold, silver, or bronze. The disc faces carry simple rank/star/medal/symbol motifs. Flat vector look with subtle highlights, very clean and readable at small sizes. Pack contains matching PNG sprites (transparent), a combined spritesheet, an SVG source, and documentation.",
+  "zip_inventory": {
+    "total_files": 38,
+    "by_ext": {
+      "<noext>": 3,
+      ".png": 31,
+      ".svg": 1,
+      ".txt": 1,
+      ".url": 2
+    },
+    "top_level": [
+      "PNG",
+      "Spritesheet",
+      "Vector",
+      "License.txt",
+      "Preview.png",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "sample_png_dims": [
+      [
+        "PNG/flatshadow_medal1.png",
+        [
+          41,
+          75
+        ],
+        "P"
+      ],
+      [
+        "PNG/flatshadow_medal2.png",
+        [
+          41,
+          75
+        ],
+        "P"
+      ],
+      [
+        "PNG/flatshadow_medal3.png",
+        [
+          41,
+          75
+        ],
+        "P"
+      ],
+      [
+        "PNG/flatshadow_medal4.png",
+        [
+          41,
+          75
+        ],
+        "P"
+      ],
+      [
+        "PNG/flatshadow_medal5.png",
+        [
+          41,
+          75
+        ],
+        "P"
+      ],
+      [
+        "PNG/flatshadow_medal6.png",
+        [
+          41,
+          75
+        ],
+        "P"
+      ],
+      [
+        "PNG/flatshadow_medal7.png",
+        [
+          41,
+          75
+        ],
+        "P"
+      ],
+      [
+        "PNG/flatshadow_medal8.png",
+        [
+          41,
+          75
+        ],
+        "P"
+      ]
+    ]
+  },
+  "og_image_local": "preview.png"
+}

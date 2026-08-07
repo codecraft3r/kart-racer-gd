@@ -1,0 +1,73 @@
+{
+  "slug": "sports-pack",
+  "url": "https://kenney.nl/assets/sports-pack",
+  "title": "Sports Pack · Kenney",
+  "og_description": "Download this package (380 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/sports-pack/31866d3abe-1677693275/sample1.png",
+  "download_url": "https://kenney.nl/media/pages/assets/sports-pack/ede5629412-1677693282/kenney_sports-pack.zip",
+  "fetched_at": "2026-08-03T22:46:27.012228+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 380,
+  "category": "2D-sprites",
+  "subcategory": "sports-characters-tilesets",
+  "style_tags": [
+    "top-down",
+    "flat",
+    "vector",
+    "cartoon",
+    "chibi",
+    "minimal-shaded",
+    "tile-based",
+    "isometric-friendly",
+    "colorful",
+    "clean-linework"
+  ],
+  "palette": [
+    "#3DBF4F",
+    "#2FA63E",
+    "#1E7A2A",
+    "#FFFFFF",
+    "#E8453C",
+    "#2D7BD1",
+    "#F0A030",
+    "#5A3A22",
+    "#F2D0A0",
+    "#0F0F0F"
+  ],
+  "use_cases": [
+    "top-down football/soccer game",
+    "arcade hockey or field-sports prototypes",
+    "stadium and field tilesets",
+    "character/equipment kits (soccer ball, bat, racket, whistle, trophy)",
+    "multiplayer party-sports games",
+    "school gym and playground scenes"
+  ],
+  "visual_summary": "Top-down 2D sports sprite pack from Kenney: rounded cartoon player characters in colored jerseys (red, blue, orange, dark) on a striped green field with white line markings, goals, soccer ball, trophy and whistle props. Flat vector art with simple soft shading, bright saturated colors, and a clean tile-based layout. Includes matching tilesheets for grass, mown grass, gravel, tarmac, ice and beige surfaces, plus equipment sprites and animations.",
+  "zip_inventory": {
+    "total_files": 249,
+    "by_ext": {
+      "png": 206,
+      "svg": 14,
+      "swf": 14,
+      "xml": 3,
+      "txt": 1,
+      "noext": 11
+    },
+    "top_level": [
+      "Spritesheet/",
+      "Tilesheet/",
+      "Vector/",
+      "PNG/",
+      "License.txt",
+      "Preview.png",
+      "Sample1.png",
+      "Sample2.png"
+    ],
+    "sample_png_dims": [
+      {"size": [832, 1024], "mode": "P", "count": 12, "note": "character/equipment tilesheets, palette-indexed"},
+      {"size": [918, 515], "mode": "RGBA", "count": 3, "note": "previews and sample compositions"},
+      {"size": [576, 576], "mode": "RGBA", "count": 1, "note": "icon-style asset"}
+    ]
+  },
+  "og_image_local": "preview.png"
+}

@@ -1,0 +1,76 @@
+{
+  "slug": "3d-road-tiles",
+  "url": "https://kenney.nl/assets/3d-road-tiles",
+  "title": "3D Road Tiles · Kenney",
+  "og_description": "Download this package (300 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/3d-road-tiles/525cc2181c-1677581258/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/3d-road-tiles/3fbfaa7ec8-1677581262/kenney_3d-road-tiles.zip",
+  "fetched_at": "2026-08-03T22:46:48.120833+00:00",
+  "enriched_at": "2026-08-03T23:28:39+00:00",
+  "asset_count": 300,
+  "category": "3D-models",
+  "subcategory": "low-poly-road-tiles",
+  "style_tags": [
+    "low-poly",
+    "modern",
+    "cartoon",
+    "flat"
+  ],
+  "palette": [
+    "#8ab549",
+    "#696969",
+    "#d8d3bf",
+    "#b0d7f6",
+    "#b89065",
+    "#ffffff"
+  ],
+  "use_cases": [
+    "city builder",
+    "racing track",
+    "strategy game",
+    "level prototyping"
+  ],
+  "visual_summary": "A modular low-poly 3D road and terrain tile set featuring crisp asphalt streets, stone paths, rolling green hills, geometric trees, and a light blue water tile. The clean faceted geometry and flat shaded surfaces give a bright, modern cartoon look. Palette pairs warm grass and stone tones with cool gray roads and water for a friendly, playable city-builder feel.",
+  "zip_inventory": {
+    "total_files": 920,
+    "by_ext": {
+      "(none)": 5,
+      "unitypackage": 1,
+      "url": 3,
+      "txt": 2,
+      "png": 2,
+      "py": 1,
+      "gltf": 302,
+      "mtl": 302,
+      "obj": 302
+    },
+    "top_level": [
+      "Convert",
+      "Donate on Itch.io.url",
+      "Donate on Steam.url",
+      "Facebook.url",
+      "License.txt",
+      "Models",
+      "Preview.png",
+      "Sample.png",
+      "Unity package"
+    ],
+    "sample_png_dims": [
+      [
+        "Preview.png",
+        [
+          918,
+          515
+        ]
+      ],
+      [
+        "Sample.png",
+        [
+          918,
+          515
+        ]
+      ]
+    ]
+  },
+  "og_image_local": "preview.png"
+}

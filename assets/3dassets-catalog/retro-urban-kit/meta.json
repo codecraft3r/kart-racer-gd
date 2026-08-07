@@ -1,0 +1,49 @@
+{
+  "slug": "retro-urban-kit",
+  "url": "https://kenney.nl/assets/retro-urban-kit",
+  "title": "Retro Urban Kit",
+  "og_description": "Download this package (120 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/retro-urban-kit/b9c649752d-1738147501/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/retro-urban-kit/8314d4db22-1738147509/kenney_retro-urban-kit.zip",
+  "fetched_at": "2026-08-03T22:44:23.966891+00:00",
+  "enriched_at": "2026-08-04T00:00:00.000000+00:00",
+  "asset_count": 120,
+  "category": "3D-models",
+  "subcategory": "buildings",
+  "style_tags": ["isometric", "low-poly", "retro", "urban", "gritty", "hand-painted", "modular", "post-apocalyptic", "abandoned"],
+  "palette": ["brick red", "weathered brown", "faded green", "concrete gray", "asphalt gray", "autumn orange", "rust", "off-white"],
+  "use_cases": ["isometric city builders", "post-apocalyptic survival scenes", "urban exploration games", "crime/detective settings", "dystopian top-down shooters", "modular level prototyping", "retro 3D adventure games"],
+  "visual_summary": "Isometric 3D low-poly urban environment kit featuring weathered multi-story brick and wood buildings, an industrial scaffolding tower, delivery truck, dumpsters, autumn-leaved trees, cracked asphalt streets, sidewalks, fencing, and overhead power lines. Hand-painted diffuse textures give a gritty, lived-in, retro/post-apocalyptic mood; muted earthy palette of brick red, faded green, weathered brown and concrete gray accented by orange autumn foliage.",
+  "zip_inventory": {
+    "total_files": 701,
+    "by_ext": {
+      ".png": 192,
+      ".glb": 124,
+      ".fbx": 124,
+      ".obj": 124,
+      ".mtl": 124,
+      ".txt": 1,
+      ".html": 1,
+      ".url": 3
+    },
+    "top_level": {
+      "Models": 569,
+      "Previews": 125,
+      "License.txt": 1,
+      "Overview.html": 1,
+      "Preview.png": 1,
+      "Sample.png": 1,
+      "View Documentation.url": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1
+    },
+    "sample_png_dims": [
+      ["Models/FBX format/Textures/asphalt.png", [64, 64], "P"],
+      ["Models/FBX format/Textures/bars.png", [64, 64], "P"],
+      ["Models/FBX format/Textures/concrete.png", [64, 64], "P"],
+      ["Models/FBX format/Textures/dirt.png", [64, 64], "P"],
+      ["Models/FBX format/Textures/doors.png", [64, 64], "P"]
+    ]
+  },
+  "og_image_local": "preview.png"
+}

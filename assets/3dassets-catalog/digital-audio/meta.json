@@ -1,0 +1,73 @@
+{
+  "slug": "digital-audio",
+  "url": "https://kenney.nl/assets/digital-audio",
+  "title": "Digital Audio · Kenney",
+  "og_description": "Download this package (60 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/digital-audio/f240714ae3-1677590256/preview-3.png",
+  "download_url": "https://kenney.nl/media/pages/assets/digital-audio/216eac4753-1677590265/kenney_digital-audio.zip",
+  "fetched_at": "2026-08-03T22:49:00.856552+00:00",
+  "enriched_at": "2026-08-03T23:55:30.827840+00:00",
+  "asset_count": 60,
+  "category": "audio",
+  "subcategory": "sfx",
+  "style_tags": [
+    "flat",
+    "vector",
+    "modern",
+    "retro-arcade",
+    "8-bit",
+    "sci-fi",
+    "game-sfx",
+    "chip-style"
+  ],
+  "palette": [
+    "#3DBB8B",
+    "#FFFFFF",
+    "#D9E4E1",
+    "#2B2B2B",
+    "#5BC0DE"
+  ],
+  "use_cases": [
+    "Indie game UI feedback sounds",
+    "Retro/arcade game effects",
+    "Sci-fi shoot-em-up SFX",
+    "Power-up and level-up cues",
+    "Menu button beeps and toggles",
+    "Prototype placeholder audio"
+  ],
+  "visual_summary": "Square preview tile on a vibrant teal-green background (#3DBB8B). Center: a flat white circular badge containing a stylized speaker/loudspeaker icon in white and pale blue-grey with a bold dark outline. Bottom-right: a dark charcoal rounded-square badge with a small white cartoon \"audio bug\" glyph. Overall a clean, flat, modern vector illustration in Kenney's signature minimal game-art style.",
+  "zip_inventory": {
+    "total_files": 68,
+    "by_ext": {
+      ".ogg": 63,
+      ".url": 2,
+      ".ini": 1,
+      ".txt": 1,
+      "": 1
+    },
+    "top_level": {
+      "Preview.ogg": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1,
+      "Audio/": 64,
+      "License.txt": 1
+    },
+    "audio_count_excl_preview": 62,
+    "audio_format": "Ogg Vorbis (OggS container)",
+    "audio_categories": {
+      "laser": 9,
+      "phase": 15,
+      "power": 12,
+      "zap": 6,
+      "pep": 5,
+      "low": 3,
+      "high": 2,
+      "tone": 1,
+      "other_misc": 9
+    },
+    "license_file": "License.txt",
+    "notes": "All SFX are short, mono, Ogg Vorbis. Names suggest laser blasts, power-ups, phase-jumps, zap/electric and pep UI blips."
+  },
+  "og_image_local": "preview.png",
+  "cleaned_title": "Digital Audio"
+}

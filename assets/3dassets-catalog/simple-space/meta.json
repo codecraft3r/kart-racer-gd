@@ -1,0 +1,56 @@
+{
+  "slug": "simple-space",
+  "url": "https://kenney.nl/assets/simple-space",
+  "title": "Simple Space",
+  "og_description": "Download this package (48 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/simple-space/489b432d65-1677578140/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/simple-space/b9b0968a6b-1677578143/kenney_simple-space.zip",
+  "fetched_at": "2026-08-03T22:46:00.331815+00:00",
+  "enriched_at": "2026-08-03T22:50:00.000000+00:00",
+  "asset_count": 48,
+  "category": "2D-sprites",
+  "subcategory": "top-down space shooter",
+  "style_tags": ["flat", "vector", "minimal", "cartoon", "rounded", "white-on-dark", "sci-fi", "top-down"],
+  "palette": ["#0F62FE", "#000000", "#FFFFFF", "#FFC233", "#7A4BFF", "#1A1A1A"],
+  "use_cases": ["2D top-down space shooters", "vertical scrollers", "shmups", "arcade space games", "mobile space games", "twin-stick shooters", "tower defense space themes"],
+  "visual_summary": "Flat 2D top-down space game art with rounded cartoon ships, asteroids, satellites, stations, enemies, stars and radar HUD icons rendered as clean white silhouettes on dark circular dials, accented with yellow/orange flame and purple effect highlights against a bright sky-blue background.",
+  "zip_inventory": {
+    "total_files": 115,
+    "by_ext": {
+      ".png": 102,
+      ".svg": 1,
+      ".swf": 1,
+      ".url": 2,
+      ".txt": 1,
+      ".xml": 2,
+      "": 6
+    },
+    "top_level": {
+      "Kenney.url": 1,
+      "License.txt": 1,
+      "Patreon.url": 1,
+      "Preview.png": 1,
+      "Sample.png": 1,
+      "PNG/Default": 48,
+      "PNG/Retina": 48,
+      "Spritesheet": 5,
+      "Tilesheet": 3,
+      "Vector": 3
+    },
+    "sample_dims": {
+      "PNG/Default/effect_purple.png": [64, 64],
+      "PNG/Default/ship_A.png": [64, 64],
+      "PNG/Default/station_A.png": [64, 64],
+      "Tilesheet/simpleSpace_tilesheet.png": [512, 384],
+      "Spritesheet/simpleSpace_sheet.png": "varies",
+      "Preview.png": [918, 515]
+    },
+    "png_count": 102,
+    "unique_assets_default": 48,
+    "has_retina": true,
+    "has_spritesheet": true,
+    "has_tilesheet": true,
+    "has_vector_svg": true
+  },
+  "og_image_local": "preview.png"
+}
