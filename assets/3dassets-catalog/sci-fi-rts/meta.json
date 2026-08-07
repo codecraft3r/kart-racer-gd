@@ -1,0 +1,141 @@
+{
+  "slug": "sci-fi-rts",
+  "url": "https://kenney.nl/assets/sci-fi-rts",
+  "title": "Sci-Fi RTS · Kenney",
+  "og_description": "Download this package (120 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/sci-fi-rts/f4e82fcedc-1677693646/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/sci-fi-rts/792bcb9cd5-1677693650/kenney_sci-fi-rts.zip",
+  "fetched_at": "2026-08-03T22:46:53.090437+00:00",
+  "enriched_at": "2026-08-04T00:00:00+00:00",
+  "cleaned_title": "Sci-Fi RTS",
+  "asset_count": 120,
+  "category": "2D-sprites",
+  "subcategory": "RTS-units-buildings",
+  "style_tags": [
+    "top-down",
+    "flat-shaded",
+    "cartoon",
+    "vector-style",
+    "sci-fi",
+    "tile-based",
+    "rgba-transparent",
+    "64x64",
+    "isometric-perspective"
+  ],
+  "palette": {
+    "terrain_rust": "#C8553B",
+    "terrain_highlight": "#E27655",
+    "structure_gray": "#A8AEB4",
+    "structure_shadow": "#6B7178",
+    "vehicle_red": "#D75B4A",
+    "accent_orange": "#E8924A",
+    "tank_blue": "#3D6E96",
+    "vegetation_purple": "#8A4FB8",
+    "vegetation_green": "#4FA85C",
+    "water_ice": "#B9D6D7",
+    "rock_gray": "#B5BAC0"
+  },
+  "use_cases": [
+    "2D real-time strategy games",
+    "Sci-fi base builders",
+    "Top-down tactical games",
+    "Tower defense games",
+    "Mars / colony / alien planet prototypes",
+    "Game jams and rapid prototyping",
+    "Educational / classroom strategy demos"
+  ],
+  "visual_summary": "Top-down 2D sci-fi real-time strategy sprite pack set on a rust-red alien or Mars-like terrain, with a flat cartoon vector look and subtle shading. The set covers a complete RTS kit: domed command structures, hangars, factories and defensive turrets (cool gray with red accents), red and blue military vehicles (tanks, rovers, walkers, transports), small infantry units, plus an environment layer of purple and green alien trees, gray rocks, and a winding ice-blue river. Sprites are tile-aligned at 64x64 with transparent backgrounds and a matching spritesheet, retina set, tilesheet, and an editable SVG vector source.",
+  "zip_inventory": {
+    "zip_file": "kenney_sci-fi-rts.zip",
+    "total_files": 279,
+    "by_ext": {
+      ".png": 259,
+      ".xml": 2,
+      ".txt": 2,
+      ".svg": 1,
+      ".swf": 1,
+      "": 14
+    },
+    "top_level": {
+      "PNG/Default size": 131,
+      "PNG/Retina": 131,
+      "Spritesheet": 4,
+      "Tilesheet": 3,
+      "Vector": 2
+    },
+    "sample_png_dims": [
+      {
+        "path": "PNG/Default size/Environment/scifiEnvironment_01.png",
+        "size": [
+          64,
+          64
+        ],
+        "mode": "RGBA"
+      },
+      {
+        "path": "PNG/Default size/Environment/scifiEnvironment_02.png",
+        "size": [
+          64,
+          64
+        ],
+        "mode": "RGBA"
+      },
+      {
+        "path": "PNG/Default size/Environment/scifiEnvironment_03.png",
+        "size": [
+          64,
+          64
+        ],
+        "mode": "RGBA"
+      },
+      {
+        "path": "PNG/Default size/Environment/scifiEnvironment_04.png",
+        "size": [
+          64,
+          64
+        ],
+        "mode": "RGBA"
+      },
+      {
+        "path": "PNG/Default size/Environment/scifiEnvironment_05.png",
+        "size": [
+          64,
+          64
+        ],
+        "mode": "RGBA"
+      },
+      {
+        "path": "PNG/Default size/Environment/scifiEnvironment_06.png",
+        "size": [
+          64,
+          64
+        ],
+        "mode": "RGBA"
+      },
+      {
+        "path": "PNG/Default size/Environment/scifiEnvironment_07.png",
+        "size": [
+          64,
+          64
+        ],
+        "mode": "RGBA"
+      },
+      {
+        "path": "PNG/Default size/Environment/scifiEnvironment_08.png",
+        "size": [
+          64,
+          64
+        ],
+        "mode": "RGBA"
+      }
+    ],
+    "png_count": 259,
+    "formats": [
+      "PNG (Default 1x + Retina 2x)",
+      "Spritesheet (PNG + XML)",
+      "Tilesheet (PNG + info.txt)",
+      "Vector (SVG + SWF)"
+    ]
+  },
+  "og_image_local": "preview.png"
+}

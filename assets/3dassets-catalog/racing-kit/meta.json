@@ -1,0 +1,115 @@
+{
+  "slug": "racing-kit",
+  "url": "https://kenney.nl/assets/racing-kit",
+  "title": "Racing Kit · Kenney",
+  "cleaned_title": "Racing Kit",
+  "og_description": "Download this package (110 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/racing-kit/fbc58ae3cd-1677580945/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/racing-kit/933b8fd9fd-1677580949/kenney_racing-kit.zip",
+  "fetched_at": "2026-08-03T22:46:16.274365+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 110,
+  "category": "3D-models",
+  "subcategory": "isometric-track",
+  "style_tags": [
+    "isometric",
+    "low-poly",
+    "miniature",
+    "stylized",
+    "bright",
+    "toy-like",
+    "racing"
+  ],
+  "palette": [
+    "#1f2630",
+    "#e6e6e6",
+    "#d83a3a",
+    "#3aaf57",
+    "#f5c542",
+    "#1f7be0"
+  ],
+  "use_cases": [
+    "racing games",
+    "track builder prototypes",
+    "isometric city/town dioramas",
+    "arcade-style mini-games",
+    "top-down driving demos",
+    "game-jam starter kits"
+  ],
+  "visual_summary": "An isometric, low-poly 3D racing-track kit featuring a complete diorama: looping asphalt circuits with white lane lines, red-and-white striped curbs and barriers, grandstands, pit-lane buildings, bridges, ramps, tents, light poles and scattered trees. Tiny stylized cars (red, green, blue, yellow) drive the layout. Clean, toy-like aesthetic with a dark slate background that makes the saturated reds, greens and yellows pop.",
+  "zip_inventory": {
+    "total_files": 1274,
+    "by_extension": {
+      "png": 587,
+      "dae": 112,
+      "fbx": 112,
+      "glb": 112,
+      "mtl": 112,
+      "obj": 112,
+      "stl": 112,
+      "txt": 1,
+      "url": 3
+    },
+    "top_level": [
+      "Instructions.url",
+      "Isometric",
+      "Kenney.url",
+      "License.txt",
+      "Models",
+      "Patreon.url",
+      "Preview.png",
+      "Sample.png",
+      "Side"
+    ],
+    "png_count": 587,
+    "png_group_distribution": {
+      "root": 578,
+      "DAE format": 3,
+      "FBX format": 3,
+      "OBJ format": 3
+    },
+    "sample_png_dimensions_top": [
+      [
+        "207x147",
+        15
+      ],
+      [
+        "311x220",
+        15
+      ],
+      [
+        "312x222",
+        10
+      ],
+      [
+        "193x146",
+        8
+      ],
+      [
+        "193x166",
+        8
+      ],
+      [
+        "311x272",
+        8
+      ],
+      [
+        "208x148",
+        7
+      ],
+      [
+        "311x221",
+        7
+      ]
+    ],
+    "distinct_png_dimensions": 327,
+    "model_formats": [
+      "dae",
+      "fbx",
+      "glb",
+      "obj",
+      "stl"
+    ]
+  }
+}

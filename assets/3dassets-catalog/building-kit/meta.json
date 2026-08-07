@@ -1,0 +1,52 @@
+{
+  "slug": "building-kit",
+  "url": "https://kenney.nl/assets/building-kit",
+  "title": "Building Kit",
+  "og_description": "Download this package (80 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/building-kit/617be3e07b-1718801879/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/building-kit/0de7aaa492-1743244741/kenney_building-kit.zip",
+  "fetched_at": "2026-08-03T22:44:36.502747+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 80,
+  "category": "3D-models",
+  "subcategory": "buildings-architectural",
+  "style_tags": ["low-poly", "isometric", "stylized", "modular", "clean", "flat-shaded", "hand-painted"],
+  "palette": ["lavender", "light-purple", "dark-gray", "red-orange", "light-gray", "off-white"],
+  "use_cases": ["city builders", "town sims", "level prototyping", "modular architecture", "mobile games", "stylized 3D scenes"],
+  "visual_summary": "Low-poly isometric 3D building kit featuring modular architectural pieces (walls, doors, windows, roof sections, stairs, vents, chimneys) rendered in a clean stylized look. Walls are soft lavender-purple with white trim, roofs are dark gray slate, and accent details pop in red-orange (door, stair rails). Subtle hand-painted texture with soft shading on a transparent dark backdrop.",
+  "zip_inventory": {
+    "total_files": 416,
+    "by_ext": {
+      "txt": 1,
+      "fbx": 79,
+      "png": 86,
+      "glb": 79,
+      "mtl": 79,
+      "obj": 79,
+      "html": 1,
+      "url": 3,
+      "(none)": 9
+    },
+    "top_level": [
+      "License.txt",
+      "Models",
+      "Overview.html",
+      "Preview (Variation A).png",
+      "Preview.png",
+      "Previews",
+      "Sample.png",
+      "View Documentation.url",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "sample_png_dims": {
+      "Models/FBX format/Textures/colormap.png": [512, 512],
+      "Models/GLB format/Textures/colormap.png": [512, 512],
+      "Models/OBJ format/Textures/colormap.png": [512, 512],
+      "Models/Textures/variation-a.png": [512, 512],
+      "Preview (Variation A).png": [918, 515],
+      "Preview.png": [918, 515]
+    }
+  },
+  "og_image_local": "preview.png"
+}

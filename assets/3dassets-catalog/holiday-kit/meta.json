@@ -1,0 +1,83 @@
+{
+  "slug": "holiday-kit",
+  "url": "https://kenney.nl/assets/holiday-kit",
+  "title": "Holiday Kit",
+  "og_description": "Download this package (100 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/holiday-kit/2e8f59c1ab-1733923964/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/holiday-kit/3976a6496a-1733923970/kenney_holiday-kit.zip",
+  "fetched_at": "2026-08-03T22:44:11.788951+00:00",
+  "enriched_at": "2026-08-03T22:44:30+00:00",
+  "asset_count": 100,
+  "category": "3D-models",
+  "subcategory": "holiday-seasonal",
+  "style_tags": [
+    "low-poly",
+    "flat-shaded",
+    "isometric",
+    "cartoon",
+    "christmas",
+    "winter",
+    "snowy",
+    "miniature",
+    "village",
+    "props",
+    "environment"
+  ],
+  "palette": [
+    "#2E7D4F",
+    "#FFFFFF",
+    "#8B5A3C",
+    "#C8453A",
+    "#E8B547",
+    "#5A6470",
+    "#A8C5DD"
+  ],
+  "use_cases": [
+    "Christmas / holiday-themed game scenes",
+    "Winter village level design",
+    "Casual and mobile game props",
+    "Stylized isometric dioramas",
+    "Seasonal event content drops",
+    "Low-poly animation and prototyping"
+  ],
+  "visual_summary": "A low-poly, flat-shaded Christmas village diorama rendered in a Kenney 'mini' isometric style. Two log cabins (one small with a wreath, one larger chalet with a green gabled roof and glowing windows) sit on a dark slate ground surrounded by snow-capped pine trees, snowmen, lampposts, a decorated Christmas tree with garland and wrapped presents, a reindeer, a wooden sled, lantern clusters, and snow drifts. The palette is bright and saturated: Christmas-tree green, pure white snow, warm brown wood, red accents on gifts and bunting, golden star and lantern highlights, with cool grey rocks and pale-blue snow shadows. No textures; everything is built from clean colored polygons giving a soft, toy-like, slightly faceted cartoon look optimized for stylized holiday scenes.",
+  "zip_inventory": {
+    "total_files": 518,
+    "by_ext": {
+      ".png": 108,
+      ".glb": 99,
+      ".fbx": 99,
+      ".obj": 99,
+      ".mtl": 99,
+      ".txt": 1,
+      ".html": 1,
+      ".url": 3
+    },
+    "top_level": [
+      "License.txt",
+      "Models",
+      "Overview.html",
+      "Preview.png",
+      "Preview (Large).png",
+      "Preview (Transparent).png",
+      "Previews",
+      "Sample.png",
+      "Sample (Large).png",
+      "Sample (Large Transparent).png",
+      "View Documentation.url",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "sample_png_dims": {
+      "Sample.png": [918, 515],
+      "Preview.png": [918, 515],
+      "Sample (Large).png": [1920, 1080],
+      "Preview (Large).png": [1920, 1080],
+      "Sample (Large Transparent).png": [1920, 1080],
+      "Preview (Transparent).png": [1920, 1080]
+    },
+    "model_count": 99,
+    "notes": "99 unique 3D models provided in GLB/FBX/OBJ+MTL; og_description rounds to 100."
+  },
+  "og_image_local": "preview.png"
+}

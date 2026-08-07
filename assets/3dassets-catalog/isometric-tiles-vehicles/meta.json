@@ -1,0 +1,120 @@
+{
+  "slug": "isometric-tiles-vehicles",
+  "url": "https://kenney.nl/assets/isometric-tiles-vehicles",
+  "title": "Isometric Tiles Vehicles · Kenney",
+  "cleaned_title": "Isometric Tiles Vehicles",
+  "og_description": "Download this package (540 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/isometric-tiles-vehicles/8983055a32-1677695116/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/isometric-tiles-vehicles/34c07c3393-1677695121/kenney_isometric-vehicles.zip",
+  "fetched_at": "2026-08-03T22:46:58.654913+00:00",
+  "enriched_at": "2026-08-03T22:55:00+00:00",
+  "asset_count": 540,
+  "category": "tile-set",
+  "subcategory": "isometric-vehicles",
+  "style_tags": [
+    "isometric",
+    "3d",
+    "flat-shaded",
+    "low-poly",
+    "modular",
+    "tileable",
+    "dimetric",
+    "city",
+    "urban",
+    "vehicles",
+    "buildings",
+    "roads",
+    "top-down",
+    "minimalist",
+    "colorful",
+    "clean",
+    "vector-style",
+    "sprite-sheet"
+  ],
+  "palette": [
+    "tan / sand",
+    "cream beige",
+    "brick red",
+    "warm brown",
+    "sky blue",
+    "charcoal grey",
+    "white",
+    "leaf green",
+    "vehicle red / blue / green / yellow / silver"
+  ],
+  "use_cases": [
+    "2D isometric city builders",
+    "top-down driving / traffic games",
+    "urban management & tycoon sims",
+    "casual mobile games",
+    "educational & kids games",
+    "board-game style boards",
+    "rapid prototype scenes",
+    "modular tile-based maps"
+  ],
+  "visual_summary": "Clean isometric (2:1 dimetric) tile set of a small town block: tan/sand modular ground tiles, dark asphalt roads with white lane markings, sidewalks, multi-story buildings (cream, brick red, warm brown, blue) with windows, awnings and grey rooftops, plus a fleet of low-poly vehicles — civilian cars in red/blue/green/yellow/silver plus service vehicles (ambulance, police, taxi, garbage truck). Soft flat shading, saturated accents on a deep blue backdrop. Each vehicle ships in 4 isometric directions (N, NE, E, plus a fourth) and the pack includes combined spritesheets per color group and per vehicle class.",
+  "zip_inventory": {
+    "total_files": 605,
+    "by_ext": {
+      ".png": 553,
+      ".xml": 7,
+      ".txt": 1,
+      ".url": 2,
+      "": 42
+    },
+    "top_level": [
+      "License.txt",
+      "Preview.png",
+      "Sample.png",
+      "PNG/",
+      "Spritesheet/",
+      "Donate.url",
+      "Facebook.url"
+    ],
+    "png_subfolders": {
+      "Ambulance": 16,
+      "Civilian": 480,
+      "Garbage": 16,
+      "Police": 16,
+      "Taxi": 16
+    },
+    "spritesheet_count": 7,
+    "spritesheets": [
+      "sheet_allCars.png",
+      "sheet_black.png",
+      "sheet_blue.png",
+      "sheet_green.png",
+      "sheet_red.png",
+      "sheet_silver.png",
+      "sheet_utility.png"
+    ],
+    "sample_png_dims": {
+      "Preview.png": [
+        918,
+        515,
+        "RGBA"
+      ],
+      "Sample.png": [
+        918,
+        515,
+        "RGB"
+      ],
+      "PNG/Ambulance/ambulance_E.png": [
+        33,
+        29,
+        "RGBA"
+      ],
+      "PNG/Ambulance/ambulance_N.png": [
+        19,
+        27,
+        "RGBA"
+      ],
+      "PNG/Ambulance/ambulance_NE.png": [
+        35,
+        31,
+        "RGBA"
+      ]
+    }
+  }
+}

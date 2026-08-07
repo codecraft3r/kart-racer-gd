@@ -1,0 +1,98 @@
+{
+  "slug": "food-kit",
+  "url": "https://kenney.nl/assets/food-kit",
+  "title": "Food Kit · Kenney",
+  "cleaned_title": "Food Kit",
+  "og_description": "Download this package (200 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/food-kit/7a37477a9c-1719418523/preview.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/food-kit/83086fa91c-1719418518/kenney_food-kit.zip",
+  "fetched_at": "2026-08-03T22:44:39.872225+00:00",
+  "enriched_at": "2026-08-03T22:45:00+00:00",
+  "asset_count": 200,
+  "category": "3D Models",
+  "subcategory": "Food & Kitchen",
+  "style_tags": [
+    "low-poly",
+    "isometric",
+    "flat-shaded",
+    "playful",
+    "saturated-colors",
+    "casual",
+    "voxel-friendly"
+  ],
+  "palette": [
+    "#2A2A2A",
+    "#F2F2F2",
+    "#E07A5F",
+    "#C84B31",
+    "#F4A261",
+    "#E9C46A",
+    "#8AB17D",
+    "#5B8C5A",
+    "#6B8E23",
+    "#A0522D",
+    "#8B4513",
+    "#FFD166"
+  ],
+  "use_cases": [
+    "cooking and restaurant games",
+    "farming and grocery simulators",
+    "tycoon and management prototypes",
+    "top-down and isometric game prototypes",
+    "educational nutrition apps",
+    "VR/AR kitchen demos (GLB ready)",
+    "food-themed UI mockups"
+  ],
+  "visual_summary": "A friendly 3D low-poly collection of 200 food, drink, cookware, and kitchen utensil models in FBX/GLB/OBJ. Bright saturated palette of warm food colors (reds, oranges, browns, yellows) plus fresh greens, paired with neutral whites and grays for plates, pots, and cutting boards. Chunky geometric shapes with flat or lightly-shaded surfaces, no baked PBR detail — clean silhouettes designed to read well in isometric or top-down scenes.",
+  "zip_inventory": {
+    "total_files": 1018,
+    "by_ext": {
+      ".fbx": 200,
+      ".glb": 200,
+      ".mtl": 200,
+      ".obj": 200,
+      ".png": 204,
+      ".txt": 1,
+      ".html": 1,
+      ".url": 3,
+      "<none>": 9
+    },
+    "top_level": {
+      "License.txt": 1,
+      "Models": 811,
+      "Overview.html": 1,
+      "Preview.png": 1,
+      "Previews": 201,
+      "View Documentation.url": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1
+    },
+    "sample_png_dims": [
+      {
+        "path": "Models/FBX format/Textures/colormap.png",
+        "size": [
+          512,
+          512
+        ],
+        "mode": "P"
+      },
+      {
+        "path": "Models/GLB format/Textures/colormap.png",
+        "size": [
+          512,
+          512
+        ],
+        "mode": "P"
+      },
+      {
+        "path": "Models/OBJ format/Textures/colormap.png",
+        "size": [
+          512,
+          512
+        ],
+        "mode": "P"
+      }
+    ]
+  }
+}

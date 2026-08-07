@@ -1,0 +1,73 @@
+{
+  "slug": "racing-pack",
+  "url": "https://kenney.nl/assets/racing-pack",
+  "title": "Racing Pack · Kenney",
+  "og_description": "Download this package (420 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/racing-pack/a747dc19d4-1677662439/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/racing-pack/c4cd68480a-1677662443/kenney_racing-pack.zip",
+  "fetched_at": "2026-08-03T22:47:01.534403+00:00",
+  "enriched_at": "2026-08-03T22:47:30+00:00",
+  "asset_count": 420,
+  "category": "2D-sprites",
+  "subcategory": "top-down-racing",
+  "style_tags": [
+    "top-down",
+    "flat-cartoon",
+    "clean-vector",
+    "bold-outlines",
+    "vibrant",
+    "racing"
+  ],
+  "palette": [
+    "#2E7D32",
+    "#A6D8A6",
+    "#C0392B",
+    "#F1C40F",
+    "#2C3E91",
+    "#1B1B1B",
+    "#FFFFFF",
+    "#D35400"
+  ],
+  "use_cases": [
+    "top-down racing games",
+    "arcade kart racers",
+    "mobile racing prototypes",
+    "2D driving prototypes",
+    "game-jam racing levels"
+  ],
+  "visual_summary": "Top-down 2D cartoon racing scene: paved track with red-and-white striped curbs, multiple colored cars (red, yellow, blue, green, black), grandstands filled with spectators, a pit lane, tents and canopies, orange traffic cones, trees, rocks, white road barriers, crosswalks, and a brown dirt patch — all rendered in a clean flat-shaded vector style with bold outlines and a vibrant grass-green ground plane.",
+  "og_image_local": "preview.png",
+  "zip_inventory": {
+    "total_files": 456,
+    "by_ext": {
+      ".png": 429,
+      ".xml": 4,
+      ".svg": 3,
+      ".swf": 3,
+      ".url": 2,
+      ".txt": 1,
+      "": 14
+    },
+    "top_level": {
+      "PNG": 435,
+      "Spritesheets": 9,
+      "Vector": 7,
+      "Preview.png": 1,
+      "Sample.png": 1,
+      "License.txt": 1,
+      "Kenney.url": 1,
+      "Patreon.url": 1
+    },
+    "sample_png_dims": {
+      "(918, 515)": 2,
+      "(71, 131)": 3,
+      "(71, 116)": 3,
+      "(70, 131)": 6,
+      "(70, 121)": 3,
+      "(40, 70)": 3,
+      "(40, 62)": 3,
+      "(39, 70)": 5,
+      "(39, 65)": 2
+    }
+  }
+}

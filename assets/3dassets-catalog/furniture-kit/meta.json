@@ -1,0 +1,61 @@
+{
+  "slug": "furniture-kit",
+  "url": "https://kenney.nl/assets/furniture-kit",
+  "title": "Furniture Kit",
+  "og_description": "Download this package (140 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/furniture-kit/4573c6a40b-1677580842/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/furniture-kit/440e0608a4-1677580847/kenney_furniture-kit.zip",
+  "fetched_at": "2026-08-03T22:46:22.621140+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 140,
+  "category": "3D Models",
+  "subcategory": "Furniture & Interior",
+  "style_tags": [
+    "isometric",
+    "low-poly",
+    "flat-shaded",
+    "clean",
+    "modern",
+    "interior",
+    "miniature"
+  ],
+  "palette": [
+    "#F2C28A",
+    "#E5786B",
+    "#D9534F",
+    "#F4F1EC",
+    "#5A6470",
+    "#3A4047",
+    "#8FBFB3"
+  ],
+  "use_cases": [
+    "isometric room builders",
+    "top-down life sims",
+    "interior design mockups",
+    "city/room building games",
+    "architectural visualization",
+    "educational scenes"
+  ],
+  "visual_summary": "Low-poly isometric furniture pack (140 models) showing a furnished open-plan home with bedroom, bathroom, kitchen, living and dining areas plus a separate office. Clean flat-shaded geometry, soft warm-wood tones, white walls, red upholstery accents and a dark slate floor arranged on a 2:1 isometric grid. Includes 3D model formats (GLB, FBX, OBJ, DAE, STL) plus 702 PNG sprites split across four cardinal isometric angles and side views.",
+  "zip_inventory": {
+    "total_files": 1557,
+    "by_ext": {
+      "png": 702,
+      "glb": 140,
+      "fbx": 140,
+      "obj": 140,
+      "dae": 140,
+      "stl": 140,
+      "mtl": 140,
+      "url": 3,
+      "txt": 1
+    },
+    "top_level": {
+      "Isometric": 561,
+      "Models": 849,
+      "Side": 141
+    },
+    "sample_png_dims": "37x68 to 76x96, palette PNG (P mode)"
+  },
+  "og_image_local": "preview.png"
+}

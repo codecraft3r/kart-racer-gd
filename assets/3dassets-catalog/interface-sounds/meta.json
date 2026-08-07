@@ -1,0 +1,52 @@
+{
+  "slug": "interface-sounds",
+  "url": "https://kenney.nl/assets/interface-sounds",
+  "title": "Interface Sounds",
+  "og_description": "Download this package (100 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/interface-sounds/428fc5f14c-1677589445/preview_interface.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+  "fetched_at": "2026-08-03T22:46:12.647955+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 100,
+  "category": "audio",
+  "subcategory": "UI sound effects (OGG)",
+  "style_tags": [
+    "flat",
+    "minimal",
+    "clean",
+    "ui",
+    "modern",
+    "short-sfx",
+    "game-ready"
+  ],
+  "palette": [
+    "#3DDC97",
+    "#FFFFFF",
+    "#2C2E33",
+    "#D9D9D9"
+  ],
+  "use_cases": [
+    "Button click and toggle feedback",
+    "Menu and navigation sound cues",
+    "Notification chimes and alerts",
+    "App and game UI micro-interactions",
+    "Web and mobile interface prototyping"
+  ],
+  "visual_summary": "Preview shows a flat, minimal Kenney-style icon: a white circular badge holding a stylized speaker, paired with a dark gray rounded-square cursor tile with a white arrow cursor, all on a bright mint-green background. The aesthetic signals a clean, modern UI/UX sound pack designed for buttons, menus and app interactions.",
+  "zip_inventory": {
+    "total_files": 104,
+    "by_ext": {
+      "ogg": 100,
+      "txt": 1,
+      "url": 2,
+      "(none)": 1
+    },
+    "top_level": {
+      "(root)": 3,
+      "Audio": 101
+    },
+    "format": "OGG Vorbis",
+    "notes": "All 100 sound files live in a single Audio/ folder; root contains License.txt, Patreon.url and an entry-folder marker."
+  }
+}

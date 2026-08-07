@@ -1,0 +1,53 @@
+{
+  "slug": "mini-characters",
+  "url": "https://kenney.nl/assets/mini-characters",
+  "title": "Mini Characters · Kenney",
+  "og_description": "Download this package (25 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/mini-characters/357d1a9452-1721210569/preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/mini-characters/bfc7e272b4-1774770718/kenney_mini-characters.zip",
+  "fetched_at": "2026-08-03T22:44:42.768546+00:00",
+  "enriched_at": "2026-08-03T22:45:00+00:00",
+  "asset_count": 25,
+  "category": "3D-models",
+  "subcategory": "humanoid-characters",
+  "style_tags": ["low-poly", "cartoon", "isometric", "flat-shaded", "modern", "mini"],
+  "palette": ["#F4A672", "#3A6FE0", "#E04A3A", "#3FA672", "#8E5BC9", "#6E6E78"],
+  "use_cases": [
+    "casual mobile and web games needing diverse character cast",
+    "prototype or jam scenes with quick-drop humans and props",
+    "accessibility-themed games (wheelchairs, canes, medical aids)",
+    "isometric top-down 3D worlds"
+  ],
+  "visual_summary": "A pack of 25 low-poly 3D mini humanoids rendered in a chunky, cartoon style with soft flat shading and chunky limbs. The cast shows diverse skin tones, hair, and outfits (a police officer, a doctor, casual kids, a person in a wheelchair) alongside accessory props like a first-aid kit, defibrillator, glasses, and masks, all sitting on a neutral gray isometric ground.",
+  "zip_inventory": {
+    "total_files": 148,
+    "by_ext": {
+      ".txt": 1,
+      "": 9,
+      ".fbx": 26,
+      ".png": 30,
+      ".glb": 26,
+      ".mtl": 26,
+      ".obj": 26,
+      ".html": 1,
+      ".url": 3
+    },
+    "top_level": {
+      "License.txt": 1,
+      "Models": 115,
+      "Overview.html": 1,
+      "Preview.png": 1,
+      "Previews": 27,
+      "View Documentation.url": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1
+    },
+    "sample_png_dims": [
+      "Models/FBX format/Textures/colormap.png: 512x512",
+      "Preview.png: 918x515",
+      "Previews/aid-cane.png: 64x64",
+      "Previews/aid-defibrillator-red.png: 64x64"
+    ]
+  },
+  "og_image_local": "preview.png"
+}

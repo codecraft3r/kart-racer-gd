@@ -1,0 +1,63 @@
+{
+  "slug": "voiceover-pack",
+  "url": "https://kenney.nl/assets/voiceover-pack",
+  "title": "Voiceover Pack · Kenney",
+  "title_clean": "Voiceover Pack",
+  "og_description": "Download this package (90 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/voiceover-pack/c0acda5198-1677589880/preview-1.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/voiceover-pack/3f7f168698-1677589897/kenney_voiceover-pack.zip",
+  "fetched_at": "2026-08-03T22:46:54.918480+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 90,
+  "category": "audio",
+  "subcategory": "voice-overs",
+  "style_tags": [
+    "flat",
+    "minimal",
+    "vector",
+    "game-ui",
+    "voice-clip",
+    "bilingual",
+    "male-and-female",
+    "ogg",
+    "cc0",
+    "kenney"
+  ],
+  "palette": [
+    "#3DD9A0",
+    "#FFFFFF",
+    "#2D2D33",
+    "#E8E8E8"
+  ],
+  "use_cases": [
+    "Game announcements and round/match cues",
+    "Tutorial and onboarding prompts",
+    "Victory, defeat, and game-over voice lines",
+    "Multiplayer / party game feedback",
+    "Score and objective notifications",
+    "Casual and serious game UI feedback",
+    "Children's games and educational apps"
+  ],
+  "visual_summary": "A flat-style illustration on a bright mint-green background: a white circular badge holds a stylized white-and-charcoal loudspeaker icon, with a small dark-grey speech/chat bubble (two white message lines) tucked in the lower-right. Clean vector shapes, soft drop shadow, no gradients beyond subtle ambient shading. Reads instantly as 'audio + voice'.",
+  "zip_inventory": {
+    "total_files": 101,
+    "by_ext": {
+      "ogg": 95,
+      "txt": 2,
+      "url": 2,
+      "directory": 2
+    },
+    "top_level": [
+      "Credits.txt",
+      "Female",
+      "License.txt",
+      "Male",
+      "Preview (Female).ogg",
+      "Preview (Male).ogg",
+      "Preview.ogg",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ]
+  }
+}

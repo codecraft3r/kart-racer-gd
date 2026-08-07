@@ -1,0 +1,99 @@
+{
+  "slug": "ui-pack-sci-fi",
+  "url": "https://kenney.nl/assets/ui-pack-sci-fi",
+  "title": "UI Pack: Sci-Fi",
+  "og_description": "Download this package (130 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/ui-pack-sci-fi/00227142e5-1724181103/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/ui-pack-sci-fi/b67c2acd31-1724181109/kenney_ui-pack-space-expansion.zip",
+  "fetched_at": "2026-08-03T22:44:34.552707+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 130,
+  "category": "UI",
+  "subcategory": "UI kit / HUD",
+  "style_tags": [
+    "sci-fi",
+    "futuristic",
+    "flat",
+    "vector",
+    "rounded-panels",
+    "glossy",
+    "drop-shadow",
+    "rivet-detail",
+    "monochrome-base",
+    "accent-colors",
+    "HUD",
+    "game-UI"
+  ],
+  "palette": {
+    "background": "#4A8FCB",
+    "panel": "#DDE3E8",
+    "panel_shadow": "#9DAAB3",
+    "accent_red": "#E74C3C",
+    "accent_yellow": "#F1C40F",
+    "accent_green": "#2ECC71",
+    "accent_cyan": "#1ABC9C",
+    "text": "#2C3E50"
+  },
+  "use_cases": [
+    "Sci-fi / space game HUD",
+    "Ship status & control panels",
+    "Reactor, energy and shield meters",
+    "Dialogue and question prompts",
+    "Settings and inventory screens",
+    "Main menu and pause UI",
+    "Indie game prototypes and mockups"
+  ],
+  "visual_summary": "A clean, futuristic UI kit rendered as a light-grey rounded panel system on a bright blue backdrop. Each panel has soft drop shadows and corner rivets/screws, with notched red header tabs for titles. Components include status panels with colored indicator dots and octagonal nodes, two- and three-state buttons, horizontal progress bars with red/yellow fills, segmented energy cells, vertical Energy/Shield meters and a custom arrow + star cursor. The kit ships a strict neutral base plus four vivid accent colors (red, yellow, green, cyan) reused across both bitmaps and matching vectors.",
+  "zip_inventory": {
+    "zip_file": "kenney_ui-pack-space-expansion.zip",
+    "zip_size_bytes": 768505,
+    "total_entries": 1144,
+    "file_count": 1117,
+    "by_ext": {
+      ".png": 742,
+      ".svg": 370,
+      ".ttf": 2,
+      ".txt": 1,
+      ".url": 2
+    },
+    "top_level": {
+      "Preview.png": 1,
+      "Sample.png": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1,
+      "Font": 2,
+      "PNG": 759,
+      "Vector": 377,
+      "License.txt": 1
+    },
+    "png_subfolders": {
+      "Blue": 123,
+      "Extra": 143,
+      "Green": 123,
+      "Grey": 123,
+      "Red": 123,
+      "Yellow": 123
+    },
+    "vector_subfolders": {
+      "Blue": 61,
+      "Extra": 71,
+      "Green": 61,
+      "Grey": 61,
+      "Red": 61,
+      "Yellow": 61
+    },
+    "sample_png_dims": [
+      {"path": "Preview.png", "size": "918x515", "mode": "P"},
+      {"path": "Sample.png", "size": "918x515", "mode": "P"},
+      {"path": "PNG/Blue/Default/bar_round_gloss_large.png", "size": "96x24", "mode": "P"},
+      {"path": "PNG/Blue/Default/button_square_header_large_rectangle.png", "size": "192x64", "mode": "P"},
+      {"path": "PNG/Blue/Default/button_square_header_blade_square.png", "size": "64x64", "mode": "P"}
+    ],
+    "fonts": [
+      "Font/Kenney Future.ttf",
+      "Font/Kenney Future Narrow.ttf"
+    ],
+    "license": "CC0 (Creative Commons Zero) 1.0"
+  }
+}

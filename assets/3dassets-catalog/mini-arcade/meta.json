@@ -1,0 +1,76 @@
+{
+  "slug": "mini-arcade",
+  "url": "https://kenney.nl/assets/mini-arcade",
+  "title": "Mini Arcade",
+  "og_description": "Download this package (20 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/mini-arcade/a766ceba5b-1720210169/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/mini-arcade/ece1e8f320-1721638600/kenney_mini-arcade.zip",
+  "fetched_at": "2026-08-03T22:44:41.167610+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 20,
+  "category": "3D-models",
+  "subcategory": "arcade-props",
+  "style_tags": [
+    "low-poly",
+    "isometric",
+    "flat-shaded",
+    "stylized",
+    "vibrant",
+    "cartoon",
+    "miniature"
+  ],
+  "palette": [
+    "#FF7E44",
+    "#6794D9",
+    "#A878E8",
+    "#61CB8B",
+    "#F378F0",
+    "#FFC044",
+    "#CF534F",
+    "#FDE4C7",
+    "#D0E8FF",
+    "#868BA1"
+  ],
+  "use_cases": [
+    "arcade room builder",
+    "mini-game scene design",
+    "mobile game props",
+    "isometric level prototyping",
+    "kids/family game visuals"
+  ],
+  "visual_summary": "Isometric 3D miniature arcade interior: low-poly flat-shaded cabinets (claw machine, dance machine, pinball, basketball, gambling, ticket, vending) with two stylized characters, modular wall pieces (corner/door/window), checkered floor tiles and a cash register. Bright vibrant palette of orange, blue, purple, green, pink and yellow on a soft grey backdrop, no textures beyond the shared 512x512 colormap.",
+  "zip_inventory": {
+    "total_files": 123,
+    "by_extension": {
+      ".png": 29,
+      ".fbx": 20,
+      ".glb": 20,
+      ".mtl": 20,
+      ".obj": 20,
+      ".url": 3,
+      ".txt": 1,
+      ".html": 1
+    },
+    "top_level": [
+      "License.txt",
+      "Models/",
+      "Overview.html",
+      "Preview.png",
+      "Preview (Variation A).png",
+      "Preview (Variation B).png",
+      "Previews/",
+      "Sample.png",
+      "View Documentation.url",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "sample_png_dims": {
+      "Models/Textures/variation-a.png": "512x512",
+      "Models/Textures/variation-b.png": "512x512",
+      "Preview.png": "918x515",
+      "Previews/air-hockey.png": "64x64",
+      "Previews/arcade-machine.png": "64x64"
+    }
+  },
+  "og_image_local": "preview.png"
+}

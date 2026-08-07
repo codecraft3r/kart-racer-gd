@@ -1,0 +1,75 @@
+{
+  "slug": "game-icons",
+  "url": "https://kenney.nl/assets/game-icons",
+  "title": "Game Icons · Kenney",
+  "cleaned_title": "Game Icons",
+  "og_description": "Download this package (105 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/game-icons/349f36a54d-1677661575/preview.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/game-icons/1ebf9c14af-1677661579/kenney_game-icons.zip",
+  "fetched_at": "2026-08-03T22:47:12.712332+00:00",
+  "enriched_at": "2026-08-04T00:00:00+00:00",
+  "asset_count": 105,
+  "category": "Game UI",
+  "subcategory": "Icon Set",
+  "style_tags": [
+    "flat",
+    "geometric",
+    "monochrome",
+    "rounded",
+    "minimalist",
+    "glyph",
+    "ui",
+    "two-color",
+    "clean"
+  ],
+  "palette": [
+    "#FFFFFF",
+    "#000000",
+    "#3F8FCB"
+  ],
+  "use_cases": [
+    "Game HUD and menu icons",
+    "Settings and configuration screens",
+    "Controller button prompts (ABXY, L/R, L1/R2, Start/Select)",
+    "Inventory and action buttons",
+    "Mobile and casual game UI",
+    "Tutorial and onboarding overlays"
+  ],
+  "visual_summary": "A 105-icon UI/glyph pack of flat, rounded geometric icons shown in white on a solid blue background. The set covers navigation arrows, media controls, zoom, locks, folders, settings gears, charts, shopping cart, controller buttons (ABXY, L/R, L1/R2, Start/Select), and people. Each icon is delivered as a 50x50 RGBA PNG in both Black and White color variants at 1x and 2x, plus TexturePacker spritesheets (1024x512 and 1024x2048), Adobe Illustrator and SVG vector sources, and XML spritesheet metadata.",
+  "zip_inventory": {
+    "total_files": 443,
+    "by_extension": {
+      ".png": 425,
+      ".xml": 4,
+      ".ai": 2,
+      ".svg": 2,
+      ".txt": 1
+    },
+    "top_level": [
+      "PNG/",
+      "Spritesheet/",
+      "Vector/",
+      "license.txt",
+      "preview.png"
+    ],
+    "png_subdirs": [
+      "PNG/Black/1x",
+      "PNG/Black/2x",
+      "PNG/White/1x",
+      "PNG/White/2x"
+    ],
+    "sample_png_dims": [
+      "50x50 RGBA (individual icons)",
+      "1024x512 RGBA (Spritesheet sheet_*1x)",
+      "1024x2048 RGBA (Spritesheet sheet_*2x)",
+      "918x515 RGBA (preview.png)"
+    ],
+    "extra_assets": [
+      "Spritesheet XML metadata (TexturePacker)",
+      "Vector Adobe Illustrator sources (.ai)",
+      "Vector SVG sources (.svg)",
+      "license.txt"
+    ]
+  }
+}

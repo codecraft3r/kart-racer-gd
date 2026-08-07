@@ -1,0 +1,113 @@
+{
+  "slug": "blaster-kit",
+  "url": "https://kenney.nl/assets/blaster-kit",
+  "title": "Blaster Kit · Kenney",
+  "cleaned_title": "Blaster Kit",
+  "og_description": "Download this package (40 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/blaster-kit/7f0e90a313-1753959516/preview.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/blaster-kit/261d80a716-1753959510/kenney_blaster-kit_2.1.zip",
+  "fetched_at": "2026-08-03T22:41:52.114389+00:00",
+  "enriched_at": "2026-08-03T22:42:00+00:00",
+  "asset_count": 40,
+  "category": "3D-models",
+  "subcategory": "weapons-blasters",
+  "style_tags": [
+    "low-poly",
+    "cartoon",
+    "chunky",
+    "isometric",
+    "colorful",
+    "PBR-diffuse",
+    "CC0",
+    "hand-painted"
+  ],
+  "palette": [
+    "purple",
+    "lime-green",
+    "yellow",
+    "orange",
+    "red",
+    "lavender",
+    "gunmetal-grey",
+    "navy"
+  ],
+  "use_cases": [
+    "Sci-fi shooter prototyping",
+    "Top-down twin-stick arenas",
+    "Casual mobile FPS",
+    "Stylized roguelikes",
+    "Classroom / educational game jams",
+    "Placeholder hero weapons",
+    "Drop-in weapon rosters"
+  ],
+  "visual_summary": "A 40-piece low-poly 3D weapon kit of chunky cartoon blasters, pistols, rifles and rocket launchers in a bright candy palette of purple, lime, yellow and orange over gunmetal grey, presented in isometric grid on a deep navy backdrop with shared 512x512 PBR diffuse textures supplied in OBJ/FBX/GLB.",
+  "zip_inventory": {
+    "total_files": 220,
+    "by_ext": {
+      "txt": 1,
+      "fbx": 40,
+      "png": 46,
+      "glb": 40,
+      "mtl": 40,
+      "obj": 40,
+      "html": 1,
+      "url": 3
+    },
+    "top_level": [
+      "License.txt",
+      "Models",
+      "Overview.html",
+      "Preview (Variation A).png",
+      "Preview.png",
+      "Previews",
+      "View Documentation.url",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "sample_png_dims": [
+      [
+        "Models/FBX format/Textures/colormap.png",
+        [
+          512,
+          512
+        ],
+        "RGBA"
+      ],
+      [
+        "Models/GLB format/Textures/colormap.png",
+        [
+          512,
+          512
+        ],
+        "RGBA"
+      ],
+      [
+        "Models/OBJ format/Textures/colormap.png",
+        [
+          512,
+          512
+        ],
+        "RGBA"
+      ],
+      [
+        "Models/Textures/variation-a.png",
+        [
+          512,
+          512
+        ],
+        "RGBA"
+      ],
+      [
+        "Preview (Variation A).png",
+        [
+          918,
+          515
+        ],
+        "RGBA"
+      ]
+    ],
+    "package_size_bytes": 1724676,
+    "format": "kenney_blaster-kit_2.1.zip"
+  }
+}

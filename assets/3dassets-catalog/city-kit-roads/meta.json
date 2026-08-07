@@ -1,0 +1,119 @@
+{
+  "slug": "city-kit-roads",
+  "url": "https://kenney.nl/assets/city-kit-roads",
+  "title": "City Kit (Roads) · Kenney",
+  "cleaned_title": "City Kit (Roads)",
+  "og_description": "Download this package (70 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/city-kit-roads/8021370415-1741864353/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/city-kit-roads/74288c9459-1741864740/kenney_city-kit-roads.zip",
+  "fetched_at": "2026-08-03T22:42:11.414323+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 70,
+  "category": "3D Models",
+  "subcategory": "City & Urban Infrastructure",
+  "style_tags": [
+    "isometric",
+    "low-poly",
+    "3D",
+    "modular",
+    "clean",
+    "flat-shading",
+    "stylized",
+    "cartoon-friendly"
+  ],
+  "palette": [
+    "#3a3f47",
+    "#5a6171",
+    "#7a8290",
+    "#ffffff",
+    "#3aa14a",
+    "#e88a3a",
+    "#8c8fa3"
+  ],
+  "use_cases": [
+    "city builders",
+    "isometric games",
+    "top-down racing",
+    "urban planning prototypes",
+    "mobile casual games",
+    "3D scene mockups"
+  ],
+  "visual_summary": "Modular isometric 3D road kit featuring straight, curved, and elevated highway segments with on/off ramps, roundabouts, intersections, crosswalks, lane markings, green overhead signs, street lamps, and traffic cones. Smooth low-poly asphalt pieces in cool gray with soft lavender ambient shading, designed to snap together into a stylized city network.",
+  "zip_inventory": {
+    "total_files": 381,
+    "by_ext": {
+      "txt": 1,
+      "fbx": 72,
+      "png": 79,
+      "glb": 72,
+      "mtl": 72,
+      "obj": 72,
+      "html": 1,
+      "url": 3,
+      "(none)": 9
+    },
+    "top_level": [
+      "License.txt",
+      "Models",
+      "Overview.html",
+      "Preview (Variation A).png",
+      "Preview.png",
+      "Previews",
+      "Sample.png",
+      "View Documentation.url",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "sample_png_dims": [
+      [
+        "Models/FBX format/Textures/colormap.png",
+        [
+          512,
+          512
+        ],
+        "P"
+      ],
+      [
+        "Models/GLB format/Textures/colormap.png",
+        [
+          512,
+          512
+        ],
+        "P"
+      ],
+      [
+        "Models/OBJ format/Textures/colormap.png",
+        [
+          512,
+          512
+        ],
+        "P"
+      ],
+      [
+        "Models/Textures/variation-a.png",
+        [
+          512,
+          512
+        ],
+        "P"
+      ],
+      [
+        "Preview (Variation A).png",
+        [
+          918,
+          515
+        ],
+        "P"
+      ],
+      [
+        "Preview.png",
+        [
+          918,
+          515
+        ],
+        "P"
+      ]
+    ]
+  }
+}

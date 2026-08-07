@@ -1,0 +1,127 @@
+{
+  "slug": "shooting-gallery",
+  "url": "https://kenney.nl/assets/shooting-gallery",
+  "title": "Shooting Gallery · Kenney",
+  "title_clean": "Shooting Gallery",
+  "og_description": "Download this package (110 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/shooting-gallery/dcd0ff0bca-1677662383/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/shooting-gallery/9ef8a2db02-1677662387/kenney_shooting-gallery.zip",
+  "fetched_at": "2026-08-03T22:47:04.469325+00:00",
+  "enriched_at": "2026-08-03T22:47:04.469325+00:00",
+  "asset_count": 110,
+  "category": "2D-sprites",
+  "subcategory": "shooting-gallery",
+  "style_tags": [
+    "cartoon",
+    "flat",
+    "2d",
+    "vibrant",
+    "thick-outline",
+    "fairground",
+    "carnival",
+    "kids-friendly",
+    "casual"
+  ],
+  "palette": [
+    "orange",
+    "green",
+    "blue",
+    "red",
+    "yellow",
+    "white",
+    "brown"
+  ],
+  "use_cases": [
+    "shooting-gallery mini-games",
+    "target-practice games",
+    "carnival / fairground games",
+    "mobile and browser casual games",
+    "educational kids games",
+    "party / score-attack games"
+  ],
+  "visual_summary": "Vibrant 2D cartoon shooting-gallery scene framed by red stage curtains with a blue 'TIME UP!' banner. The fairground tableau includes green bushes, a blue water/pond foreground, and wooden stall elements, populated by yellow rubber-duck targets, classic red/white ring targets, and a multi-color bullseye target on poles. UI overlays show a score-with-rubber-duck icon, a +10 popup, a circular crosshair, and an ammo counter. Flat color fills with thick black outlines give a playful, kid-friendly carnival mood.",
+  "zip_inventory": {
+    "zip_file": "kenney_shooting-gallery.zip",
+    "zip_size_bytes": 796066,
+    "total_files": 130,
+    "by_extension": {
+      ".png": 115,
+      ".svg": 1,
+      ".swf": 1,
+      ".xml": 3,
+      ".url": 3,
+      ".txt": 1,
+      "": 6
+    },
+    "top_level": {
+      "PNG": 114,
+      "Spritesheets": 7,
+      "Vector": 3,
+      "Preview.png": 1,
+      "Sample.png": 1,
+      "License.txt": 1,
+      "Donate on Itch.io.url": 1,
+      "Donate on Steam.url": 1,
+      "Facebook.url": 1
+    },
+    "png_subdirs": {
+      "HUD": 48,
+      "Objects": 46,
+      "Stall": 16
+    },
+    "spritesheets": [
+      "Spritesheets/spritesheet_hud.png",
+      "Spritesheets/spritesheet_hud.xml",
+      "Spritesheets/spritesheet_objects.png",
+      "Spritesheets/spritesheet_objects.xml",
+      "Spritesheets/spritesheet_stall.png",
+      "Spritesheets/spritesheet_stall.xml"
+    ],
+    "vector_files": [
+      "Vector/vector_shootingGallery.svg"
+    ],
+    "sample_png_dims": [
+      {
+        "name": "Preview.png",
+        "size": [
+          918,
+          515
+        ],
+        "mode": "RGBA"
+      },
+      {
+        "name": "Sample.png",
+        "size": [
+          918,
+          515
+        ],
+        "mode": "RGB"
+      },
+      {
+        "name": "PNG/HUD/crosshair_blue_large.png",
+        "size": [
+          50,
+          50
+        ],
+        "mode": "RGBA"
+      },
+      {
+        "name": "PNG/HUD/crosshair_blue_small.png",
+        "size": [
+          42,
+          42
+        ],
+        "mode": "RGBA"
+      },
+      {
+        "name": "PNG/HUD/crosshair_outline_large.png",
+        "size": [
+          54,
+          54
+        ],
+        "mode": "RGBA"
+      }
+    ]
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "slug": "coaster-kit",
+  "url": "https://kenney.nl/assets/coaster-kit",
+  "title": "Coaster Kit · Kenney",
+  "cleaned_title": "Coaster Kit",
+  "og_description": "Download this package (180 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/coaster-kit/9b3b95c4c9-1731487885/preview-coaster-monorail.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/coaster-kit/546fdc554f-1731487890/kenney_coaster-kit.zip",
+  "fetched_at": "2026-08-03T22:44:11.813949+00:00",
+  "enriched_at": "2026-08-03T22:44:30+00:00",
+  "asset_count": 180,
+  "category": "3D Models",
+  "subcategory": "Amusement Rides",
+  "style_tags": [
+    "low-poly",
+    "3D",
+    "modular",
+    "game-ready",
+    "flat-shaded",
+    "colorful",
+    "clean",
+    "stylized"
+  ],
+  "palette": [
+    "#E6E6F2",
+    "#1F2233",
+    "#FFFFFF",
+    "#FF7E44",
+    "#F378F0",
+    "#38383D"
+  ],
+  "use_cases": [
+    "Roller coaster / theme park games",
+    "Monorail and rail system construction",
+    "Racing and track-based mini-games",
+    "Voxel or blocky world prototypes",
+    "Amusement park scene dressing",
+    "3D engine assets (Unity, Unreal, Godot)"
+  ],
+  "visual_summary": "Modular 3D coaster track kit featuring pale lavender/white rails laid out on a dark navy blue checkerboard background. Tracks include a variety of curved and straight pieces — banks, turns, gentle bends, loops and connectors — designed to snap together into full roller-coaster or monorail layouts. Models are low-poly, flat-shaded and game-ready, accompanied by a colorful colormap texture (oranges, pinks, whites, greys). The set covers multiple coaster styles (Monorail, Steel, Wood, Flume, Hanging, Mouse) for theme-park-style game scenes.",
+  "zip_inventory": {
+    "total_files": 939,
+    "by_ext": {
+      "txt": 1,
+      "fbx": 183,
+      "png": 193,
+      "glb": 183,
+      "mtl": 183,
+      "obj": 183,
+      "html": 1,
+      "url": 3,
+      "(none)": 9
+    },
+    "top_level": {
+      "License.txt": 1,
+      "Models": 743,
+      "Overview.html": 1,
+      "Preview (Coaster Flume).png": 1,
+      "Preview (Coaster Hanging).png": 1,
+      "Preview (Coaster Monorail).png": 1,
+      "Preview (Coaster Mouse).png": 1,
+      "Preview (Coaster Steel).png": 1,
+      "Preview (Coaster Wood).png": 1,
+      "Preview.png": 1,
+      "Previews": 184,
+      "View Documentation.url": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1
+    },
+    "sample_png_dims": [
+      [
+        "Models/FBX format/Textures/colormap.png",
+        [
+          512,
+          512
+        ],
+        "P"
+      ],
+      [
+        "Models/GLB format/Textures/colormap.png",
+        [
+          512,
+          512
+        ],
+        "P"
+      ],
+      [
+        "Models/OBJ format/Textures/colormap.png",
+        [
+          512,
+          512
+        ],
+        "P"
+      ],
+      [
+        "Preview (Coaster Flume).png",
+        [
+          918,
+          515
+        ],
+        "P"
+      ],
+      [
+        "Preview (Coaster Hanging).png",
+        [
+          918,
+          515
+        ],
+        "P"
+      ]
+    ]
+  }
+}

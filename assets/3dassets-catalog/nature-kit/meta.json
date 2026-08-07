@@ -1,0 +1,70 @@
+{
+  "slug": "nature-kit",
+  "url": "https://kenney.nl/assets/nature-kit",
+  "title": "Nature Kit · Kenney",
+  "cleaned_title": "Nature Kit",
+  "og_description": "Download this package (330 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/nature-kit/656a90532f-1677698896/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/nature-kit/37ac38a37b-1677698939/kenney_nature-kit.zip",
+  "fetched_at": "2026-08-03T22:45:58.539296+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 330,
+  "category": "tile-set",
+  "subcategory": "isometric-nature",
+  "style_tags": [
+    "low-poly",
+    "isometric",
+    "flat-shaded",
+    "stylized",
+    "cartoony",
+    "vibrant",
+    "miniature"
+  ],
+  "palette": [
+    "#4FC4A8",
+    "#D67A4A",
+    "#E8D4B0",
+    "#DCE3E8",
+    "#7DD3E0",
+    "#1E2B37"
+  ],
+  "use_cases": [
+    "isometric level design",
+    "low-poly game environments",
+    "outdoor and nature scenes",
+    "2.5D strategy and tycoon games"
+  ],
+  "visual_summary": "A low-poly isometric nature kit showing a layered island diorama with teal grass terraces, terracotta paths, off-white stone cliffs, sandy beaches, flowing water, scattered trees, palms, wooden bridges, tents, and fences. The art style is bright, flat-shaded, and miniature, with clean faceted geometry and a warm, complementary color palette ideal for cheerful casual games.",
+  "zip_inventory": {
+    "total_files": 3626,
+    "by_ext": {
+      ".png": 1640,
+      ".obj": 329,
+      ".mtl": 329,
+      ".stl": 329,
+      ".glb": 329,
+      ".fbx": 329,
+      ".dae": 329,
+      ".url": 3,
+      ".txt": 1,
+      "": 8
+    },
+    "top_level": {
+      "Isometric": 1317,
+      "Models": 1980,
+      "Side": 323,
+      "License.txt": 1,
+      "Preview.png": 1,
+      "Sample.png": 1,
+      "Instructions.url": 1,
+      "Kenney.url": 1,
+      "Patreon.url": 1
+    },
+    "sample_png_dims": {
+      "(512, 512) P": 5,
+      "(56, 136) P": 3,
+      "(39, 154) P": 2
+    }
+  }
+}

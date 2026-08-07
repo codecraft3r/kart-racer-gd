@@ -1,0 +1,76 @@
+{
+  "slug": "prototype-kit",
+  "url": "https://kenney.nl/assets/prototype-kit",
+  "title": "Prototype Kit",
+  "og_description": "Download this package (145 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/prototype-kit/6ed928c9d0-1724832070/preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/prototype-kit/4d3b7073ed-1724832076/kenney_prototype-kit.zip",
+  "fetched_at": "2026-08-03T22:44:22.898659+00:00",
+  "enriched_at": "2026-08-04T00:00:00+00:00",
+  "asset_count": 145,
+  "category": "3D-models",
+  "subcategory": "prototype-blockout",
+  "style_tags": [
+    "low-poly",
+    "prototype",
+    "blockout",
+    "placeholder",
+    "minimalist",
+    "flat-shaded",
+    "modular",
+    "voxel-style",
+    "clean-geometry"
+  ],
+  "palette": [
+    "#E8E8EE",
+    "#E85A1A",
+    "#F2C42C",
+    "#D44A2A",
+    "#3A6FB8",
+    "#2A2D33"
+  ],
+  "use_cases": [
+    "level prototyping and greyboxing",
+    "game jam placeholders",
+    "3D scene mockups",
+    "teaching 3D pipelines",
+    "concept visualization",
+    "rapid iteration on game design"
+  ],
+  "visual_summary": "A grid of low-poly 3D prototype primitives laid out on a dark gray checkered plane. White/light-gray modular pieces (cubes, cylinders, arches, ramps, stairs, walls, doors, pipes) dominate the top half. Orange accent props include a car, truck, jeep, motorbike, traffic barriers and construction cones. Yellow accents provide numerals 0-9, hazard stripes and floor decals. Small blue humanoid character placeholders and red door panels numbered 1-4 add variety. Overall a clean, flat-shaded, minimalist style suited for blockout and prototype scenes.",
+  "zip_inventory": {
+    "total_files": 749,
+    "by_ext": {
+      ".png": 155,
+      ".fbx": 145,
+      ".glb": 145,
+      ".mtl": 145,
+      ".obj": 145,
+      ".url": 3,
+      ".txt": 1,
+      ".html": 1,
+      "(none)": 9
+    },
+    "top_level": {
+      "Models": 594,
+      "Previews": 146,
+      "License.txt": 1,
+      "Overview.html": 1,
+      "Preview (Variation A).png": 1,
+      "Preview (Variation B).png": 1,
+      "Preview (Variation C).png": 1,
+      "Preview.png": 1,
+      "View Documentation.url": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1
+    },
+    "sample_png_dims": [
+      "Models/FBX format/Textures/colormap.png 512x512",
+      "Models/GLB format/Textures/colormap.png 512x512",
+      "Models/OBJ format/Textures/colormap.png 512x512",
+      "Models/Textures/variation-a.png 512x512",
+      "Models/Textures/variation-b.png 512x512"
+    ]
+  },
+  "og_image_local": "preview.png"
+}

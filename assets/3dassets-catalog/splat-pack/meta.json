@@ -1,0 +1,66 @@
+{
+  "slug": "splat-pack",
+  "url": "https://kenney.nl/assets/splat-pack",
+  "title": "Splat Pack · Kenney",
+  "clean_title": "Splat Pack",
+  "og_description": "Download this package (30 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/splat-pack/91cb9b703e-1677495346/preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/splat-pack/1070534984-1677495350/kenney_splat-pack.zip",
+  "fetched_at": "2026-08-03T22:45:48.927621+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 30,
+  "category": "particles",
+  "subcategory": "splash-sprites",
+  "style_tags": [
+    "cartoon",
+    "flat",
+    "monochrome",
+    "vector",
+    "clean",
+    "white-on-transparent",
+    "particle-ready",
+    "organic-shapes"
+  ],
+  "palette": {
+    "fill": "#FFFFFF",
+    "alpha": "transparent background, single-channel white silhouettes",
+    "preview_bg": "#6FB7E1 (sky blue)"
+  },
+  "use_cases": [
+    "2D particle effect overlays (impacts, bursts)",
+    "Paint/liquid splashes and stains",
+    "Blood, juice or slime splat decals",
+    "Water-droplet and explosion debris",
+    "Cartoon game juice and hit feedback",
+    "Transition and reveal overlays",
+    "UI/UX decorative flourishes"
+  ],
+  "visual_summary": "Set of 30 hand-drawn cartoon paint-splat sprites in solid white on transparent backgrounds. Shapes range from compact, rounded blobs to spiky multi-prong eruptions and scattered droplet patterns. Vector-clean silhouettes with no outline, supplied at 256px and 512px plus matching SVGs — designed to drop straight into a 2D particle system or overlay layer.",
+  "zip_inventory": {
+    "total_files": 117,
+    "by_extension": {
+      ".png": 73,
+      ".svg": 37,
+      ".txt": 1,
+      ".url": 2,
+      "": 4
+    },
+    "top_level": [
+      "PNG",
+      "Vector",
+      "License.txt",
+      "Preview.png",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "png_breakdown": {
+      "Preview.png": "918x515 RGBA preview",
+      "Default (256px)": "36 PNGs (256x256, palette mode)",
+      "Double (512px)": "36 PNGs (512x512, palette mode)"
+    },
+    "unique_sprites": 36,
+    "sprite_naming": "splat00 .. splat35",
+    "vector_breakdown": "37 SVGs (overview.svg + 36 splat SVGs)"
+  },
+  "og_image_local": "preview.png"
+}

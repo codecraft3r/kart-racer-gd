@@ -1,0 +1,105 @@
+{
+  "slug": "tappy-plane",
+  "url": "https://kenney.nl/assets/tappy-plane",
+  "title": "Tappy Plane · Kenney",
+  "title_clean": "Tappy Plane",
+  "og_description": "Download this package (75 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/tappy-plane/fb84b4c2ee-1677700398/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/tappy-plane/78fa8bdf8c-1677700386/kenney_tappy-plane.zip",
+  "fetched_at": "2026-08-03T22:48:24.640190+00:00",
+  "enriched_at": "2026-08-03T22:48:30+00:00",
+  "asset_count": 75,
+  "category": "2D-sprites",
+  "subcategory": "characters",
+  "style_tags": [
+    "flat",
+    "cartoon",
+    "mobile",
+    "casual",
+    "sidescroller",
+    "colorful",
+    "cute",
+    "vector",
+    "endless-runner"
+  ],
+  "palette": {
+    "sky_blue": "#B8E1F0",
+    "cloud_white": "#F8F9FA",
+    "mountain_brown": "#8B5A2B",
+    "plane_yellow": "#FFD23F",
+    "accent_red": "#E63946",
+    "star_gold": "#FCBF49",
+    "ui_gray": "#3D3D3D"
+  },
+  "use_cases": [
+    "Flappy Bird-style tap-to-fly games",
+    "Mobile casual / endless runner games",
+    "Side-scrolling 2D arcade games",
+    "Game prototypes and jams",
+    "Kids and family-friendly game art"
+  ],
+  "visual_summary": "A cheerful mobile-style 2D side-scrolling tap-game art set. The hero is a cute yellow biplane with spinning prop animation, paired with brown mountain peaks as obstacles, fluffy white clouds, gold star collectibles, and a bright sky-blue background. Includes matching number and letter sprites, UI buttons and medals, four ground variants (dirt, grass, ice, rock), ready-to-use packed spritesheets with Starling XML metadata, and a master vector SVG for scalable reuse.",
+  "zip_inventory": {
+    "total_files": 96,
+    "by_ext": {
+      ".png": 83,
+      ".xml": 2,
+      ".url": 2,
+      ".svg": 1,
+      ".txt": 1,
+      "(no extension / folders)": 7
+    },
+    "top_level": [
+      "PNG/",
+      "Spritesheet/",
+      "Vector/",
+      "License.txt",
+      "Preview.png",
+      "Sample.png",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "png_subfolders": {
+      "Planes": 13,
+      "Letters": 27,
+      "Numbers": 11,
+      "UI": 13,
+      "(root)": 20
+    },
+    "sample_dims": {
+      "Spritesheet/planes.png": [
+        256,
+        512
+      ],
+      "Spritesheet/sheet.png": [
+        1024,
+        2048
+      ],
+      "PNG/Planes/planeBlue1.png": [
+        88,
+        73
+      ],
+      "PNG/Planes/planeYellow1.png": [
+        88,
+        73
+      ],
+      "PNG/background.png": [
+        800,
+        480
+      ],
+      "PNG/UI/buttonLarge.png": [
+        196,
+        70
+      ],
+      "PNG/Numbers/number0.png": [
+        53,
+        78
+      ],
+      "PNG/groundGrass.png": [
+        808,
+        71
+      ]
+    }
+  }
+}

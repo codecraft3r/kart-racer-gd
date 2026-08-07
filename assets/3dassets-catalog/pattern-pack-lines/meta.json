@@ -1,0 +1,80 @@
+{
+  "slug": "pattern-pack-lines",
+  "url": "https://kenney.nl/assets/pattern-pack-lines",
+  "title": "Pattern Pack Lines \u00b7 Kenney",
+  "title_clean": "Pattern Pack Lines",
+  "og_description": "Download this package (60 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/pattern-pack-lines/aa8b7823ef-1677484383/preview.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/pattern-pack-lines/6211bda939-1774771397/kenney_pattern-pack-lines.zip",
+  "fetched_at": "2026-08-03T22:45:43.625952+00:00",
+  "enriched_at": "2026-08-03T22:45:00+00:00",
+  "asset_count": 60,
+  "category": "tile-set",
+  "subcategory": "seamless-line-patterns",
+  "style_tags": [
+    "minimal",
+    "geometric",
+    "monochrome",
+    "line-art",
+    "seamless",
+    "tileable",
+    "vector",
+    "flat",
+    "white-on-transparent"
+  ],
+  "palette": [
+    "monochrome",
+    "white",
+    "transparent"
+  ],
+  "use_cases": [
+    "tileable game backgrounds",
+    "UI panels and fills",
+    "menu and splash screens",
+    "print and stationery",
+    "decorative overlays",
+    "prototype textures"
+  ],
+  "visual_summary": "60 seamless line-based geometric patterns (hatching, herringbone, basket weave, hexagons, chains, chevrons, dots, grids, brick, diamonds, and more) supplied in two stroke weights (Thick and Thin). Each tile is a single monochrome motif on transparency, delivered as both vector SVG and pre-rendered PNG tiles at 256px and 512px, plus four combined tilesheets.",
+  "zip_inventory": {
+    "total_files": 203,
+    "by_ext": {
+      "png": 125,
+      "svg": 60,
+      "xml": 4,
+      "txt": 1,
+      "url": 2,
+      "dirs": 11
+    },
+    "top_level": {
+      "PNG": 127,
+      "Vector": 63,
+      "Tilesheet": 9,
+      "Preview.png": 1,
+      "License.txt": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1
+    },
+    "png_breakdown": {
+      "Preview": 1,
+      "Tilesheet": 4,
+      "PNG/Thick/Default (256px)": 30,
+      "PNG/Thick/Double (512px)": 30,
+      "PNG/Thin/Default (256px)": 30,
+      "PNG/Thin/Double (512px)": 30
+    },
+    "svg_breakdown": {
+      "Vector/Thick": 30,
+      "Vector/Thin": 30
+    },
+    "sample_png_dims": [
+      ["Tilesheet/thick_default.png", [1280, 1536]],
+      ["Tilesheet/thick_double.png", [2560, 3072]],
+      ["Tilesheet/thin_default.png", [1280, 1536]],
+      ["Tilesheet/thin_double.png", [2560, 3072]],
+      ["PNG/Thin/Double (512px)/pattern_0027.png", [512, 512]],
+      ["PNG/Thin/Double (512px)/pattern_0028.png", [512, 512]]
+    ]
+  }
+}

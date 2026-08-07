@@ -1,0 +1,105 @@
+{
+  "slug": "prototype-textures",
+  "url": "https://kenney.nl/assets/prototype-textures",
+  "title": "Prototype Textures · Kenney",
+  "cleaned_title": "Prototype Textures",
+  "og_description": "Download this package (75 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/prototype-textures/f2ebc51899-1677578302/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/prototype-textures/a88c69fa18-1677578307/kenney_prototype-textures.zip",
+  "fetched_at": "2026-08-03T22:45:59.461679+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 75,
+  "category": "tile-set",
+  "subcategory": "3D-prototyping-textures",
+  "style_tags": [
+    "voxel",
+    "low-poly",
+    "prototype",
+    "greybox",
+    "blockout",
+    "grid-overlay",
+    "flat-color",
+    "tileable",
+    "geometric",
+    "3D-level"
+  ],
+  "palette": [
+    "dark-gray",
+    "light-gray",
+    "purple",
+    "red",
+    "orange",
+    "green"
+  ],
+  "use_cases": [
+    "3D level prototyping and blockouts",
+    "Greybox/placeholder art for game prototypes",
+    "Color-coded level design (per-room or per-function)",
+    "Game-jam and indie prototypes",
+    "Tutorial, mockup and didactic 3D scenes",
+    "Architecture and layout walkthroughs"
+  ],
+  "visual_summary": "A clean 3D level-prototyping scene composed of stacked voxel/cube blocks in six flat colors (red, purple, orange, dark gray, light gray, with small green accent cubes). Surfaces carry a subtle white grid/wireframe pattern and tiny block labels such as 'WALL' and 'FLOOR', giving the whole scene a clear game-dev greybox aesthetic. Viewed from a three-quarter perspective on a neutral dark background, the assets read as tileable, square surface textures (1024x1024) designed for prototyping 3D environments rather than final art.",
+  "zip_inventory": {
+    "zip_name": "kenney_prototype-textures.zip",
+    "zip_size_bytes": 438977,
+    "total_files": 117,
+    "by_ext": {
+      ".png": 80,
+      ".svg": 13,
+      ".swf": 13,
+      ".txt": 1,
+      ".url": 2,
+      "(none)": 8
+    },
+    "top_level": {
+      "PNG": 85,
+      "Vector": 27,
+      "License.txt": 1,
+      "Kenney.url": 1,
+      "Patreon.url": 1,
+      "Preview.png": 1,
+      "Sample.png": 1
+    },
+    "png_color_sets": [
+      "Dark",
+      "Green",
+      "Light",
+      "Orange",
+      "Purple",
+      "Red"
+    ],
+    "png_total": 80,
+    "png_sample_dims": [
+      {
+        "name": "PNG/Dark/texture_01.png",
+        "w": 1024,
+        "h": 1024,
+        "mode": "P"
+      },
+      {
+        "name": "PNG/Dark/texture_02.png",
+        "w": 1024,
+        "h": 1024,
+        "mode": "P"
+      },
+      {
+        "name": "PNG/Dark/texture_03.png",
+        "w": 1024,
+        "h": 1024,
+        "mode": "P"
+      },
+      {
+        "name": "PNG/Dark/texture_04.png",
+        "w": 1024,
+        "h": 1024,
+        "mode": "P"
+      }
+    ],
+    "vector_formats": [
+      "svg",
+      "swf"
+    ]
+  }
+}

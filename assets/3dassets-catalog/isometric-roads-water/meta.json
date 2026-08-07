@@ -1,0 +1,44 @@
+{
+  "slug": "isometric-roads-water",
+  "url": "https://kenney.nl/assets/isometric-roads-water",
+  "title": "Isometric Roads Water · Kenney",
+  "og_description": "Download this package (40 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/isometric-roads-water/a06b048129-1677668451/preview.jpg",
+  "download_url": "https://kenney.nl/media/pages/assets/isometric-roads-water/a7ef067d57-1677668457/kenney_isometric-roads-water.zip",
+  "fetched_at": "2026-08-03T22:48:18.232523+00:00",
+  "enriched_at": "2026-08-03T17:26:00Z",
+  "asset_count": 40,
+  "category": "tile-set",
+  "subcategory": "isometric-roads-water",
+  "style_tags": ["isometric", "dimetric", "2d-sprite", "flat-shading", "modular", "diamond-grid", "low-poly-look", "pastel", "expansion-pack"],
+  "palette": ["#bfe7f3", "#4ec0e0", "#3a3a3a", "#7fc24a", "#8c5a2b", "#e8d4a8", "#ffffff", "#f5efe1"],
+  "use_cases": ["city-builder game levels", "isometric strategy games", "road networks over rivers and canals", "bridges and crossings", "waterfalls and slope terrain", "modular tile-based maps"],
+  "visual_summary": "The 'Water Works' expansion to Kenney's isometric road pack: 42 dimetric (2:1) tile sprites on a soft beige backdrop. Includes bridges (low and high, banked and flat, EW and NS orientations), river segments (banked, sloping, waterfall in four directions), slope tiles, and waterfall end pieces. Roads are dark asphalt with thin white lane markings; water is a calm sky-blue; tiles have green grass tops or sandy/dirt banks. Clean flat shading with subtle gradients, designed to dock seamlessly with the base isometric roads pack via a shared diamond grid.",
+  "zip_inventory": {
+    "total_files": 48,
+    "by_ext": {
+      ".png": 42,
+      ".svg": 1,
+      ".swf": 1,
+      ".ai": 1,
+      ".jpg": 1,
+      ".txt": 1,
+      "(none)": 1
+    },
+    "top_level": ["png", "preview.jpg", "readme.txt", "roadTiles_water.svg", "roadTiles_water.swf", "roadTiles_water.ai"],
+    "png_dimensions": {
+      "100x80": 4,
+      "100x77": 4,
+      "100x65": 24,
+      "100x58": 10
+    },
+    "sample_files": [
+      "png/bridgeHighBankedEW.png",
+      "png/bridgeLowEW.png",
+      "png/riverBankedWaterfallE.png",
+      "png/riverSlopeS.png",
+      "png/waterfallEndW.png"
+    ]
+  },
+  "og_image_local": "preview.png"
+}

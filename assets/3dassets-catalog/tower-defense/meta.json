@@ -1,0 +1,143 @@
+{
+  "slug": "tower-defense",
+  "url": "https://kenney.nl/assets/tower-defense",
+  "title": "Tower Defense · Kenney",
+  "title_clean": "Tower Defense",
+  "og_description": "Download this package (230 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/tower-defense/9eb3e62ac1-1677699065/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/tower-defense/39d625c6b5-1677699069/kenney_tower-defense.zip",
+  "fetched_at": "2026-08-03T22:47:04.635808+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 230,
+  "category": "2D-sprites",
+  "subcategory": "tower-defense",
+  "style_tags": [
+    "isometric",
+    "low-poly",
+    "flat-shaded",
+    "vector-style",
+    "clean-edges",
+    "vibrant",
+    "modular",
+    "tileset",
+    "sprite-sheet",
+    "game-ready",
+    "family-friendly"
+  ],
+  "palette": [
+    "grass-green",
+    "path-tan",
+    "stone-grey",
+    "rock-white",
+    "water-blue",
+    "sky-blue",
+    "tower-red",
+    "crystal-purple",
+    "tree-green",
+    "wood-brown"
+  ],
+  "use_cases": [
+    "tower defense games",
+    "isometric strategy prototypes",
+    "mobile TD games",
+    "game-jam prototypes",
+    "casual / family-friendly games",
+    "level mockups and tutorials"
+  ],
+  "visual_summary": "Isometric low-poly tower defense scene on a floating grass island: a winding tan path winds between chunky stone castle towers (grey, red-roofed), pine trees, white rocks, purple crystals, sandy building blocks and a small light-blue water tile, all rendered with flat-shaded clean edges against a vivid blue background. Ships as individual PNGs plus packed spritesheets for landscape and the three tower color variants (brown, grey, red).",
+  "zip_inventory": {
+    "total_files": 249,
+    "by_ext": {
+      ".png": 235,
+      ".xml": 4,
+      ".url": 2,
+      ".txt": 1
+    },
+    "top_level": {
+      "PNG": 229,
+      "Spritesheet": 8,
+      "License.txt": 1,
+      "Preview.png": 1,
+      "Sample.png": 1,
+      "Donate.url": 1,
+      "Facebook.url": 1
+    },
+    "png_subfolders": {
+      "Details": 24,
+      "Landscape": 40,
+      "Towers (brown)": 55,
+      "Towers (grey)": 55,
+      "Towers (red)": 55
+    },
+    "sample_png_dims": [
+      {
+        "name": "PNG/Details/crystals_1.png",
+        "w": 132,
+        "h": 112
+      },
+      {
+        "name": "PNG/Details/crystals_2.png",
+        "w": 132,
+        "h": 121
+      },
+      {
+        "name": "PNG/Details/trees_1.png",
+        "w": 133,
+        "h": 111
+      },
+      {
+        "name": "PNG/Details/rocks_1.png",
+        "w": 133,
+        "h": 99
+      },
+      {
+        "name": "PNG/Landscape/landscape_00.png",
+        "w": 132,
+        "h": 99
+      },
+      {
+        "name": "PNG/Landscape/landscape_20.png",
+        "w": 132,
+        "h": 115
+      },
+      {
+        "name": "PNG/Towers (brown)/tower_00.png",
+        "w": 79,
+        "h": 72
+      },
+      {
+        "name": "PNG/Towers (brown)/tower_54.png",
+        "w": 93,
+        "h": 75
+      },
+      {
+        "name": "Spritesheet/landscape_sheet.png",
+        "w": 2048,
+        "h": 512
+      },
+      {
+        "name": "Spritesheet/towers_brown_sheet.png",
+        "w": 1024,
+        "h": 512
+      },
+      {
+        "name": "Spritesheet/towers_grey_sheet.png",
+        "w": 1024,
+        "h": 512
+      },
+      {
+        "name": "Spritesheet/towers_red_sheet.png",
+        "w": 1024,
+        "h": 512
+      }
+    ],
+    "spritesheets": [
+      "Spritesheet/landscape_sheet.png (+.xml)",
+      "Spritesheet/towers_brown_sheet.png (+.xml)",
+      "Spritesheet/towers_grey_sheet.png (+.xml)",
+      "Spritesheet/towers_red_sheet.png (+.xml)"
+    ],
+    "license": "CC0 (Creative Commons Zero) — Kenney Vleugels (www.kenney.nl)"
+  }
+}

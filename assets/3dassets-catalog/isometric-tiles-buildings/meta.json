@@ -1,0 +1,33 @@
+{
+  "slug": "isometric-tiles-buildings",
+  "url": "https://kenney.nl/assets/isometric-tiles-buildings",
+  "title": "Isometric Tiles Buildings · Kenney",
+  "og_description": "Download this package (128 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/isometric-tiles-buildings/bac1f1ba5a-1677694980/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/isometric-tiles-buildings/cfcdb066e1-1677694983/kenney_isometric-buildings.zip",
+  "fetched_at": "2026-08-03T22:47:34.754709+00:00",
+  "enriched_at": "2026-08-03T22:48:00.000000+00:00",
+  "asset_count": 128,
+  "category": "tile-set",
+  "subcategory": "isometric city buildings",
+  "style_tags": ["isometric", "low-poly", "flat", "cartoon", "modern"],
+  "palette": ["#1f7ad6", "#e8e2c8", "#c43d2e", "#3f6a8a", "#7a4a2a", "#4a8c3a"],
+  "use_cases": ["city builder", "sim management", "tycoon", "casual strategy"],
+  "visual_summary": "A collection of blocky, low-poly isometric city buildings — apartment blocks, shops, a hospital, and a fire station in cream, red, and tan palettes — arranged on tile-based streets and sidewalks against a bright blue background. The art is clean, flat-shaded, and cartoon-friendly with a friendly, modern mood perfect for casual city-builders.",
+  "zip_inventory": {
+    "total_files": 138,
+    "by_ext": {"png": 132, "txt": 1, "xml": 1, "url": 2},
+    "top_level": ["Donate.url", "Facebook.url", "License.txt", "PNG", "Preview.png", "Sample.png", "Spritesheet"],
+    "sample_png_dims": [
+      {"file": "Preview.png", "width": 918, "height": 515},
+      {"file": "Sample.png", "width": 918, "height": 515},
+      {"file": "PNG/buildingTiles_000.png", "width": 99, "height": 85},
+      {"file": "PNG/buildingTiles_001.png", "width": 133, "height": 127},
+      {"file": "PNG/buildingTiles_002.png", "width": 132, "height": 127},
+      {"file": "PNG/buildingTiles_003.png", "width": 132, "height": 127},
+      {"file": "PNG/buildingTiles_004.png", "width": 132, "height": 127},
+      {"file": "PNG/buildingTiles_005.png", "width": 99, "height": 54}
+    ]
+  },
+  "og_image_local": "preview.png"
+}

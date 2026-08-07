@@ -1,0 +1,26 @@
+{
+  "slug": "modular-buildings",
+  "url": "https://kenney.nl/assets/modular-buildings",
+  "title": "Modular Buildings · Kenney",
+  "og_description": "Download this package (100 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/modular-buildings/cbda060603-1707397438/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/modular-buildings/3253b4219a-1707397411/kenney_modular-buildings.zip",
+  "fetched_at": "2026-08-03T22:45:32.125994+00:00",
+  "enriched_at": "2026-08-03T22:46:00+00:00",
+  "asset_count": 100,
+  "category": "3D-models",
+  "subcategory": "modular-architecture",
+  "style_tags": ["low-poly", "isometric", "cartoon", "stylized", "flat-shaded", "modular"],
+  "palette": ["#f4d4c4", "#e8b89a", "#3b4654", "#7da9c4", "#5fa17a", "#b89070", "#f5e8d0"],
+  "use_cases": ["city-builders", "tycoon-games", "tower-defense", "strategy-games", "mobile-3d", "vr-worlds", "prototype-blockouts"],
+  "visual_summary": "Low-poly stylized modular building kit with 3-4 story apartment blocks, pitched-roof houses, and shopfronts. Soft peach-cream walls, dark slate-blue gabled roofs, pastel blue windows, and mint-green awnings. Clean cartoon proportions, flat shading, designed to snap together for procedural city/town scenes in 3D engines.",
+  "zip_inventory": {
+    "total_files": 563,
+    "by_ext": {".png": 117, ".glb": 108, ".obj": 108, ".mtl": 108, ".fbx": 108, ".url": 3, ".txt": 1, ".html": 1, "": 9},
+    "top_level": ["License.txt", "Models", "Overview.html", "Preview.png", "Preview (Variation A).png", "Preview (Variation B).png", "Previews", "Sample.png", "View Documentation.url", "Visit Kenney.url", "Visit Patreon.url"],
+    "sample_png_dims": "512x512 (textures), 918x515 (previews)",
+    "model_formats": ["glb", "obj+mtl", "fbx"],
+    "texture_variations": ["variation-a", "variation-b", "colormap"]
+  },
+  "og_image_local": "preview.png"
+}

@@ -1,0 +1,78 @@
+{
+  "slug": "city-kit-suburban",
+  "url": "https://kenney.nl/assets/city-kit-suburban",
+  "title": "City Kit (Suburban) \u00b7 Kenney",
+  "og_description": "Download this package (40 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/city-kit-suburban/8c3d4e93a3-1745479402/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/city-kit-suburban/2c871b7af2-1745479373/kenney_city-kit-suburban_20.zip",
+  "fetched_at": "2026-08-03T22:42:21.638757+00:00",
+  "enriched_at": "2026-08-03T22:45:00+00:00",
+  "asset_count": 40,
+  "category": "3D Models",
+  "subcategory": "City & Buildings",
+  "style_tags": [
+    "isometric",
+    "low-poly",
+    "3D",
+    "stylized",
+    "cartoon",
+    "miniature",
+    "voxel-like",
+    "clean",
+    "diagrammatic"
+  ],
+  "palette": [
+    "vivid green",
+    "off-white",
+    "dark gray",
+    "asphalt gray",
+    "soft orange",
+    "teal-blue",
+    "black"
+  ],
+  "use_cases": [
+    "city-builder and tycoon prototypes",
+    "isometric strategy or simulation games",
+    "suburban neighborhood scenes",
+    "low-poly mobile or web games",
+    "board-game and tabletop-style 3D",
+    "educational or training visualizations of urban planning",
+    "background assets for dioramas and tech demos"
+  ],
+  "visual_summary": "A bright, low-poly isometric 3D kit of a suburban neighborhood featuring small white houses with vivid green roofs, asphalt roads with crosswalks and intersections, a small overpass bridge, traffic cones, streetlights, conifer trees, orange fences, and rooftop solar panels. The style is clean, cartoon, and miniature-like, with a constrained palette of green, off-white, dark gray, asphalt gray, soft orange, and teal-blue accents on windows.",
+  "zip_inventory": {
+    "total_files": 225,
+    "by_ext": {
+      ".txt": 1,
+      ".fbx": 40,
+      ".png": 51,
+      ".glb": 40,
+      ".mtl": 40,
+      ".obj": 40,
+      ".html": 1,
+      ".url": 3
+    },
+    "top_level": [
+      "License.txt",
+      "Models",
+      "Overview.html",
+      "Preview (Variation A).png",
+      "Preview (Variation B).png",
+      "Preview (Variation C).png",
+      "Preview.png",
+      "Previews",
+      "Sample.png",
+      "View Documentation.url",
+      "Visit Kenney.url",
+      "Visit Patreon.url"
+    ],
+    "sample_png_dims": [
+      "Models/FBX format/Textures/colormap.png 512x512 P",
+      "Models/GLB format/Textures/colormap.png 512x512 P",
+      "Models/OBJ format/Textures/colormap.png 512x512 P",
+      "Models/Textures/variation-a.png 512x512 P",
+      "Models/Textures/variation-b.png 512x512 P"
+    ]
+  },
+  "og_image_local": "preview.png"
+}

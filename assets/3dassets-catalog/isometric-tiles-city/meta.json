@@ -1,0 +1,101 @@
+{
+  "slug": "isometric-tiles-city",
+  "url": "https://kenney.nl/assets/isometric-tiles-city",
+  "title": "Isometric Tiles City · Kenney",
+  "cleaned_title": "Isometric Tiles City",
+  "og_description": "Download this package (128 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/isometric-tiles-city/7a380d24eb-1677695022/preview.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/isometric-tiles-city/7026b2670a-1677695025/kenney_isometric-city.zip",
+  "fetched_at": "2026-08-03T22:47:46.489398+00:00",
+  "enriched_at": "2026-08-03T22:47:46.489398+00:00",
+  "asset_count": 128,
+  "category": "tile-set",
+  "subcategory": "isometric-city",
+  "style_tags": [
+    "isometric",
+    "low-poly",
+    "flat-shaded",
+    "voxel-style",
+    "modular",
+    "tile-based",
+    "clean-lines",
+    "soft-pastel"
+  ],
+  "palette": [
+    "#4A90D9",
+    "#E8DCC4",
+    "#B89968",
+    "#3A3A3A",
+    "#5BB04A",
+    "#F5F5F5"
+  ],
+  "use_cases": [
+    "city-builder games",
+    "tycoon and simulation prototypes",
+    "isometric strategy and tactics",
+    "board-game digital adaptations",
+    "level mockups and greyboxing"
+  ],
+  "visual_summary": "A clean, low-poly isometric tile set for assembling modular cities. Cubic blocks in a 2:1 dimetric projection combine into roads with lane markings and crosswalks, low-rise buildings with flat or stepped roofs, parks with blocky trees, water tiles, sidewalks, and street details. The palette is soft and approachable — sand and tan walls, dark asphalt, leafy green, sky blue, and crisp white linework — giving the whole set a friendly, modern-arcade feel suitable for casual city builders and quick prototypes.",
+  "zip_inventory": {
+    "total_files": 150,
+    "by_ext": {
+      "png": 142,
+      "xml": 2,
+      "url": 2,
+      "txt": 1
+    },
+    "top_level": {
+      "PNG": 129,
+      "Details": 12,
+      "Spritesheet": 5,
+      "License.txt": 1,
+      "Preview.png": 1,
+      "Donate.url": 1,
+      "Facebook.url": 1
+    },
+    "sample_png_dims": [
+      {
+        "file": "Preview.png",
+        "size": [
+          918,
+          515
+        ],
+        "mode": "RGB"
+      },
+      {
+        "file": "Details/cityDetails_000.png",
+        "size": [
+          22,
+          37
+        ],
+        "mode": "RGBA"
+      },
+      {
+        "file": "Details/cityDetails_001.png",
+        "size": [
+          32,
+          32
+        ],
+        "mode": "RGBA"
+      },
+      {
+        "file": "Details/cityDetails_002.png",
+        "size": [
+          32,
+          32
+        ],
+        "mode": "RGBA"
+      },
+      {
+        "file": "Details/cityDetails_003.png",
+        "size": [
+          32,
+          32
+        ],
+        "mode": "RGBA"
+      }
+    ]
+  }
+}

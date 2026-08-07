@@ -1,0 +1,76 @@
+{
+  "slug": "mobile-controls",
+  "url": "https://kenney.nl/assets/mobile-controls",
+  "title": "Mobile Controls · Kenney",
+  "cleaned_title": "Mobile Controls",
+  "og_description": "Download this package (900 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/mobile-controls/616d64eeba-1754738447/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/mobile-controls/0d047b3be4-1754738457/mobile-controls-1.zip",
+  "fetched_at": "2026-08-03T22:43:02.878632+00:00",
+  "enriched_at": "2026-08-03T22:43:30+00:00",
+  "asset_count": 900,
+  "category": "UI",
+  "subcategory": "mobile-controls",
+  "style_tags": [
+    "flat",
+    "minimalist",
+    "dark",
+    "modern",
+    "gamepad",
+    "touch-ui",
+    "vector-style",
+    "monochrome"
+  ],
+  "palette": [
+    "#0f1218",
+    "#1a1f2e",
+    "#2a3142",
+    "#6b7280",
+    "#a0a8b8",
+    "#ffffff"
+  ],
+  "use_cases": [
+    "mobile game HUD",
+    "touch controls overlay",
+    "virtual joystick",
+    "action buttons",
+    "settings menu UI",
+    "on-screen gamepad"
+  ],
+  "visual_summary": "Dark, minimalist mobile game controller overlay rendered as flat rounded-pill and circular buttons on a translucent charcoal panel. Includes a d-pad/joystick cluster, a target/aim button, jump/fire (flame), menu, microphone and settings buttons, plus highlight states. Soft white icons on muted slate fills with subtle shadows; uniform visual weight across all controls.",
+  "zip_inventory": {
+    "total_files": 1482,
+    "by_ext": {
+      "png": 948,
+      "svg": 462,
+      "xml": 22,
+      "url": 2,
+      "txt": 1
+    },
+    "top_level": {
+      "Sprites": 958,
+      "Vector": 474,
+      "Spritesheets": 45,
+      "Preview.png": 1,
+      "Sample.png": 1,
+      "License.txt": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1
+    },
+    "sample_png_dims": {
+      "Preview.png": [
+        918,
+        515
+      ],
+      "Sample.png": [
+        918,
+        515
+      ],
+      "Sprites/Highlights A/Default/button_bean_highlight.png": [
+        64,
+        42
+      ]
+    }
+  }
+}

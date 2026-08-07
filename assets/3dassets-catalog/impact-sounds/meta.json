@@ -1,0 +1,58 @@
+{
+  "slug": "impact-sounds",
+  "url": "https://kenney.nl/assets/impact-sounds",
+  "title": "Impact Sounds",
+  "og_description": "Download this package (130 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/impact-sounds/37d145475f-1677589720/audio_impact.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+  "fetched_at": "2026-08-03T22:46:12.535172+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 130,
+  "category": "audio",
+  "subcategory": "impact-sfx",
+  "style_tags": [
+    "flat",
+    "geometric",
+    "minimalist",
+    "vector",
+    "clean-illustration",
+    "icon-style",
+    "kenney-style",
+    "modern",
+    "professional"
+  ],
+  "palette": [
+    "mint-green",
+    "teal",
+    "white",
+    "light-gray",
+    "charcoal",
+    "dark-navy"
+  ],
+  "use_cases": [
+    "2D/3D game sound effects",
+    "Footstep audio across surfaces (carpet, concrete, grass, snow, wood)",
+    "Object impact impacts (glass, metal, wood, plate, bell, plank, tin)",
+    "Combat / punch impacts",
+    "Mining and tool impacts",
+    "Soft and generic UI feedback hits",
+    "Rapid prototyping of audio for game jams"
+  ],
+  "visual_summary": "Kenney's signature flat-vector cover: a white circular badge with a stylized dark speaker icon, paired with a smaller charcoal tile containing a small impact/phone glyph, all set on a bright mint-green background. Clean, geometric, minimalist.",
+  "zip_inventory": {
+    "total_files": 134,
+    "by_ext": {
+      ".ogg": 130,
+      ".url": 2,
+      ".txt": 1,
+      "": 1
+    },
+    "top_level": {
+      "Audio": 131,
+      "Kenney.url": 1,
+      "License.txt": 1,
+      "Patreon.url": 1
+    }
+  }
+}

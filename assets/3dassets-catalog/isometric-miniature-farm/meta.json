@@ -1,0 +1,68 @@
+{
+  "slug": "isometric-miniature-farm",
+  "url": "https://kenney.nl/assets/isometric-miniature-farm",
+  "title": "Isometric Miniature Farm · Kenney",
+  "og_description": "Download this package (60 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/isometric-miniature-farm/a627feea96-1670690281/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/isometric-miniature-farm/abd0274182-1670690319/kenney_isometric-miniature-farm.zip",
+  "fetched_at": "2026-08-03T22:46:13.376285+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 60,
+  "category": "2D-sprites",
+  "subcategory": "isometric-tiles",
+  "style_tags": [
+    "isometric",
+    "miniature",
+    "hand-painted",
+    "stylized",
+    "rural",
+    "farm",
+    "wooden",
+    "cozy",
+    "low-poly-look",
+    "warm-tones"
+  ],
+  "palette": [
+    "warm brown",
+    "saddle brown",
+    "tan",
+    "sandy beige",
+    "olive green",
+    "leaf green",
+    "stone grey",
+    "cream",
+    "rust red"
+  ],
+  "use_cases": [
+    "farm or countryside game scenes",
+    "isometric city/casual builders",
+    "Farming sim and tycoon prototypes",
+    "cozy / pastoral mobile or web games",
+    "level art props (barns, fences, crops, hay)",
+    "isometric map mockups and dioramas"
+  ],
+  "visual_summary": "Hand-painted isometric miniature farm kit with 60 unique props rendered in a fixed 2:1 isometric projection. The sample scene shows a wooden barn with detailed plank siding, a stone chimney, low and high wooden fences, planked decking, hay bales, sacks, a ladder, dirt ground tiles, and corn fields in young and mature growth. The art is stylized but richly textured with warm earthy browns and tans, accented by the green of corn plants and a muted stone grey. Lighting is soft and even, producing a cozy, diorama-like feel suited to rural or pastoral game scenes.",
+  "zip_inventory": {
+    "total_files": 466,
+    "by_ext": {
+      "png": 459,
+      "zip": 2,
+      "url": 1,
+      "txt": 1,
+      "(none)": 3
+    },
+    "top_level": [
+      "Angle/",
+      "Isometric/",
+      "Samples/"
+    ],
+    "sample_png_dimensions": [
+      "Angle/chimneyBase_E.png 256x512",
+      "Angle/chimneyBase_N.png 256x512",
+      "Angle/chimneyBase_S.png 256x512",
+      "Angle/chimneyBase_W.png 256x512",
+      "Angle/chimneyTop_E.png 256x512"
+    ]
+  },
+  "og_image_local": "preview.png"
+}

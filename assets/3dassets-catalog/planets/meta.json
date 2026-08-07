@@ -1,0 +1,119 @@
+{
+  "slug": "planets",
+  "url": "https://kenney.nl/assets/planets",
+  "title": "Planets · Kenney",
+  "cleaned_title": "Planets",
+  "og_description": "Download this package (50 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/planets/97e63fa6c0-1677495384/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/planets/512b578338-1677495391/kenney_planets.zip",
+  "fetched_at": "2026-08-03T22:45:45.448880+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 50,
+  "category": "2D-sprites",
+  "subcategory": "space-planets",
+  "style_tags": [
+    "flat",
+    "cartoon",
+    "painterly",
+    "soft-shaded",
+    "rounded",
+    "no-outline",
+    "vibrant",
+    "sci-fi",
+    "family-friendly"
+  ],
+  "palette": [
+    "sky blue (#5BAFE6)",
+    "earth blue (#1E5BA8)",
+    "leaf green (#3F8E5A)",
+    "mint (#A8DCC8)",
+    "brick red (#A03A2C)",
+    "warm tan (#C2915C)",
+    "lavender (#9B7BD4)",
+    "violet (#5B3A8C)"
+  ],
+  "use_cases": [
+    "2D space and sci-fi games",
+    "Solar system visualizations and educational apps",
+    "Mobile and casual game backgrounds",
+    "Strategy / 4X game planet art",
+    "Game prototypes and placeholder art",
+    "Planet selection and menu screens"
+  ],
+  "visual_summary": "A set of pre-rendered, painterly 2D planet sprites shown floating against a bright blue sky gradient. Five example planets demonstrate the range: an earth-like blue/green/white water-and-continent world (large, center), a tan/brown rocky world, a small brick-red Mars-like planet, a small lavender-and-teal planet, and a large violet/purple camo-textured planet. Surfaces use flat, organic blob-splotches in a Kenney-style camouflage pattern with soft, rounded shading and no outlines. High-resolution PNGs at 1024–1280px, palette-indexed mode, designed to drop into 2D space games or be used as billboards in 3D scenes.",
+  "zip_inventory": {
+    "zip_file": "kenney_planets.zip",
+    "total_entries": 59,
+    "total_files": 57,
+    "by_ext": {
+      ".png": 54,
+      ".txt": 1,
+      ".url": 2,
+      "(directory)": 2
+    },
+    "top_level": {
+      "Planets/": 10,
+      "Parts/": 43,
+      "License.txt": 1,
+      "Preview.png": 1,
+      "Sample.png": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1
+    },
+    "png_dim_distribution": {
+      "1024x1024_palette": 42,
+      "1280x1280_palette": 10,
+      "918x515_palette": 2
+    },
+    "png_samples": [
+      {
+        "file": "Planets/planet00.png",
+        "size": [
+          1280,
+          1280
+        ],
+        "mode": "P"
+      },
+      {
+        "file": "Planets/planet09.png",
+        "size": [
+          1280,
+          1280
+        ],
+        "mode": "P"
+      },
+      {
+        "file": "Parts/light0.png",
+        "size": [
+          1024,
+          1024
+        ],
+        "mode": "P"
+      },
+      {
+        "file": "Parts/noise14.png",
+        "size": [
+          1024,
+          1024
+        ],
+        "mode": "P"
+      },
+      {
+        "file": "Parts/sphere1.png",
+        "size": [
+          1024,
+          1024
+        ],
+        "mode": "P"
+      }
+    ],
+    "breakdown": {
+      "Planets (1280x1280)": 10,
+      "Lights (1024x1024)": 11,
+      "Noise textures (1024x1024)": 28,
+      "Spheres (1024x1024)": 3,
+      "Preview/Sample (918x515)": 2
+    }
+  }
+}

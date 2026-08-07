@@ -1,0 +1,114 @@
+{
+  "slug": "smoke-particles",
+  "url": "https://kenney.nl/assets/smoke-particles",
+  "title": "Smoke Particles · Kenney",
+  "title_clean": "Smoke Particles",
+  "og_description": "Download this package (70 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/smoke-particles/1b6cb144a9-1677695166/sample.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/smoke-particles/23249a0d35-1677695171/kenney_smoke-particles.zip",
+  "fetched_at": "2026-08-03T22:48:00.050713+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 70,
+  "category": "particles",
+  "subcategory": "vfx-sprites",
+  "style_tags": [
+    "cartoon",
+    "hand-painted",
+    "soft-edges",
+    "2D",
+    "sprite",
+    "vfx",
+    "flipbook",
+    "semi-transparent",
+    "illustrated"
+  ],
+  "palette": [
+    "black-smoke (#0d0d0d - #3a3a3a)",
+    "white-puff (#ffffff - #d0d0d0)",
+    "warm-flash (#fff6c2 - #ff6a00)",
+    "cool-blue background (#3a8bd6)"
+  ],
+  "use_cases": [
+    "explosion effects",
+    "smoke trails and plumes",
+    "muzzle flashes",
+    "hit impacts",
+    "comedic fart poofs",
+    "fire and magic bursts",
+    "2D game particle systems"
+  ],
+  "visual_summary": "Cartoon-style 2D VFX sprite pack of pre-rendered smoke, explosions, flashes, and puffs. Soft, hand-painted edges with a semi-transparent palette, organized as flipbook frame sequences. The cover image shows a large dark smoke cloud wrapping a bright yellow-orange fireball. Subfolders cover Black smoke (25), Explosion (9), Fart (9), Flash (9), and White puff (25) — each frame ready to be dropped into a particle system as an animated burst.",
+  "zip_inventory": {
+    "total_files": 86,
+    "by_ext": {
+      "png": 79,
+      "txt": 1,
+      "<noext>": 6
+    },
+    "top_level": {
+      "PNG/": 83,
+      "license.txt": 1,
+      "preview.png": 1,
+      "sample.png": 1
+    },
+    "png_subfolders": {
+      "Black smoke": 25,
+      "Explosion": 9,
+      "Fart": 9,
+      "Flash": 9,
+      "White puff": 25
+    },
+    "sample_dimensions": [
+      {
+        "file": "preview.png",
+        "size": [
+          918,
+          515
+        ],
+        "mode": "P"
+      },
+      {
+        "file": "sample.png",
+        "size": [
+          918,
+          515
+        ],
+        "mode": "P"
+      },
+      {
+        "file": "PNG/Black smoke/blackSmoke00.png",
+        "size": [
+          362,
+          336
+        ],
+        "mode": "P"
+      },
+      {
+        "file": "PNG/Black smoke/blackSmoke01.png",
+        "size": [
+          398,
+          364
+        ],
+        "mode": "P"
+      },
+      {
+        "file": "PNG/Black smoke/blackSmoke02.png",
+        "size": [
+          386,
+          342
+        ],
+        "mode": "P"
+      },
+      {
+        "file": "PNG/Black smoke/blackSmoke03.png",
+        "size": [
+          351,
+          367
+        ],
+        "mode": "P"
+      }
+    ],
+    "notes": "All sprite PNGs use palette mode (P) with transparency. Sprite sizes vary by frame (~350-400px square), optimized for flipbook animation. Top-level preview.png and sample.png are 918x515 marketing images."
+  }
+}

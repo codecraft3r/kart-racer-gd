@@ -1,0 +1,93 @@
+{
+  "slug": "light-masks",
+  "url": "https://kenney.nl/assets/light-masks",
+  "title": "Light Masks · Kenney",
+  "cleaned_title": "Light Masks",
+  "og_description": "Download this package (150 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/light-masks/718ab296a1-1775631590/preview.png",
+  "og_image_local": "preview.png",
+  "download_url": "https://kenney.nl/media/pages/assets/light-masks/6530e254f9-1775631687/kenney_light-masks-1.0.zip",
+  "fetched_at": "2026-08-03T22:37:02.234375+00:00",
+  "enriched_at": "2026-08-03T22:41:00+00:00",
+  "asset_count": 150,
+  "category": "other",
+  "subcategory": "light-masks",
+  "style_tags": [
+    "grayscale",
+    "alpha-mask",
+    "soft-gradient",
+    "high-contrast",
+    "minimal",
+    "512x512",
+    "tile-friendly",
+    "noise-texture"
+  ],
+  "palette": [
+    "#000000",
+    "#1A1A1A",
+    "#333333",
+    "#666666",
+    "#999999",
+    "#CCCCCC",
+    "#FFFFFF"
+  ],
+  "use_cases": [
+    "2D game lighting and bloom effects",
+    "Spotlight and torchlight cones",
+    "Window, doorway and arch light cutouts",
+    "Atmospheric vignette overlays",
+    "Particle alpha textures for sparks, smoke and dust",
+    "Shader masks for screen-space lighting passes",
+    "Foliage and silhouette occluders",
+    "UI glow and pulse effects"
+  ],
+  "visual_summary": "A 152-design set of grayscale alpha light masks on a 512x512 canvas, provided in three variants: Default (white-on-black), Inverted (black-on-white) and Transparent (RGBA soft gradient). The collection covers spotlight cones and beams (sharp and soft falloff), radial gradient circles, propeller/fan-blade shapes, geometric window and arch cutouts, organic cellular noise, dotted star fields, and natural foliage silhouettes. All assets are designed as drop-in alpha textures for 2D lighting, shader masks and particle effects.",
+  "zip_inventory": {
+    "zip_file": "kenney_light-masks-1.0.zip",
+    "total_files": 463,
+    "by_ext": {
+      "png": 457,
+      "txt": 1,
+      "url": 2
+    },
+    "top_level": {
+      "License.txt": 1,
+      "Preview.png": 1,
+      "Visit Kenney.url": 1,
+      "Visit Patreon.url": 1,
+      "Default": 152,
+      "Inverted": 152,
+      "Transparent": 152
+    },
+    "unique_designs": 152,
+    "variants_per_design": 3,
+    "sample_png": {
+      "Preview.png": [
+        918,
+        515,
+        "P"
+      ],
+      "Default/circle_a.png": [
+        512,
+        512,
+        "RGBA"
+      ],
+      "Default/circle_a_noise.png": [
+        512,
+        512,
+        "P"
+      ],
+      "Default/circle_a_streaks.png": [
+        512,
+        512,
+        "RGBA"
+      ],
+      "Default/circle_a_streaks_noise.png": [
+        512,
+        512,
+        "P"
+      ]
+    },
+    "note": "og_description lists 150 assets; actual unique mask designs = 152 (each provided as 3 variants: Default, Inverted, Transparent), plus 1 root Preview.png = 457 PNGs total."
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "slug": "space-shooter-remastered",
+  "url": "https://kenney.nl/assets/space-shooter-remastered",
+  "title": "Space Shooter Remastered",
+  "og_description": "Download this package (295 assets) for free, CC0 licensed!",
+  "og_image": "https://kenney.nl/media/pages/assets/space-shooter-remastered/3a292e0d18-1677669436/sample.png",
+  "download_url": "https://kenney.nl/media/pages/assets/space-shooter-remastered/2cbf3c45c8-1774771931/kenney_space-shooter-remastered.zip",
+  "fetched_at": "2026-08-03T22:48:24.594236+00:00",
+  "enriched_at": "2026-08-03T22:50:00+00:00",
+  "asset_count": 295,
+  "category": "2D-sprites",
+  "subcategory": "space-shooter",
+  "style_tags": [
+    "flat",
+    "vector",
+    "retro",
+    "arcade",
+    "top-down",
+    "2D",
+    "clean-lines",
+    "low-poly"
+  ],
+  "palette": [
+    "deep purple",
+    "navy blue",
+    "white",
+    "orange",
+    "cyan-blue",
+    "lime green",
+    "brown",
+    "yellow"
+  ],
+  "use_cases": [
+    "2D space shooter games",
+    "top-down scrolling shooters (shmups)",
+    "retro arcade games",
+    "bullet-hell games",
+    "mobile space shooters",
+    "space combat prototypes"
+  ],
+  "visual_summary": "A complete 2D top-down space shooter asset set with a clean flat-vector arcade style. Includes player ships, multi-stage enemy fighters, meteors/asteroids in various sizes, laser projectiles, explosions, damage frames, power-ups, UI elements, and parallax starfield backgrounds. The color palette is vibrant on a deep purple/navy space backdrop with bright accent colors (orange, cyan, green) for game objects. Ships feature geometric, low-poly-inspired silhouettes with crisp white hulls. Comes with sprite sheets (XML + SVG + SWF), per-frame PNGs organized in subfolders, a UI font (kenvector_future), and 7 SFX clips (lasers, shield, lose, zap).",
+  "zip_inventory": {
+    "total_files": 327,
+    "by_ext": {
+      ".png": 301,
+      ".ttf": 2,
+      ".ogg": 7,
+      ".xml": 1,
+      ".svg": 1,
+      ".swf": 1,
+      ".txt": 1
+    },
+    "top_level": {
+      "Backgrounds": 5,
+      "Bonus": 10,
+      "PNG": 303,
+      "Spritesheet": 3,
+      "Vector": 3,
+      "license.txt": 1,
+      "preview.png": 1,
+      "sample.png": 1
+    },
+    "png_subdirs": [
+      "PNG/Damage",
+      "PNG/Effects",
+      "PNG/Enemies",
+      "PNG/Lasers",
+      "PNG/Meteors",
+      "PNG/Parts",
+      "PNG/Power-ups",
+      "PNG/UI"
+    ],
+    "backgrounds": ["black.png", "blue.png", "darkPurple.png", "purple.png"],
+    "sample_dims": {
+      "1024x1024": 1,
+      "736x678": 1,
+      "640x384": 1,
+      "256x256": 4
+    },
+    "sprite_size_range_px": "9x54 to 222x39 (ships ~90-150px wide, lasers 9-14px, meteors ~50-150px)",
+    "bonus_assets": {
+      "fonts": ["kenvector_future.ttf", "kenvector_future_thin.ttf"],
+      "sfx": [
+        "sfx_laser1.ogg",
+        "sfx_laser2.ogg",
+        "sfx_lose.ogg",
+        "sfx_shieldDown.ogg",
+        "sfx_shieldUp.ogg",
+        "sfx_twoTone.ogg",
+        "sfx_zap.ogg"
+      ],
+      "vector": ["sheet.svg", "sheet.swf"],
+      "spritesheet_xml": "sheet.xml"
+    }
+  },
+  "og_image_local": "preview.png"
+}
