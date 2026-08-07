@@ -1,46 +1,54 @@
-extends Node
+extends SceneTree
 
-func _ready() -> void:
-    var mode = get_node_or_null("/root/Node3D/EndlessRoadMode")
-    if mode == null:
-        push_error("EndlessRoadMode not found")
-        set_exit_code(1)
-        return
+func _initialize() -> void:
+	call_deferred("_run")
 
-    if not Engine.has_singleton("EndlessRoadMode"):
-        push_error("EndlessRoadMode singleton is not registered")
-        set_exit_code(1)
-        return
+func _run() -> void:
+	var mode = get_node_or_null("/root/Node3D/EndlessRoadMode")
+	if mode == null:
+		_fail("EndlessRoadMode not found")
+		return
+	var settings = mode.get("Settings")
+	if settings == null:
+		_fail("EndlessRoadSettings is null")
+		return
+	mode.call("ResetRun", 42)
+	mode.call("StartRun", 42)
+	var max_frames = 240
+	for i in range(max_frames):
+		await process_frame
+		var state = mode.get("State")
+		# RunState.Results == 5, GameOver == 4
+		if state == 5 or state == 4:
+			break
+	var score = mode.get("Score")
+	var health = mode.get("Health")
+	var boost = mode.get("Boost")
+	if score < 0:
+		_fail("Score is negative")
+		return
+	if health < 0 or health > 110:
+		_fail("Health is out of bounds: %s" % str(health))
+		return
+	if boost < 0 or boost > 1.1:
+		_fail("Boost is out of bounds: %s" % str(boost))
+		return
+	print("OK EndlessRoad smoke passed (score=%s health=%s boost=%s)" % [str(score), str(health), str(boost)])
+	_finish()
 
-    var settings = mode.Settings
-    if settings == null:
-        push_error("EndlessRoadSettings is null")
-        set_exit_code(1)
-        return
+func _expect(condition: bool, message: String) -> void:
+	if condition:
+		print("PASS: %s" % message)
+	else:
+		push_error("FAIL: %s" % message)
+		set_meta("failed", true)
 
-    mode.ResetRun(42)
-    mode.StartRun(42)
+func _fail(message: String) -> void:
+	push_error("FAIL: %s" % message)
+	quit(1)
 
-    var max_frames = 240
-    for frame in range(max_frames):
-        await get_tree().process_frame
-
-        if mode.State == mode.RunState.Results or mode.State == mode.RunState.GameOver:
-            break
-
-    if mode.Score < 0:
-        push_error("Score is negative")
-        set_exit_code(1)
-        return
-
-    if mode.Health < 0 or mode.Health > 110:
-        push_error("Health is out of bounds")
-        set_exit_code(1)
-        return
-
-    if mode.Boost < 0 or mode.Boost > 1.1:
-        push_error("Boost is out of bounds")
-        set_exit_code(1)
-        return
-
-    print("OK EndlessRoad smoke passed")
+func _finish() -> void:
+	if get_meta("failed", false):
+		quit(1)
+	else:
+		quit(0)
