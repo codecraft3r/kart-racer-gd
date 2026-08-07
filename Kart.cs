@@ -557,13 +557,32 @@ public partial class Kart : RigidBody3D
 
     private void CaptureLocalInput()
     {
+        // Endless Road: always drive forward; steering/drift/boost stay live.
+        if (EndlessRoadMode.Instance != null && EndlessRoadMode.Instance.State == EndlessRoadMode.RunState.Running)
+        {
+            float steeringAxis = Input.GetAxis("move_left", "move_right");
+            _forwardInput = 1.0f;
+            _steeringInput = Mathf.Abs(steeringAxis) > InputDeadzone ? steeringAxis : (_steeringTapTimer > 0.0f ? _steeringTapInput : 0.0f);
+            _handbrakeInput = Input.IsActionPressed("drift");
+            if (Input.IsActionJustPressed("boost") || Input.IsActionPressed("boost"))
+                EndlessRoadMode.Instance?.ActivateBoost();
+            // Allow light braking to scrub speed without reversing the endless run.
+            if (Input.IsActionPressed("move_backward"))
+                _forwardInput = Mathf.Clamp(_forwardInput - 0.55f, 0.35f, 1.0f);
+            _forwardInput = Mathf.Clamp(_forwardInput, -1.0f, 1.0f);
+            _steeringInput = Mathf.Clamp(_steeringInput, -1.0f, 1.0f);
+            return;
+        }
+
         float forwardAxis = Input.GetAxis("move_backward", "move_forward");
-        float steeringAxis = Input.GetAxis("move_left", "move_right");
+        float steeringAxis2 = Input.GetAxis("move_left", "move_right");
 
         _forwardInput = Mathf.Abs(forwardAxis) > InputDeadzone ? forwardAxis : (_forwardTapTimer > 0.0f ? _forwardTapInput : 0.0f);
-        _steeringInput = Mathf.Abs(steeringAxis) > InputDeadzone ? steeringAxis : (_steeringTapTimer > 0.0f ? _steeringTapInput : 0.0f);
-        
+        _steeringInput = Mathf.Abs(steeringAxis2) > InputDeadzone ? steeringAxis2 : (_steeringTapTimer > 0.0f ? _steeringTapInput : 0.0f);
+
         _handbrakeInput = Input.IsActionPressed("drift");
+        if (Input.IsActionJustPressed("boost") || Input.IsActionPressed("boost"))
+            EndlessRoadMode.Instance?.ActivateBoost();
 
         _forwardInput = Mathf.Clamp(_forwardInput, -1.0f, 1.0f);
         _steeringInput = Mathf.Clamp(_steeringInput, -1.0f, 1.0f);
@@ -732,11 +751,54 @@ public partial class Kart : RigidBody3D
         // Ignore harmless road/ground surfaces
         string name = body.Name;
         if (name == "Ground" || 
+            name == "RoadMesh" ||
+            name == "RoadBody" ||
             name.IndexOf("RoadSegment") == 0 || 
             name.IndexOf("Intersection") == 0 || 
             name.IndexOf("LaneMarker") == 0 || 
-            name.IndexOf("Crosswalk") == 0)
+            name.IndexOf("Crosswalk") == 0 ||
+            name.IndexOf("LeftShoulder") == 0 ||
+            name.IndexOf("RightShoulder") == 0)
         {
+            return;
+        }
+
+        // Endless Road: route impact through EndlessRoadMode and degrade to Burnout-style scoring elsewhere.
+        if (EndlessRoadMode.Instance != null && EndlessRoadMode.Instance.State == EndlessRoadMode.RunState.Running)
+        {
+            // Don't let road-surface debris count as a collision — hazards use Area3D.
+            if (body is StaticBody3D sb && (sb.Name == "RoadBody" || sb.Name.ToString().Contains("BarrierBody")))
+            {
+                // Barrier hit at speed — still counts, but via severity path below.
+            }
+
+            Vector3 otherVelocityER = body is RigidBody3D rigidBodyER ? rigidBodyER.LinearVelocity : Vector3.Zero;
+            Vector3 otherPositionER = body is Node3D body3DER ? body3DER.GlobalPosition : GlobalPosition - LinearVelocity;
+            Vector3 normalER = GlobalPosition - otherPositionER;
+            normalER = normalER.LengthSquared() > 0.001f ? normalER.Normalized() : -LinearVelocity.Normalized();
+            float impactSpeedER = Mathf.Max(0.0f, (LinearVelocity - otherVelocityER).Dot(normalER));
+            if (impactSpeedER > 2.5f)
+            {
+                ulong nowER = Time.GetTicksMsec();
+                ulong keyER = body.GetInstanceId();
+                if (_collisionCooldowns.TryGetValue(keyER, out ulong lastHitER) && nowER - lastHitER < 450)
+                    return;
+                _collisionCooldowns[keyER] = nowER;
+                ImpactSeverity severityER = impactSpeedER >= 13.0f ? ImpactSeverity.Crash : impactSpeedER >= 6.0f ? ImpactSeverity.Bump : ImpactSeverity.Glance;
+                if (nowER - _lastCollisionAudioMs >= 140)
+                {
+                    _lastCollisionAudioMs = nowER;
+                    AudioManager.Cue cueER = severityER == ImpactSeverity.Crash ? AudioManager.Cue.CollisionHeavy : severityER == ImpactSeverity.Bump ? AudioManager.Cue.CollisionMedium : AudioManager.Cue.CollisionLight;
+                    float volumeDbER = Mathf.Lerp(-10.0f, 1.0f, Mathf.Clamp((impactSpeedER - 2.5f) / 16.0f, 0.0f, 1.0f));
+                    BroadcastAudioCue(cueER, volumeDbER, (float)GD.RandRange(0.92, 1.08));
+                }
+                // Camera shake scales with severity.
+                var camER = GetViewport()?.GetCamera3D() as TrackCamera;
+                if (camER != null)
+                    camER.AddTrauma(severityER == ImpactSeverity.Crash ? 0.85f : severityER == ImpactSeverity.Bump ? 0.45f : 0.18f);
+                EndlessRoadMode.Instance.ApplyImpact(severityER);
+                CancelDriftReward();
+            }
             return;
         }
 

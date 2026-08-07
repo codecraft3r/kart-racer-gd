@@ -4,4 +4,9 @@
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
   </PropertyGroup>
+  <!-- Off-spec experimental work kept out of the shipping build (see experimental/README.md). -->
+  <ItemGroup>
+    <Compile Remove="experimental/**/*.cs" />
+    <GodotSdkRootFiles Remove="experimental/**/*" />
+  </ItemGroup>
 </Project>
