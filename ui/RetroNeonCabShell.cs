@@ -131,6 +131,7 @@ public partial class RetroNeonCabShell : CanvasLayer
     private bool _hasKartInitialTransform;
     private bool _pendingStartRun;
     private bool _modeEventsWired;
+    private bool _endlessRoadActive;
 
     private ShellScreen _currentScreen = ShellScreen.Main;
     private ShellScreen _previousScreen = ShellScreen.Main;
@@ -204,8 +205,26 @@ public partial class RetroNeonCabShell : CanvasLayer
     {
         WireModeEvents();
 
+        // Keep the endless road's mode tick and streaming alive even when the shell
+        // is not on the gameplay screen (countdown/results live there).
+        EndlessRoadDirector.Instance?.Tick((float)delta);
+
         if (_currentScreen != ShellScreen.Gameplay)
             return;
+
+        // Endless Road owns its own score/distance/health — keep HUD streaming from the mode.
+        if (_endlessRoadActive && EndlessRoadMode.Instance != null)
+        {
+            float erSpeed = EndlessRoadMode.Instance.CurrentSpeedMps;
+            if (EndlessRoadMode.Instance.State == EndlessRoadMode.RunState.Running)
+                _playTime += delta;
+            _driftMeters += erSpeed * delta;
+            UpdateGameplayStats(erSpeed);
+            // Drive the chunk streamer off the kart's actual Z.
+            if (_kart != null && GodotObject.IsInstanceValid(_kart))
+                EndlessRoadMode.Instance.UpdateStreamer(_kart.GlobalPosition.Z);
+            return;
+        }
 
         float speed = GetKartSpeedMetersPerSecond();
         if (!IsNetworked() && TaxiMode.Instance?.Phase == TaxiMode.MatchPhase.Active)
@@ -230,15 +249,50 @@ public partial class RetroNeonCabShell : CanvasLayer
         _score = 0.0;
         _playTime = 0.0;
         _driftMeters = 0.0;
+        _modeEventsWired = false;
         WireModeEvents();
+        _endlessRoadActive = false;
         if (_objectiveLabel != null && TaxiMode.Instance != null)
-            _objectiveLabel.Text = $"SHIFT 1  //  QUOTA ${TaxiMode.Instance.WinningCashTarget}";
+            _objectiveLabel.Text = $"SHIFT 1  //  QUOTA {TaxiMode.Instance.WinningCashTarget}";
         UpdateGameplayStats(GetKartSpeedMetersPerSecond());
         ShowScreen(ShellScreen.Gameplay);
 
         if (!IsNetworked())
         {
             GameManager.Instance?.StartSoloSession();
+        }
+    }
+
+    private void StartEndlessRoad()
+    {
+        if (IsShellReady() == false)
+        {
+            _pendingStartRun = true;
+            return;
+        }
+
+        _pendingStartRun = false;
+        _score = 0.0;
+        _playTime = 0.0;
+        _driftMeters = 0.0;
+        _endlessRoadActive = true;
+        _modeEventsWired = false;
+        WireModeEvents();
+        UpdateGameplayStats(GetKartSpeedMetersPerSecond());
+        ShowScreen(ShellScreen.Gameplay);
+
+        if (!IsNetworked())
+        {
+            EndlessRoadMode.Instance?.StartRun();
+            GameManager.Instance?.ResetSoloSession();
+            GameManager.Instance?.SetAllKartControlsEnabled(true);
+            // Bind the rival + score systems to this kart and bring up the road.
+            Kart kart = _kart ?? GetNodeOrNull<Kart>(KartPath);
+            if (kart != null)
+            {
+                EndlessRoadDirector.EnsureInTree(this);
+                EndlessRoadDirector.Instance?.Activate(kart, true);
+            }
         }
     }
 
@@ -333,6 +387,11 @@ public partial class RetroNeonCabShell : CanvasLayer
 
     public void ExitToMainMenu()
     {
+        if (_endlessRoadActive)
+        {
+            EndlessRoadDirector.Instance?.Deactivate();
+            _endlessRoadActive = false;
+        }
         if (IsNetworked())
             MultiplayerManager.Instance?.Disconnect();
         else
@@ -578,6 +637,11 @@ public partial class RetroNeonCabShell : CanvasLayer
         start.Name = "StartRunButton";
         start.Pressed += StartRun;
         menuButtons.AddChild(start);
+
+        Button endless = MakePixelButton("ENDLESS ROAD", false, 600.0f, 72.0f);
+        endless.Name = "EndlessRoadButton";
+        endless.Pressed += StartEndlessRoad;
+        menuButtons.AddChild(endless);
 
         HBoxContainer garageRow = new() { Name = "GarageSelector", Alignment = BoxContainer.AlignmentMode.Center };
         garageRow.AddThemeConstantOverride("separation", 8);
@@ -1126,6 +1190,76 @@ public partial class RetroNeonCabShell : CanvasLayer
 
     private void UpdateGameplayStats(float speedMetersPerSecond)
     {
+        // Endless Road HUD — takes precedence when active.
+        var erMode = EndlessRoadMode.Instance;
+        if (_endlessRoadActive && erMode != null)
+        {
+            int mphER = Mathf.RoundToInt(erMode.CurrentSpeedMps * 2.23694f);
+            int scoreER = erMode.Score;
+            int multER = erMode.Multiplier;
+            int healthER = Mathf.RoundToInt(erMode.Health);
+            float boostER = erMode.Boost;
+            float distER = erMode.DistanceMeters;
+            if (_scoreLabel != null)
+                _scoreLabel.Text = multER > 1 ? $"SCORE: {scoreER}  x{multER}" : $"SCORE: {scoreER}";
+            if (_boostLabel != null)
+                _boostLabel.Text = $"HP: {healthER}%  BOOST: {Mathf.RoundToInt(boostER * 100)}%";
+            if (_speedometer != null)
+            {
+                _speedometer.CurrentSpeed = mphER;
+                _speedometer.QueueRedraw();
+            }
+            if (_timerLabel != null)
+            {
+                if (erMode.State == EndlessRoadMode.RunState.Countdown)
+                    _timerLabel.Text = $"START: {Mathf.Max(1, Mathf.CeilToInt(erMode.CountdownSeconds - 0.0f))}";
+                else if (erMode.State == EndlessRoadMode.RunState.Running)
+                    _timerLabel.Text = $"DIST: {Mathf.RoundToInt(distER):N0} m";
+                else if (erMode.State == EndlessRoadMode.RunState.ImpactRecovery)
+                    _timerLabel.Text = "HIT!";
+                else if (erMode.State == EndlessRoadMode.RunState.GameOver)
+                    _timerLabel.Text = "WRECKED";
+                else
+                    _timerLabel.Text = $"DIST: {Mathf.RoundToInt(distER):N0} m";
+            }
+            if (_rankLabel != null)
+                _rankLabel.Text = erMode.State == EndlessRoadMode.RunState.Running ? $"SPEED: {mphER} MPH" : $"BEST: {Mathf.RoundToInt(distER):N0} m";
+            // Keep the rest of the gameplay-status area useful but quiet in this mode.
+            if (_checkpointLabel != null)
+                _checkpointLabel.Text = erMode.State == EndlessRoadMode.RunState.Running ? "ENDLESS ROAD" : erMode.State.ToString().ToUpperInvariant();
+            if (_objectiveLabel != null)
+                _objectiveLabel.Text = boostER > 0.05f ? "SHIFT / RB: BOOST  •  S: BRAKE  •  SPACE: DRIFT" : "BOOST EMPTY — DRAFT & NEAR-MISS TO RECHARGE";
+            if (_driftMetersLabel != null)
+                _driftMetersLabel.Text = $"MULTI x{multER}";
+            if (_statusLabel != null)
+            {
+                bool critical = healthER <= 30;
+                _statusLabel.Text = erMode.State == EndlessRoadMode.RunState.GameOver ? "STATUS: WRECKED" : critical ? "STATUS: CRITICAL" : "STATUS: RUNNING";
+                _statusLabel.AddThemeColorOverride("font_color", erMode.State == EndlessRoadMode.RunState.GameOver ? Hex("ff0055") : critical ? Hex("f5c451") : Hex("00f0ff"));
+            }
+            if (_panicBar != null)
+            {
+                _panicBar.Visible = true;
+                _panicBar.Value = healthER;
+                Color c = new Color(1, 0, 0).Lerp(new Color(0, 1, 0), healthER / 100.0f);
+                if (_panicBar.HasThemeStyleboxOverride("fill"))
+                {
+                    var fill = _panicBar.GetThemeStylebox("fill") as StyleBoxFlat;
+                    if (fill != null) fill.BgColor = c;
+                }
+            }
+            // Still run the objective/repair subsystems so camera/director housekeeping stays warm,
+            // but don't let Taxi fare copy overwrite what we just wrote.
+            UpdateObjectiveIndicator(TaxiMode.Instance);
+            // Show the stop/go prompt only via our own health/impact path; suppress fare STOP spam.
+            if (erMode.State == EndlessRoadMode.RunState.GameOver && _currentScreen != ShellScreen.Results)
+            {
+                ShowEndlessResults();
+            }
+            RenderActiveKartPrompt();
+            return;
+        }
+
         int mph = Mathf.RoundToInt(speedMetersPerSecond * 2.23694f);
 
         int peerId = IsNetworked() ? Multiplayer.GetUniqueId() : 1;
@@ -1533,7 +1667,40 @@ public partial class RetroNeonCabShell : CanvasLayer
         TaxiMode.Instance.MatchStateChanged += OnMatchStateChanged;
         TaxiMode.Instance.ScoreboardChanged += OnScoreboardChanged;
         TaxiMode.Instance.CheckpointChanged += OnCheckpointChanged;
+        if (EndlessRoadMode.Instance != null)
+        {
+            EndlessRoadMode.Instance.ScoreChanged += OnEndlessScoreChanged;
+            EndlessRoadMode.Instance.StateChanged += OnEndlessStateChanged;
+        }
         _modeEventsWired = true;
+    }
+
+    private void OnEndlessScoreChanged(int score) { }
+
+    private void OnEndlessStateChanged(EndlessRoadMode.RunState prev, EndlessRoadMode.RunState next)
+    {
+        if (next == EndlessRoadMode.RunState.GameOver && _endlessRoadActive)
+            ShowEndlessResults();
+        if (next == EndlessRoadMode.RunState.Running)
+            _endlessRoadActive = true;
+    }
+
+    private void ShowEndlessResults()
+    {
+        if (EndlessRoadMode.Instance == null) return;
+        ShowScreen(ShellScreen.Results);
+        float dist = EndlessRoadMode.Instance.DistanceMeters;
+        int score = EndlessRoadMode.Instance.Score;
+        // Use the existing end-card labels through UpdateResultsScreen's backing fields
+        // via a direct paint so we don't have to break that helper's internal layout.
+        // Title + two stat lines below it read distance/score in this mode.
+        var title = GetNodeOrNull<Label>("SidePanel/ResultsPanel/ResultsTitle");
+        var scoreLine = GetNodeOrNull<Label>("SidePanel/ResultsPanel/FinalScoreLabel");
+        var timeLine = GetNodeOrNull<Label>("SidePanel/ResultsPanel/FinalTimeLabel");
+        if (title != null) title.Text = "WRECKED";
+        if (scoreLine != null) scoreLine.Text = $"DISTANCE: {Mathf.RoundToInt(dist):N0} m";
+        if (timeLine != null) timeLine.Text = $"SCORE: {score:N0}  (x{EndlessRoadMode.Instance.Multiplier})";
+        _endlessRoadActive = false;
     }
 
     private void OnConnectionStateChanged(MultiplayerManager.ConnectionState state, string message)
