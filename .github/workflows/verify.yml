@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [master]
   push:
-    branches: [master]
+    branches: [master, codex/harness-leak-debug]
 
 permissions:
   contents: read
@@ -53,6 +53,32 @@ jobs:
       - name: Build C# without warnings
         timeout-minutes: 8
         run: pwsh -File ./tools/dev.ps1 build -GodotPath "$GODOT"
+
+      # TEMPORARY DEBUG (scratch branch only): enumerate leak diagnostics per smoke test.
+      - name: Enumerate smoke-test leak diagnostics (advisory)
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          set +e
+          "$GODOT" --headless --path "$GITHUB_WORKSPACE" --import >/dev/null 2>&1
+          for t in tests/*smoke_test.gd; do
+            name=$(basename "$t")
+            "$GODOT" --headless --path "$GITHUB_WORKSPACE" --script "res://$t" > "/tmp/$name.log" 2>&1
+            code=$?
+            leaks=$(grep -c -i -E 'leaked at exit|still in use at exit|^SCRIPT ERROR' "/tmp/$name.log")
+            echo "RESULT $name exit=$code leak_markers=$leaks"
+          done
+
+      - name: Verbose leak detail for harness_profile_smoke_test
+        continue-on-error: true
+        timeout-minutes: 10
+        run: |
+          set +e
+          "$GODOT" --headless --path "$GITHUB_WORKSPACE" --script res://tests/harness_profile_smoke_test.gd --verbose > /tmp/profile-verbose.log 2>&1
+          echo "=== verbose markers ==="
+          grep -n -i -B 3 -A 40 'leaked at exit' /tmp/profile-verbose.log | head -n 160
+          echo "=== verbose tail ==="
+          tail -n 50 /tmp/profile-verbose.log
 
       - name: Import, smoke test, and boot for 180 frames
         timeout-minutes: 10
