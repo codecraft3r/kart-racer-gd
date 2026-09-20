@@ -41,6 +41,14 @@ public partial class TrackBuilder : Node3D
     private StandardMaterial3D _lightHeadAltMaterial;
     private StandardMaterial3D _intersectionMaterial;
     private StandardMaterial3D _crosswalkMaterial;
+    // Repeated decorative meshes accumulate here and are submitted as MultiMeshes.
+    private readonly List<Transform3D> _laneMarkerBatch = new();
+    private readonly List<Transform3D> _curbWhiteBatch = new();
+    private readonly List<Transform3D> _curbRedBatch = new();
+    private readonly List<Transform3D> _crosswalkBatch = new();
+    private readonly List<Transform3D> _lightPoleBatch = new();
+    private readonly List<Transform3D> _lightHeadBatch = new();
+    private readonly List<Transform3D> _lightHeadAltBatch = new();
     private float[] _verticalStreetCenters = Array.Empty<float>();
     private float[] _horizontalStreetCenters = Array.Empty<float>();
     private float[] _verticalStreetWidths = Array.Empty<float>();
@@ -142,6 +150,7 @@ public partial class TrackBuilder : Node3D
         GenerateCurbs();
         GenerateCrosswalks();
         GenerateTrackLights();
+        FlushInstancedBatches();
 
         LoadBuildingScenes();
         GenerateRepairShops();
@@ -736,19 +745,11 @@ public partial class TrackBuilder : Node3D
 
     private void GenerateLaneMarkers()
     {
-        int columns = CityColumnCount();
-        int rows = CityRowCount();
-        int markerIndex = 0;
-
         foreach (float z in _horizontalStreetCenters)
-        {
-            AddLaneDashes(true, z, CityMinX(), CityMaxX(), _verticalStreetCenters, _verticalStreetWidths, ref markerIndex);
-        }
+            AddLaneDashes(true, z, CityMinX(), CityMaxX(), _verticalStreetCenters, _verticalStreetWidths);
 
         foreach (float x in _verticalStreetCenters)
-        {
-            AddLaneDashes(false, x, CityMinZ(), CityMaxZ(), _horizontalStreetCenters, _horizontalStreetWidths, ref markerIndex);
-        }
+            AddLaneDashes(false, x, CityMinZ(), CityMaxZ(), _horizontalStreetCenters, _horizontalStreetWidths);
     }
 
     private void GenerateCurbs()
@@ -812,6 +813,80 @@ public partial class TrackBuilder : Node3D
         }
     }
 
+    /// <summary>
+    /// Submits the accumulated decorative meshes as MultiMeshes. Each group shares one
+    /// material and holds no gameplay state, so one draw call per group replaces several
+    /// hundred nodes in the colour pass and again in the shadow pass.
+    /// </summary>
+    private void FlushInstancedBatches()
+    {
+        AddInstancedBatch("LaneMarkerBatch", _laneMarkerBatch, _laneMarkerMaterial);
+        AddInstancedBatch("CurbMarkerWhiteBatch", _curbWhiteBatch, _curbWhiteMaterial);
+        AddInstancedBatch("CurbMarkerRedBatch", _curbRedBatch, _curbRedMaterial);
+        AddInstancedBatch("CrosswalkBatch", _crosswalkBatch, _crosswalkMaterial);
+        AddInstancedBatch("TrackLightPoleBatch", _lightPoleBatch, _lightPoleMaterial);
+        AddInstancedBatch("TrackLightHeadBatch", _lightHeadBatch, _lightHeadMaterial);
+        AddInstancedBatch("TrackLightHeadAltBatch", _lightHeadAltBatch, _lightHeadAltMaterial);
+    }
+
+    private void AddInstancedBatch(string name, List<Transform3D> transforms, Material material)
+    {
+        if (transforms.Count == 0)
+            return;
+
+        var multimesh = new MultiMesh
+        {
+            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+            InstanceCount = transforms.Count,
+            Mesh = new BoxMesh { Size = Vector3.One },
+            CustomAabb = ComputeInstanceBounds(transforms)
+        };
+
+        for (int index = 0; index < transforms.Count; index++)
+            multimesh.SetInstanceTransform(index, transforms[index]);
+
+        AddChild(new MultiMeshInstance3D
+        {
+            Name = name,
+            Multimesh = multimesh,
+            MaterialOverride = material
+        });
+    }
+
+    /// <summary>
+    /// Exact bounds for the unit-box instances, so nothing is culled while the city is
+    /// off camera or streamed out of the shadow pass.
+    /// </summary>
+    private static Aabb ComputeInstanceBounds(List<Transform3D> transforms)
+    {
+        bool started = false;
+        Aabb bounds = default;
+
+        foreach (Transform3D transform in transforms)
+        {
+            for (int corner = 0; corner < 8; corner++)
+            {
+                Vector3 offset = new Vector3(
+                    (corner & 1) == 0 ? -0.5f : 0.5f,
+                    (corner & 2) == 0 ? -0.5f : 0.5f,
+                    (corner & 4) == 0 ? -0.5f : 0.5f);
+                Vector3 point = transform * offset;
+
+                if (started)
+                {
+                    bounds = bounds.Expand(point);
+                }
+                else
+                {
+                    bounds = new Aabb(point, Vector3.Zero);
+                    started = true;
+                }
+            }
+        }
+
+        return started ? bounds.Grow(1.0f) : new Aabb(Vector3.Zero, Vector3.One);
+    }
+
     private void GenerateTrackLights()
     {
         int lightCount = Math.Max(0, TrackLightCount);
@@ -819,8 +894,8 @@ public partial class TrackBuilder : Node3D
 
         int columns = CityColumnCount();
         int rows = CityRowCount();
-        var poleMesh = new BoxMesh { Size = new Vector3(0.22f, 5.2f, 0.22f) };
-        var headMesh = new BoxMesh { Size = new Vector3(1.1f, 0.3f, 0.55f) };
+        Vector3 poleSize = new Vector3(0.22f, 5.2f, 0.22f);
+        Vector3 headSize = new Vector3(1.1f, 0.3f, 0.55f);
         var candidates = new List<LightCandidate>();
 
         for (int column = 0; column <= columns; column++)
@@ -845,25 +920,17 @@ public partial class TrackBuilder : Node3D
             Vector3 forward = candidate.Forward.Normalized();
             Vector3 right = Vector3.Up.Cross(forward).Normalized();
             Basis basis = new Basis(right, Vector3.Up, forward).Orthonormalized();
+            
+            Basis poleBasis = new Basis(basis.X * poleSize.X, basis.Y * poleSize.Y, basis.Z * poleSize.Z);
+            _lightPoleBatch.Add(new Transform3D(poleBasis, position + Vector3.Up * 2.6f));
 
-            var pole = new MeshInstance3D
-            {
-                Mesh = poleMesh,
-                MaterialOverride = _lightPoleMaterial,
-                Transform = new Transform3D(basis, position + Vector3.Up * 2.6f)
-            };
-            AddChild(pole);
-            pole.Name = $"TrackLightPole{i:000}";
-
-            var head = new MeshInstance3D
-            {
-                Mesh = headMesh,
-                MaterialOverride = i % 3 == 0 ? _lightHeadAltMaterial : _lightHeadMaterial,
-                Transform = new Transform3D(basis, position + Vector3.Up * 5.35f + forward * 0.85f)
-            };
-            AddChild(head);
-            head.Name = $"TrackLightHead{i:000}";
-
+            Basis headBasis = new Basis(basis.X * headSize.X, basis.Y * headSize.Y, basis.Z * headSize.Z);
+            Transform3D headTransform = new(headBasis, position + Vector3.Up * 5.35f + forward * 0.85f);
+            if (i % 3 == 0)
+                _lightHeadAltBatch.Add(headTransform);
+            else
+                _lightHeadBatch.Add(headTransform);
+            
             var light = new OmniLight3D
             {
                 LightColor = i % 3 == 0 ? new Color(0.08f, 0.76f, 1.0f) : new Color(1.0f, 0.5f, 0.16f),
@@ -889,6 +956,7 @@ public partial class TrackBuilder : Node3D
 
         int columns = CityColumnCount();
         int rows = CityRowCount();
+        var font = GD.Load<Font>("res://assets/fonts/VT323-Regular.ttf");
         for (int i = 0; i < messages.Length; i++)
         {
             int column = i * 2 % columns;
@@ -898,7 +966,7 @@ public partial class TrackBuilder : Node3D
             {
                 Name = $"NeonLandmark{i:00}",
                 Text = messages[i],
-                Font = GD.Load<Font>("res://assets/fonts/VT323-Regular.ttf"),
+                Font = font,
                 FontSize = 72,
                 PixelSize = 0.018f,
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
@@ -1162,7 +1230,7 @@ public partial class TrackBuilder : Node3D
         return 1.0f - Mathf.Clamp(distance, 0.0f, 1.0f);
     }
 
-    private void AddLaneDashes(bool horizontal, float fixedCoordinate, float start, float end, float[] crossingCenters, float[] crossingWidths, ref int markerIndex)
+    private void AddLaneDashes(bool horizontal, float fixedCoordinate, float start, float end, float[] crossingCenters, float[] crossingWidths)
     {
         float dashSpacing = 8.0f;
         float dashLength = horizontal ? 3.2f : 3.0f;
@@ -1172,17 +1240,12 @@ public partial class TrackBuilder : Node3D
             if (IsNearIntersection(position, crossingCenters, crossingWidths))
                 continue;
 
-            var dash = new MeshInstance3D
-            {
-                Mesh = new BoxMesh { Size = horizontal ? new Vector3(dashLength, 0.035f, 0.24f) : new Vector3(0.24f, 0.035f, dashLength) },
-                MaterialOverride = _laneMarkerMaterial,
-                Position = horizontal
-                    ? new Vector3(position, 0.085f, fixedCoordinate)
-                    : new Vector3(fixedCoordinate, 0.085f, position)
-            };
+            Vector3 size = horizontal ? new Vector3(dashLength, 0.035f, 0.24f) : new Vector3(0.24f, 0.035f, dashLength);
+            Vector3 dashPosition = horizontal
+                ? new Vector3(position, 0.085f, fixedCoordinate)
+                : new Vector3(fixedCoordinate, 0.085f, position);
 
-            AddChild(dash);
-            dash.Name = $"LaneMarker{markerIndex++:000}";
+            _laneMarkerBatch.Add(new Transform3D(Basis.FromScale(size), dashPosition));
         }
     }
 
@@ -1199,28 +1262,16 @@ public partial class TrackBuilder : Node3D
 
     private void AddCurbSegment(Vector3 size, Vector3 position, string name)
     {
-        var curb = new MeshInstance3D
-        {
-            Mesh = new BoxMesh { Size = size },
-            MaterialOverride = StableNameIndex(name) % 2 == 0 ? _curbWhiteMaterial : _curbRedMaterial,
-            Position = position
-        };
-
-        AddChild(curb);
-        curb.Name = name;
+        var transform = new Transform3D(Basis.FromScale(size), position);
+        if (StableNameIndex(name) % 2 == 0)
+            _curbWhiteBatch.Add(transform);
+        else
+            _curbRedBatch.Add(transform);
     }
 
     private void AddCrosswalk(Vector3 size, Vector3 position, string name)
     {
-        var crosswalk = new MeshInstance3D
-        {
-            Mesh = new BoxMesh { Size = size },
-            MaterialOverride = _crosswalkMaterial,
-            Position = position
-        };
-
-        AddChild(crosswalk);
-        crosswalk.Name = name;
+        _crosswalkBatch.Add(new Transform3D(Basis.FromScale(size), position));
     }
 
     private static void AddLightCandidate(List<LightCandidate> candidates, Vector3 position, Vector3 forward)

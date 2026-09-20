@@ -3,6 +3,8 @@ extends SceneTree
 const MAIN_SCENE := "res://default_3d.tscn"
 const LOCAL_PLAYER_ID := 1
 
+var _scene_root: Node
+
 func _initialize() -> void:
 	call_deferred("_run")
 
@@ -10,21 +12,21 @@ func _run() -> void:
 	var packed_scene: PackedScene = load(MAIN_SCENE)
 	if packed_scene == null:
 		_fail("Unable to load %s" % MAIN_SCENE)
-		_finish()
+		await _finish()
 		return
 
-	var root: Node = packed_scene.instantiate()
-	get_root().add_child(root)
+	_scene_root = packed_scene.instantiate()
+	get_root().add_child(_scene_root)
 	await process_frame
 	await physics_frame
 
-	var shell: Node = root.get_node_or_null("RetroNeonCabShell")
-	var mode: Node = root.get_node_or_null("Modes/TaxiMode")
-	var manager: Node = root.get_node_or_null("GameManager")
-	var kart: RigidBody3D = root.get_node_or_null("Kart")
+	var shell: Node = _scene_root.get_node_or_null("RetroNeonCabShell")
+	var mode: Node = _scene_root.get_node_or_null("Modes/TaxiMode")
+	var manager: Node = _scene_root.get_node_or_null("GameManager")
+	var kart: RigidBody3D = _scene_root.get_node_or_null("Kart")
 	_expect(shell != null and mode != null and manager != null and kart != null, "single-player scene dependencies exist")
 	if shell == null or mode == null or manager == null or kart == null:
-		_finish()
+		await _finish()
 		return
 
 	_expect(int(mode.call("GetCurrentCashQuota")) == 750, "endless run uses the designed starting cash quota")
@@ -72,10 +74,18 @@ func _run() -> void:
 	_expect(results != null and results.visible, "cleared shift opens the intermission screen")
 	_expect(paused, "intermission safely pauses the level")
 	_expect(repair_button != null and repair_button.visible and not repair_button.disabled, "damaged taxi can buy a pit repair")
+	# The two deliveries above pay 110 + 165, which cannot cover both a $100 pit repair and the
+	# $200 armor plating. Bank the cash the storefront assertions need before spending it.
+	manager.call("AwardPayout", LOCAL_PLAYER_ID, 1000)
+	await process_frame
 	var bank_before_repair := int(manager.call("GetPlayerMoney", LOCAL_PLAYER_ID))
 	shell.call("BuyPitRepair")
 	_expect(int(manager.call("GetPlayerHealth", LOCAL_PLAYER_ID)) == 100, "pit repair restores taxi health")
 	_expect(int(manager.call("GetPlayerMoney", LOCAL_PLAYER_ID)) == bank_before_repair - 100, "pit repair spends earned cash")
+	var armor_button: Button = shell.find_child("PitArmorButton", true, false) as Button
+	_expect(armor_button != null and armor_button.visible, "garage storefront provides armor plating upgrade")
+	shell.call("BuyArmorUpgrade")
+	_expect(bool(manager.call("HasArmorPlating", LOCAL_PLAYER_ID)), "buying armor plating equips damage resistance")
 
 	mode.set("MatchDurationSeconds", 0.15)
 	mode.set("CountdownSeconds", 0.0)
@@ -104,7 +114,7 @@ func _run() -> void:
 	_expect(int(mode.call("GetTotalRunCash")) == 0, "fresh run clears accumulated run cash")
 	_expect(int(manager.call("GetRegisteredPlayerCount")) == 3, "fresh run resets to the base Rival count")
 
-	_finish()
+	await _finish()
 
 func _complete_fare(mode: Node, manager: Node, kart: RigidBody3D) -> bool:
 	var zone := _find_pickup(mode)
@@ -171,8 +181,40 @@ func _fail(message: String) -> void:
 
 func _finish() -> void:
 	paused = false
+	await _cleanup()
 	if get_meta("failed", false):
 		quit(1)
 	else:
 		print("Single-player level end-to-end smoke test passed.")
 		quit(0)
+
+func _cleanup() -> void:
+	if _scene_root == null or not is_instance_valid(_scene_root):
+		return
+	var shell := _scene_root.get_node_or_null("RetroNeonCabShell") as Node
+	if shell != null and shell.has_method("ExitToMainMenu"):
+		shell.call("ExitToMainMenu")
+	var director := get_root().find_child("EndlessRoadDirector", true, false) as Node
+	if director != null and director.has_method("Deactivate"):
+		director.call("Deactivate")
+	var mode := get_root().get_node_or_null("EndlessRoadMode") as Node
+	if mode != null and mode.has_method("ResetRun"):
+		mode.call("ResetRun")
+	var probe_script: Script = load("res://tests/harness/HarnessProbe.cs")
+	var probe := probe_script.new() as Node if probe_script != null else null
+	if probe != null:
+		get_root().add_child(probe)
+		probe.call("ReleaseAudioManagerResources")
+	var audio_manager := get_root().get_node_or_null("AudioManager") as Node
+	if audio_manager != null:
+		audio_manager.queue_free()
+	var scene_to_free := _scene_root
+	_scene_root = null
+	if current_scene == scene_to_free:
+		current_scene = null
+	scene_to_free.queue_free()
+	for _index in 60:
+		await process_frame
+	if probe != null:
+		probe.call("CollectManagedResources")
+		probe.free()

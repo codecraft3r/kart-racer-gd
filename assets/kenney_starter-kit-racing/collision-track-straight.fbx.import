@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bd5i68dj2xgkg"
-path="res://.godot/imported/collision-track-straight.fbx-49f8b4ee8ac98c5c15096e0a38368659.scn"
+path="res://.godot/imported/collision-track-straight.fbx-cfe5c78475f472dabcfed715a1ec0203.scn"
 
 [deps]
 
-source_file="res://models/collision-track-straight.fbx"
-dest_files=["res://.godot/imported/collision-track-straight.fbx-49f8b4ee8ac98c5c15096e0a38368659.scn"]
+source_file="res://assets/kenney_starter-kit-racing/collision-track-straight.fbx"
+dest_files=["res://.godot/imported/collision-track-straight.fbx-cfe5c78475f472dabcfed715a1ec0203.scn"]
 
 [params]
 

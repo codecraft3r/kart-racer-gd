@@ -24,19 +24,29 @@ func _run() -> void:
 	if settings == null:
 		_fail("EndlessRoadSettings is null")
 		return
-	mode.call("ResetRun", 42)
-	mode.call("StartRun", 42)
-	var max_frames := 240
-	for i in range(max_frames):
-		await process_frame
-		var state: int = int(mode.get("State"))
-		if state == 5 or state == 4: # Results / GameOver
-			break
+	# The RetroNeonCabShell pauses the tree on the main menu; unpause so the
+	# mode's _Process tick (countdown, running) advances.
+	paused = false
+	# StartRun/ResetRun take an optional int? and are not exposed to GDScript
+	# by the 4.6 C# source generator — drive the run through RestartRun instead.
+	mode.set("RunSeed", 42)
+	mode.call("RestartRun")
+	var state: int = int(mode.get("State"))
+	if state != 1: # Countdown
+		_fail("Expected Countdown after RestartRun, got %s" % str(state))
+		return
+	# Wait wall-clock (headless frames run faster than 60fps) for countdown -> Running.
+	if not await _wait_for_state(mode, 2, 8000): # Running
+		_fail("Never reached Running (state=%s)" % str(int(mode.get("State"))))
+		return
+	# Let the run accumulate distance, then sanity-check the runtime state.
+	await _wait_ms(2000)
 	var score: int = int(mode.get("Score"))
 	var health: float = float(mode.get("Health"))
 	var boost: float = float(mode.get("Boost"))
-	if score < 0:
-		_fail("Score is negative")
+	var distance: float = float(mode.get("DistanceMeters"))
+	if distance <= 0.0:
+		_fail("Distance never grew: %.2f" % distance)
 		return
 	if health < 0 or health > 110:
 		_fail("Health is out of bounds: %s" % str(health))
@@ -44,11 +54,59 @@ func _run() -> void:
 	if boost < 0 or boost > 1.1:
 		_fail("Boost is out of bounds: %s" % str(boost))
 		return
-	print("OK EndlessRoad smoke passed (score=%s health=%.1f boost=%.2f)" % [str(score), health, boost])
-	# Cleanup borrowed from neon_cab smoke test pattern
-	scene_root.queue_free()
-	await process_frame
+	if score < 0:
+		_fail("Score is negative")
+		return
+	# Impact -> recovery -> running loop: a Crash (2) must dent health, enter
+	# ImpactRecovery, then return to Running with the lower health.
+	mode.call("ApplyImpact", 2) # Kart.ImpactSeverity.Crash
+	if int(mode.get("State")) != 3: # ImpactRecovery
+		_fail("Expected ImpactRecovery after ApplyImpact, got %s" % str(int(mode.get("State"))))
+		return
+	if float(mode.get("Health")) >= health:
+		_fail("Health did not drop after Crash impact")
+		return
+	if not await _wait_for_state(mode, 2, 4000): # back to Running
+		_fail("Never recovered to Running (state=%s)" % str(int(mode.get("State"))))
+		return
+	print("OK EndlessRoad smoke passed (state=%s score=%s health=%.1f boost=%.2f dist=%.1f)" % [
+		str(int(mode.get("State"))), str(score), float(mode.get("Health")), boost, distance])
+	await _cleanup(scene_root, mode)
 	_finish()
+
+func _cleanup(scene_root: Node, mode: Node) -> void:
+	var shell := scene_root.get_node_or_null("RetroNeonCabShell") as Node
+	if shell != null and shell.has_method("ExitToMainMenu"):
+		shell.call("ExitToMainMenu")
+	var director := get_root().find_child("EndlessRoadDirector", true, false) as Node
+	if director != null and director.has_method("Deactivate"):
+		director.call("Deactivate")
+	if mode != null and mode.has_method("ResetRun"):
+		mode.call("ResetRun")
+	var audio_manager := get_root().get_node_or_null("AudioManager") as Node
+	if audio_manager != null:
+		audio_manager.queue_free()
+	var scene_to_free := scene_root
+	if current_scene == scene_to_free:
+		current_scene = null
+	scene_to_free.queue_free()
+	for _index in 8:
+		await process_frame
+
+func _wait_ms(ms: int) -> void:
+	var start := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - start < ms:
+		await process_frame
+
+func _wait_for_state(mode: Node, wanted: int, timeout_ms: int) -> bool:
+	var start := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - start < timeout_ms:
+		await process_frame
+		if int(mode.get("State")) == wanted:
+			return true
+		if int(mode.get("State")) == 4 or int(mode.get("State")) == 5: # GameOver / Results
+			return false
+	return false
 
 func _fail(message: String) -> void:
 	push_error("FAIL: %s" % message)

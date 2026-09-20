@@ -20,6 +20,7 @@ public partial class EndlessRoadStreamer : Node3D
     private int _firstIndex;
     private float _playerZ;
     private bool _initialized;
+    private int _runSeed = 1;
 
     public int ActiveChunkCount => _activeChunks.Count;
     public IReadOnlyList<EndlessRoadChunk> ActiveChunks => _activeChunks;
@@ -45,14 +46,17 @@ public partial class EndlessRoadStreamer : Node3D
     {
         Clear();
 
-        var rng = new RandomNumberGenerator();
-        rng.Seed = (ulong)seed;
+        _runSeed = seed;
+        // Keep the settings resource honest about which run is loaded; chunk layout is
+        // derived from _runSeed so streaming order never changes the generated road.
+        if (Settings != null)
+            Settings.RunSeed = seed;
 
         _firstIndex = 0;
         _playerZ = 0.0f;
 
         for (int i = _firstIndex; i < Settings.ActiveChunksAhead; i++)
-            AddChunk(i, rng);
+            AddChunk(i);
 
         _initialized = true;
         GD.Print($"EndlessRoadStreamer initialized with seed={seed}.");
@@ -82,19 +86,16 @@ public partial class EndlessRoadStreamer : Node3D
             }
         }
 
-        for (int i = lastDesired; i >= lastIndex + 1; i--)
-        {
-            var rng = new RandomNumberGenerator();
-            rng.Seed = (ulong)(Settings.RunSeed + i);
-            AddChunk(i, rng);
-        }
+        for (int i = lastIndex + 1; i <= lastDesired; i++)
+            AddChunk(i);
     }
 
     public void Clear()
     {
         _initialized = false;
-        foreach (var chunk in _activeChunks.ToArray())
+        for (int i = 0; i < _activeChunks.Count; i++)
         {
+            var chunk = _activeChunks[i];
             if (chunk != null && IsInstanceValid(chunk))
                 chunk.QueueFree();
         }
@@ -121,8 +122,9 @@ public partial class EndlessRoadStreamer : Node3D
         return _chunksByIndex.TryGetValue(index, out var chunk) ? chunk : null;
     }
 
-    private void AddChunk(int index, RandomNumberGenerator rng)
+    private void AddChunk(int index)
     {
+        using var perf = PerfProbe.Measure(PerfHotspot.EndlessChunkCreate);
         if (_chunksByIndex.ContainsKey(index))
             return;
 
@@ -137,7 +139,7 @@ public partial class EndlessRoadStreamer : Node3D
         }
 
         chunk.ChunkIndex = index;
-        chunk.Initialize(Settings, rng);
+        chunk.Initialize(Settings, _runSeed);
         chunk.Position = new Vector3(0.0f, 0.0f, index * Settings.ChunkLength);
 
         if (RoadRoot != null)
@@ -149,9 +151,9 @@ public partial class EndlessRoadStreamer : Node3D
         _chunksByIndex[index] = chunk;
     }
 
-    private static int FloorChunkIndex(float z)
+    private int FloorChunkIndex(float z)
     {
-        float chunkLength = EndlessRoadMode.Instance?.Settings.ChunkLength ?? 80.0f;
+        float chunkLength = Settings?.ChunkLength ?? 80.0f;
         if (chunkLength <= 0.0f)
             chunkLength = 80.0f;
 

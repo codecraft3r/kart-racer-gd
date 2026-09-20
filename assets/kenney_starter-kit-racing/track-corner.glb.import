@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bvv2vgyrhi8d"
-path="res://.godot/imported/track-corner.glb-75a485a5b5c42217b46663d59954fcf1.scn"
+path="res://.godot/imported/track-corner.glb-3d8492ab23da204d178a9db283e0ca6f.scn"
 
 [deps]
 
-source_file="res://models/track-corner.glb"
-dest_files=["res://.godot/imported/track-corner.glb-75a485a5b5c42217b46663d59954fcf1.scn"]
+source_file="res://assets/kenney_starter-kit-racing/track-corner.glb"
+dest_files=["res://.godot/imported/track-corner.glb-3d8492ab23da204d178a9db283e0ca6f.scn"]
 
 [params]
 

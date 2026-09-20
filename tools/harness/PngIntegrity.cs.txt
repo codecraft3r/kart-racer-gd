@@ -1,0 +1,75 @@
+using System;
+using System.IO;
+using System.IO.Compression;
+using System.Text;
+
+namespace PainTaxiHarness {
+    public static class PngIntegrity {
+        private static readonly uint[] Table = BuildTable();
+        private static uint[] BuildTable() {
+            var table = new uint[256];
+            for (uint i = 0; i < table.Length; i++) {
+                uint value = i;
+                for (int bit = 0; bit < 8; bit++) value = (value >> 1) ^ ((value & 1) == 0 ? 0u : 0xedb88320u);
+                table[i] = value;
+            }
+            return table;
+        }
+        private static uint UInt(byte[] data, int offset = 0) {
+            return ((uint)data[offset] << 24) | ((uint)data[offset + 1] << 16) | ((uint)data[offset + 2] << 8) | data[offset + 3];
+        }
+        private static byte[] Read(Stream stream, int size) {
+            var result = new byte[size];
+            stream.ReadExactly(result);
+            return result;
+        }
+        public static int[] Validate(string path) {
+            using var file = File.OpenRead(path);
+            byte[] expected = {137, 80, 78, 71, 13, 10, 26, 10};
+            byte[] signature = Read(file, 8);
+            for (int i = 0; i < 8; i++) if (signature[i] != expected[i]) throw new InvalidDataException("Not a PNG.");
+            using var pixels = new MemoryStream();
+            int width = 0, height = 0, channels = 0, depth = 0;
+            bool header = false, end = false;
+            while (file.Position < file.Length) {
+                if (end) throw new InvalidDataException("Data follows PNG IEND.");
+                uint size = UInt(Read(file, 4));
+                if (size > 67108864 || size > file.Length - file.Position - 8) throw new InvalidDataException("Truncated or oversized PNG chunk.");
+                byte[] type = Read(file, 4), data = Read(file, (int)size);
+                uint crc = uint.MaxValue;
+                foreach (byte value in type) crc = Table[(crc ^ value) & 255] ^ (crc >> 8);
+                foreach (byte value in data) crc = Table[(crc ^ value) & 255] ^ (crc >> 8);
+                if ((crc ^ uint.MaxValue) != UInt(Read(file, 4))) throw new InvalidDataException("Invalid PNG chunk CRC.");
+                string kind = Encoding.ASCII.GetString(type);
+                if (!header && kind != "IHDR") throw new InvalidDataException("PNG must begin with IHDR.");
+                if (kind == "IHDR") {
+                    if (header || size != 13) throw new InvalidDataException("Invalid IHDR.");
+                    width = checked((int)UInt(data)); height = checked((int)UInt(data, 4)); depth = data[8];
+                    channels = data[9] switch { 0 => 1, 2 => 3, 3 => 1, 4 => 2, 6 => 4, _ => 0 };
+                    bool depthValid = data[9] switch { 0 => depth == 1 || depth == 2 || depth == 4 || depth == 8 || depth == 16, 3 => depth == 1 || depth == 2 || depth == 4 || depth == 8, _ => depth == 8 || depth == 16 };
+                    if (width <= 0 || height <= 0 || channels == 0 || !depthValid || data[10] != 0 || data[11] != 0 || data[12] != 0) throw new InvalidDataException("Unsupported PNG header; harness captures must be non-interlaced.");
+                    header = true;
+                } else if (kind == "IDAT") {
+                    if (pixels.Length + data.Length > 67108864) throw new InvalidDataException("PNG compressed data is too large.");
+                    pixels.Write(data);
+                } else if (kind == "IEND") {
+                    if (size != 0 || pixels.Length == 0) throw new InvalidDataException("Invalid PNG IEND.");
+                    end = true;
+                }
+            }
+            if (!header || !end) throw new InvalidDataException("Incomplete PNG.");
+            long rowBytes = ((long)width * channels * depth + 7) / 8;
+            if ((rowBytes + 1) * height > 268435456) throw new InvalidDataException("PNG decompressed data is too large.");
+            pixels.Position = 0;
+            using var decoded = new ZLibStream(pixels, CompressionMode.Decompress);
+            byte[] row = new byte[checked((int)rowBytes)];
+            for (int y = 0; y < height; y++) {
+                int filter = decoded.ReadByte();
+                if (filter < 0 || filter > 4) throw new InvalidDataException("Invalid PNG scanline.");
+                decoded.ReadExactly(row);
+            }
+            if (decoded.ReadByte() != -1) throw new InvalidDataException("Unexpected PNG pixel data.");
+            return new[] { width, height };
+        }
+    }
+}

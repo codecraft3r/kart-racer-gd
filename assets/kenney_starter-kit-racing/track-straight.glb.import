@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bpj6m4vpmv626"
-path="res://.godot/imported/track-straight.glb-b110e348ef2fd758cbf3a8edda7abdb5.scn"
+path="res://.godot/imported/track-straight.glb-1cbd0965da7cd0e999df79611249841c.scn"
 
 [deps]
 
-source_file="res://models/track-straight.glb"
-dest_files=["res://.godot/imported/track-straight.glb-b110e348ef2fd758cbf3a8edda7abdb5.scn"]
+source_file="res://assets/kenney_starter-kit-racing/track-straight.glb"
+dest_files=["res://.godot/imported/track-straight.glb-1cbd0965da7cd0e999df79611249841c.scn"]
 
 [params]
 

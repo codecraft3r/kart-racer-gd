@@ -142,6 +142,11 @@ public partial class TrackCamera : Camera3D
 
     public void AddTrauma(float amount)
     {
+        // Reduced motion comes from the shared accessibility setting, so collisions, nitrous,
+        // and rocket blasts are all damped by the same switch.
+        if (AccessibilitySettings.ReducedMotion)
+            return;
+
         _trauma = Mathf.Clamp(_trauma + amount, 0.0f, 1.0f);
     }
 

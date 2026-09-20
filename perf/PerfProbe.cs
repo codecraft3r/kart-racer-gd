@@ -15,7 +15,11 @@ public enum PerfHotspot
     RetroSpeedometerDraw,
     DrivingVfxProcess,
     VehicleAudioProcess,
-    KartSceneLoad
+    KartSceneLoad,
+    EndlessChunkCreate,
+    EndlessChunkPopulate,
+    EndlessTrafficDrive,
+    EndlessRivalProcess
 }
 
 public enum PerfEvent

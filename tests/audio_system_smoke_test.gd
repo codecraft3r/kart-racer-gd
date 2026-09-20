@@ -14,6 +14,8 @@ const REQUIRED_ASSETS := [
 	"res://assets/audio/music/game/PTX_04_RushHourRiot_B.ogg",
 ]
 
+var _scene_root: Node
+
 func _initialize() -> void:
 	call_deferred("_run")
 
@@ -21,7 +23,7 @@ func _run() -> void:
 	var audio_manager: Node = get_root().get_node_or_null("AudioManager")
 	_expect(audio_manager != null, "AudioManager autoload exists")
 	if audio_manager == null:
-		_finish()
+		await _finish()
 		return
 
 	for bus_name in REQUIRED_BUSES:
@@ -31,24 +33,24 @@ func _run() -> void:
 		_expect(load(asset_path) != null, "audio asset imports: %s" % asset_path.get_file())
 
 	var packed_scene: PackedScene = load(MAIN_SCENE)
-	var scene_root: Node = packed_scene.instantiate()
-	get_root().add_child(scene_root)
+	_scene_root = packed_scene.instantiate()
+	get_root().add_child(_scene_root)
 	await process_frame
 	await process_frame
 
-	var kart: Node = scene_root.get_node_or_null("Kart")
+	var kart: Node = _scene_root.get_node_or_null("Kart")
 	_expect(kart != null and kart.get_node_or_null("VehicleAudio") != null, "kart has positional vehicle audio controller")
 	_expect(audio_manager.get_node_or_null("CityTraffic") != null, "city ambience player is active")
 	_expect(_has_music(audio_manager, "PTX_01_MeterGlow_B.ogg"), "main menu selects Meter Glow B")
 
-	var shell: Node = scene_root.get_node_or_null("RetroNeonCabShell")
+	var shell: Node = _scene_root.get_node_or_null("RetroNeonCabShell")
 	if shell != null:
 		shell.call("StartRun")
 		await process_frame
 		await process_frame
 		_expect(_has_music(audio_manager, "PTX_03_FlagfallFever_B.ogg"), "gameplay starts with Flagfall Fever B")
 
-	_finish()
+	await _finish()
 
 func _has_music(audio_manager: Node, filename: String) -> bool:
 	for child_name in ["MusicA", "MusicB"]:
@@ -66,8 +68,40 @@ func _expect(condition: bool, message: String) -> void:
 
 func _finish() -> void:
 	paused = false
+	await _cleanup()
 	if get_meta("failed", false):
 		quit(1)
 	else:
 		print("Audio system smoke test passed.")
 		quit(0)
+
+func _cleanup() -> void:
+	if _scene_root == null or not is_instance_valid(_scene_root):
+		return
+	var shell := _scene_root.get_node_or_null("RetroNeonCabShell") as Node
+	if shell != null and shell.has_method("ExitToMainMenu"):
+		shell.call("ExitToMainMenu")
+	var director := get_root().find_child("EndlessRoadDirector", true, false) as Node
+	if director != null and director.has_method("Deactivate"):
+		director.call("Deactivate")
+	var mode := get_root().get_node_or_null("EndlessRoadMode") as Node
+	if mode != null and mode.has_method("ResetRun"):
+		mode.call("ResetRun")
+	var probe_script: Script = load("res://tests/harness/HarnessProbe.cs")
+	var probe := probe_script.new() as Node if probe_script != null else null
+	if probe != null:
+		get_root().add_child(probe)
+		probe.call("ReleaseAudioManagerResources")
+	var audio_manager := get_root().get_node_or_null("AudioManager") as Node
+	if audio_manager != null:
+		audio_manager.queue_free()
+	var scene_to_free := _scene_root
+	_scene_root = null
+	if current_scene == scene_to_free:
+		current_scene = null
+	scene_to_free.queue_free()
+	for _index in 60:
+		await process_frame
+	if probe != null:
+		probe.call("CollectManagedResources")
+		probe.free()

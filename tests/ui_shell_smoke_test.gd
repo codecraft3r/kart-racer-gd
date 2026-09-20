@@ -4,6 +4,8 @@ const MAIN_SCENE := "res://default_3d.tscn"
 
 const TEST_RESOLUTIONS := [Vector2i(1280, 720), Vector2i(1920, 1080), Vector2i(2560, 1080), Vector2i(3440, 1440)]
 
+var _scene_root: Node
+
 func _initialize() -> void:
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--resolution="):
@@ -18,15 +20,15 @@ func _run() -> void:
 		_fail("Unable to load %s" % MAIN_SCENE)
 		return
 
-	var root: Node = packed_scene.instantiate()
-	get_root().add_child(root)
+	_scene_root = packed_scene.instantiate()
+	get_root().add_child(_scene_root)
 	await process_frame
 	await process_frame
 
-	var shell: Node = root.get_node_or_null("RetroNeonCabShell")
+	var shell: Node = _scene_root.get_node_or_null("RetroNeonCabShell")
 	_expect(shell != null, "RetroNeonCabShell is instanced in default_3d")
 	if shell == null:
-		_finish()
+		await _finish()
 		return
 
 	var main_menu: Control = _find_control(shell, "MainMenuScreen")
@@ -58,7 +60,7 @@ func _run() -> void:
 	_expect(settings.visible and pause.visible and paused, "settings opened from pause keeps pause context")
 
 	shell.call("SetPixelation", 8)
-	var postprocess: MeshInstance3D = root.get_node_or_null("Camera3D/MeshInstance3D")
+	var postprocess: MeshInstance3D = _scene_root.get_node_or_null("Camera3D/MeshInstance3D")
 	var material := postprocess.material_override as ShaderMaterial
 	_expect(material != null and int(material.get_shader_parameter("pixel_size")) == 8, "pixelation button path updates shader uniform")
 
@@ -77,7 +79,7 @@ func _run() -> void:
 	shell.call("CloseCredits")
 	_expect(main_menu.visible and not credits.visible, "CloseCredits returns to main")
 
-	_finish()
+	await _finish()
 
 func _all_focusable_controls_have_neighbors(parent: Node) -> bool:
 	for child in parent.get_children():
@@ -108,8 +110,40 @@ func _fail(message: String) -> void:
 
 func _finish() -> void:
 	paused = false
+	await _cleanup()
 	if get_meta("failed", false):
 		quit(1)
 	else:
 		print("Retro Neon Cab UI shell smoke test passed.")
 		quit(0)
+
+func _cleanup() -> void:
+	if _scene_root == null or not is_instance_valid(_scene_root):
+		return
+	var shell := _scene_root.get_node_or_null("RetroNeonCabShell") as Node
+	if shell != null and shell.has_method("ExitToMainMenu"):
+		shell.call("ExitToMainMenu")
+	var director := get_root().find_child("EndlessRoadDirector", true, false) as Node
+	if director != null and director.has_method("Deactivate"):
+		director.call("Deactivate")
+	var mode := get_root().get_node_or_null("EndlessRoadMode") as Node
+	if mode != null and mode.has_method("ResetRun"):
+		mode.call("ResetRun")
+	var probe_script: Script = load("res://tests/harness/HarnessProbe.cs")
+	var probe := probe_script.new() as Node if probe_script != null else null
+	if probe != null:
+		get_root().add_child(probe)
+		probe.call("ReleaseAudioManagerResources")
+	var audio_manager := get_root().get_node_or_null("AudioManager") as Node
+	if audio_manager != null:
+		audio_manager.queue_free()
+	var scene_to_free := _scene_root
+	_scene_root = null
+	if current_scene == scene_to_free:
+		current_scene = null
+	scene_to_free.queue_free()
+	for _index in 8:
+		await process_frame
+	if probe != null:
+		probe.call("CollectManagedResources")
+		probe.free()

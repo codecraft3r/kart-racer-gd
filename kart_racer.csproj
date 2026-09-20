@@ -8,5 +8,8 @@
   <ItemGroup>
     <Compile Remove="experimental/**/*.cs" />
     <GodotSdkRootFiles Remove="experimental/**/*" />
+    <!-- Subprocess test fixtures and their generated files are not game scripts. -->
+    <Compile Remove="tests/fixtures/**/*" />
+    <GodotSdkRootFiles Remove="tests/fixtures/**/*" />
   </ItemGroup>
 </Project>

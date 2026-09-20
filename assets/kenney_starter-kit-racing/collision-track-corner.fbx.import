@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cdrdd4th8ywse"
-path="res://.godot/imported/collision-track-corner.fbx-22883b668d02f4779860e1154bcb9120.scn"
+path="res://.godot/imported/collision-track-corner.fbx-ac364260647007148cb99d3b2e3c9f82.scn"
 
 [deps]
 
-source_file="res://models/collision-track-corner.fbx"
-dest_files=["res://.godot/imported/collision-track-corner.fbx-22883b668d02f4779860e1154bcb9120.scn"]
+source_file="res://assets/kenney_starter-kit-racing/collision-track-corner.fbx"
+dest_files=["res://.godot/imported/collision-track-corner.fbx-ac364260647007148cb99d3b2e3c9f82.scn"]
 
 [params]
 

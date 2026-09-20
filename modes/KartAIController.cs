@@ -53,6 +53,7 @@ public partial class KartAIController : Node
 
         Vector3 targetPos = Vector3.Zero;
         bool hasPassenger = _kart.ActivePassenger.HasValue;
+        bool isRammingPlayer = false;
 
         if (hasPassenger)
         {
@@ -60,7 +61,26 @@ public partial class KartAIController : Node
         }
         else
         {
-            targetPos = TaxiMode.Instance.GetNearestPickupPosition(_kart.GlobalPosition);
+            var playerKart = GameManager.Instance?.GetKart(1);
+            if (playerKart != null && GodotObject.IsInstanceValid(playerKart) && playerKart.ActivePassenger.HasValue)
+            {
+                float distToPlayer = _kart.GlobalPosition.DistanceTo(playerKart.GlobalPosition);
+                if (distToPlayer < 24.0f)
+                {
+                    targetPos = playerKart.GlobalPosition;
+                    isRammingPlayer = true;
+                    if (GD.Randf() < (float)delta * 0.4f)
+                    {
+                        string[] taunts = { "Nice fare, rookie!", "Outta my way!", "Eat bumper!", "That fare was MINE!" };
+                        _kart.TriggerSpeechBubble(taunts[GD.RandRange(0, taunts.Length - 1)]);
+                    }
+                }
+            }
+
+            if (!isRammingPlayer)
+            {
+                targetPos = TaxiMode.Instance.GetStrategicPickupPosition(_kart.GlobalPosition);
+            }
         }
 
         if (targetPos == Vector3.Zero)
@@ -74,6 +94,22 @@ public partial class KartAIController : Node
         Vector3 currentPos = _kart.GlobalPosition;
         float distToTarget = currentPos.DistanceTo(targetPos);
 
+        // Weapon firing check against target or player
+        var aiWeapon = GameManager.Instance?.GetPlayerWeapon(_kart.OwnerPeerId);
+        if (aiWeapon != null && !aiWeapon.IsDepleted)
+        {
+            var targetKart = GameManager.Instance?.GetKart(1);
+            if (targetKart != null && GodotObject.IsInstanceValid(targetKart))
+            {
+                Vector3 toTargetKart = targetKart.GlobalPosition - _kart.GlobalPosition;
+                float angleToTarget = Mathf.Abs(WrapAngle(Mathf.Atan2(toTargetKart.X, toTargetKart.Z) - _kart.Rotation.Y));
+                if (toTargetKart.Length() < 35.0f && angleToTarget < 0.40f && GD.Randf() < dt * 0.65f)
+                {
+                    _kart.FireWeapon();
+                }
+            }
+        }
+
         if (TrackBuilder.Instance != null &&
             (_routeRefreshTimer <= 0.0f || _lastObjective.DistanceSquaredTo(targetPos) > 1.0f || _routeIndex >= _route.Count))
         {
@@ -81,7 +117,7 @@ public partial class KartAIController : Node
             _route.AddRange(TrackBuilder.Instance.BuildStreetRoute(currentPos, targetPos));
             _routeIndex = 0;
             _lastObjective = targetPos;
-            _routeRefreshTimer = 2.0f;
+            _routeRefreshTimer = 1.5f;
         }
 
         Vector3 steeringTarget = targetPos;
@@ -113,8 +149,8 @@ public partial class KartAIController : Node
         else if (Mathf.Abs(angleDiff) > 0.55f)
             forward = 0.45f;
 
-        // Slow down to stop when close to target
-        if (distToTarget < (hasPassenger ? 10.0f : 8.0f))
+        // Slow down to stop when close to target (unless actively ramming)
+        if (!isRammingPlayer && distToTarget < (hasPassenger ? 10.0f : 8.0f))
         {
             Vector3 stoppingVelocity = _kart.LinearVelocity;
             stoppingVelocity.Y = 0.0f;

@@ -9,6 +9,14 @@ data_*/
 mono_crash.*
 captures/
 artifacts/visual/captures/
+artifacts/harness/*
+!artifacts/harness/.gdignore
+.harness/
+artifacts/**/*.import
+assets/3dassets-catalog/**/*.import
+
+# Optional interactive Godot MCP runtime (pinned dependency, installed locally)
+tools/godot-mcp-runtime/node_modules/
 
 # .NET / C# / MSBuild ignores
 bin/

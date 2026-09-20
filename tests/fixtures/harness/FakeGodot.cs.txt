@@ -1,0 +1,61 @@
+using System.Diagnostics;
+
+if (args.Contains("--version", StringComparer.Ordinal))
+{
+    Console.WriteLine("Godot Engine v4.6.3.stable.mono");
+    return;
+}
+
+var pwsh = Environment.GetEnvironmentVariable("FAKE_HARNESS_PWSH") ?? "pwsh";
+var fixture = Environment.GetEnvironmentVariable("FAKE_HARNESS_FIXTURE");
+if (string.IsNullOrWhiteSpace(fixture))
+{
+    Console.Error.WriteLine("FAKE_HARNESS_FIXTURE is required");
+    Environment.ExitCode = 2;
+    return;
+}
+
+var child = new Process
+{
+    StartInfo = new ProcessStartInfo
+    {
+        FileName = pwsh,
+        UseShellExecute = false,
+        RedirectStandardOutput = false,
+        RedirectStandardError = false,
+        CreateNoWindow = true,
+    },
+};
+child.StartInfo.ArgumentList.Add("-NoProfile");
+child.StartInfo.ArgumentList.Add("-NonInteractive");
+child.StartInfo.ArgumentList.Add("-File");
+child.StartInfo.ArgumentList.Add(fixture);
+string? projectPath = null;
+string? state = null;
+string? runId = null;
+for (var i = 0; i < args.Length; i++)
+{
+    if (args[i] == "--path" && i + 1 < args.Length) projectPath = args[i + 1];
+    if (args[i].StartsWith("--state=", StringComparison.Ordinal)) state = args[i][8..];
+    if (args[i].StartsWith("--run-id=", StringComparison.Ordinal)) runId = args[i][9..];
+}
+if (!string.IsNullOrWhiteSpace(projectPath) && !string.IsNullOrWhiteSpace(state) && !string.IsNullOrWhiteSpace(runId))
+{
+    var scenarioRoot = Path.Combine(projectPath, "artifacts", "harness", runId, "scenarios", state);
+    Environment.SetEnvironmentVariable("FAKE_HARNESS_OUTPUT", Path.Combine(scenarioRoot, state + ".png"));
+    Environment.SetEnvironmentVariable("FAKE_HARNESS_RESULT", Path.Combine(scenarioRoot, "result.json"));
+}
+foreach (var arg in args)
+{
+    // PowerShell -File can truncate an --option=C:\path token on Windows.
+    // Preserve those paths through the environment while forwarding the
+    // original arguments for the rest of the fixture protocol.
+    if (arg.StartsWith("--output=", StringComparison.Ordinal))
+        Environment.SetEnvironmentVariable("FAKE_HARNESS_OUTPUT", arg[9..]);
+    if (arg.StartsWith("--result=", StringComparison.Ordinal))
+        Environment.SetEnvironmentVariable("FAKE_HARNESS_RESULT", arg[9..]);
+    child.StartInfo.ArgumentList.Add(arg);
+}
+child.Start();
+child.WaitForExit();
+Environment.ExitCode = child.ExitCode;

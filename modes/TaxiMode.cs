@@ -57,6 +57,10 @@ public partial class TaxiMode : Node3D
     private readonly Dictionary<int, int> _scores = new(); // peerId -> cash earned
     private readonly List<PickupZone> _activeZones = new();
     private const int MaxActiveCustomers = 5;
+    // Match state is slow-changing, so it goes out on a heartbeat rather than every physics
+    // frame. Phase changes still broadcast a reliable full state immediately.
+    private const double MatchStateHeartbeatSeconds = 0.2;
+    private double _matchStateHeartbeat;
     private int _pickupZoneCounter = 0;
     private double _timeRemaining;
     private double _countdownRemaining;
@@ -75,6 +79,7 @@ public partial class TaxiMode : Node3D
     private readonly Dictionary<int, Area3D> _playerDropoffAreas = new();
     private readonly Dictionary<int, Kart> _settlingDropoffs = new();
     private readonly Dictionary<int, float> _dropoffSettleSeconds = new();
+    private readonly List<WeaponPickup> _activeWeaponPickups = new();
     private const float DropoffSettleDuration = 0.5f;
     private const float DropoffSettleSpeed = 2.2f;
 
@@ -108,7 +113,7 @@ public partial class TaxiMode : Node3D
             if (_countdownRemaining <= 0.0)
                 BeginActiveMatch();
             else
-                BroadcastMatchState();
+                BroadcastMatchStateIfDue(delta);
             return;
         }
 
@@ -126,7 +131,7 @@ public partial class TaxiMode : Node3D
                 EndMatch(FindLeader());
         }
         else
-            BroadcastMatchState();
+            BroadcastMatchStateIfDue(delta);
     }
 
     public override void _Process(double delta)
@@ -177,6 +182,8 @@ public partial class TaxiMode : Node3D
         _phase = _countdownRemaining > 0.0 ? MatchPhase.Countdown : MatchPhase.Active;
 
         SpawnPickupZones();
+        SpawnWeaponPickups();
+        ApplyShiftAtmosphere(_shiftNumber);
         GameManager.Instance?.SetAllKartControlsEnabled(_phase == MatchPhase.Active);
         BroadcastFullState();
 
@@ -200,6 +207,7 @@ public partial class TaxiMode : Node3D
         _playerDestinations.Clear();
         ClearDropoffAreas();
         ClearPickupZones();
+        ClearWeaponPickups();
         ActiveDestination = Vector3.Zero;
         GameManager.Instance?.SetAllKartControlsEnabled(true);
         PublishLocalEvents();
@@ -300,8 +308,11 @@ public partial class TaxiMode : Node3D
         }
 
         int health = GameManager.Instance?.GetPlayerHealth(peerId) ?? 100;
-        PickupZone nearest = null;
-        float nearestDistance = float.MaxValue;
+        bool hasRadar = GameManager.Instance != null && GameManager.Instance.HasFareRadar(peerId);
+        PickupZone bestZone = null;
+        float bestScore = float.MinValue;
+        float bestDistance = float.MaxValue;
+
         foreach (PickupZone zone in _activeZones)
         {
             if (!GodotObject.IsInstanceValid(zone) || zone.IsQueuedForDeletion())
@@ -310,17 +321,25 @@ public partial class TaxiMode : Node3D
                 continue;
 
             float distance = kart.GlobalPosition.DistanceTo(zone.GlobalPosition);
-            if (distance < nearestDistance)
+            float score = -distance;
+            if (hasRadar)
             {
-                nearest = zone;
-                nearestDistance = distance;
+                if (zone.Archetype == GameManager.CustomerArchetype.VIP) score += 250.0f;
+                if (zone.Wealth == GameManager.CustomerWealth.High) score += 180.0f;
+            }
+
+            if (score > bestScore)
+            {
+                bestZone = zone;
+                bestScore = score;
+                bestDistance = distance;
             }
         }
 
-        if (nearest == null)
+        if (bestZone == null)
             return false;
 
-        target = new ObjectiveTarget(ObjectiveKind.Pickup, nearest.GlobalPosition, nearestDistance, WealthColor(nearest.Wealth));
+        target = new ObjectiveTarget(ObjectiveKind.Pickup, bestZone.GlobalPosition, bestDistance, WealthColor(bestZone.Wealth));
         return true;
     }
 
@@ -332,6 +351,89 @@ public partial class TaxiMode : Node3D
             GameManager.CustomerWealth.High => new Color(0.93f, 0.16f, 0.50f, 1.0f),
             _ => new Color(0.96f, 0.72f, 0.18f, 1.0f)
         };
+    }
+
+    public void SpawnWeaponPickups()
+    {
+        if (TrackBuilder.Instance == null) return;
+
+        ClearWeaponPickups();
+        var intersections = TrackBuilder.Instance.IntersectionPositions;
+        int count = 0;
+        foreach (var pos in intersections)
+        {
+            if (pos.Length() > 55.0f && count < 6)
+            {
+                var weapon = new WeaponPickup
+                {
+                    Name = $"WeaponPickup_{count}",
+                    WeaponType = count % 2 == 0 ? GameManager.WeaponClass.Rocket : GameManager.WeaponClass.Assault,
+                    Position = pos + Vector3.Up * 0.1f
+                };
+                AddChild(weapon);
+                _activeWeaponPickups.Add(weapon);
+                count++;
+            }
+        }
+    }
+
+    public void ClearWeaponPickups()
+    {
+        foreach (var w in _activeWeaponPickups)
+        {
+            if (IsInstanceValid(w))
+                w.QueueFree();
+        }
+        _activeWeaponPickups.Clear();
+    }
+
+    public void ApplyShiftAtmosphere(int shift)
+    {
+        var dirLight = FindFirstDirectionalLight(GetTree()?.Root);
+        if (dirLight == null) return;
+
+        if (shift <= 1)
+        {
+            // Shift 1: Neon Dusk
+            dirLight.LightColor = new Color(1.0f, 0.75f, 0.55f);
+            dirLight.LightEnergy = 0.85f;
+        }
+        else if (shift == 2)
+        {
+            // Shift 2: Midnight Neon
+            dirLight.LightColor = new Color(0.35f, 0.45f, 0.95f);
+            dirLight.LightEnergy = 0.60f;
+        }
+        else if (shift == 3)
+        {
+            // Shift 3: Midnight Rain
+            dirLight.LightColor = new Color(0.40f, 0.50f, 0.60f);
+            dirLight.LightEnergy = 0.40f;
+        }
+        else
+        {
+            // Shift 4+: Red Alert Lockdown
+            dirLight.LightColor = new Color(1.0f, 0.20f, 0.30f);
+            dirLight.LightEnergy = 0.75f;
+        }
+    }
+
+    private static DirectionalLight3D FindFirstDirectionalLight(Node node)
+    {
+        if (node == null)
+            return null;
+
+        if (node is DirectionalLight3D light)
+            return light;
+
+        foreach (Node child in node.GetChildren())
+        {
+            DirectionalLight3D found = FindFirstDirectionalLight(child);
+            if (found != null)
+                return found;
+        }
+
+        return null;
     }
 
     private void SpawnPickupZones()
@@ -418,11 +520,33 @@ public partial class TaxiMode : Node3D
             maxDmg = 30;
         }
 
+        GameManager.CustomerArchetype archetype = GameManager.CustomerArchetype.Standard;
+        float archetypeRoll = (float)GD.RandRange(0.0, 1.0);
+        if (customerWealth == GameManager.CustomerWealth.High || archetypeRoll < 0.25f)
+        {
+            archetype = GameManager.CustomerArchetype.VIP;
+            maxDmg = 25;
+            loadTime = 2.0f;
+        }
+        else if (archetypeRoll < 0.55f)
+        {
+            archetype = GameManager.CustomerArchetype.ThrillSeeker;
+            maxDmg = 70;
+            loadTime = 1.0f;
+        }
+        else if (groupSize >= 2 || archetypeRoll < 0.80f)
+        {
+            archetype = GameManager.CustomerArchetype.Commuter;
+            groupSize = Math.Max(2, groupSize);
+            loadTime = 2.5f;
+        }
+
         var newZone = new PickupZone
         {
             Name = $"PickupZone_{_pickupZoneCounter++}",
             Distance = customerDist,
             Wealth = customerWealth,
+            Archetype = archetype,
             MaxAcceptableDamage = maxDmg,
             GroupSize = groupSize,
             LoadTime = loadTime,
@@ -769,6 +893,7 @@ public partial class TaxiMode : Node3D
     private void EndEndlessRun()
     {
         _lastShiftCash = GetScore(1);
+        RunRecordManager.CheckAndRecordRun(_shiftNumber, _totalRunCash, _lastShiftCash, 0, 0, out _);
         EndMatch(FindLeader());
     }
 
@@ -830,6 +955,21 @@ public partial class TaxiMode : Node3D
         PublishLocalEvents();
     }
 
+    /// <summary>
+    /// Throttled match-state publish. Clients only need the timer, phase, and winner at a
+    /// human-visible cadence, which drops the send rate from every physics frame to
+    /// <see cref="MatchStateHeartbeatSeconds"/>.
+    /// </summary>
+    private void BroadcastMatchStateIfDue(double delta)
+    {
+        _matchStateHeartbeat += delta;
+        if (_matchStateHeartbeat < MatchStateHeartbeatSeconds)
+            return;
+
+        _matchStateHeartbeat = 0.0;
+        BroadcastMatchState();
+    }
+
     private void BroadcastMatchState()
     {
         foreach (int id in Multiplayer.GetPeers())
@@ -873,6 +1013,9 @@ public partial class TaxiMode : Node3D
         _winnerPeerId = winnerPeerId;
         _phase = (MatchPhase)phase;
         _countdownRemaining = countdownRemaining;
+        // The server owns control release. Mirroring it keeps a client locked through the
+        // countdown instead of streaming input the server discards.
+        GameManager.Instance?.SetAllKartControlsEnabled(_phase == MatchPhase.Active);
         _scores.Clear();
 
         int count = Math.Min(peerIds.Length, scores.Length);
@@ -892,6 +1035,9 @@ public partial class TaxiMode : Node3D
         _winnerPeerId = winnerPeerId;
         _phase = (MatchPhase)phase;
         _countdownRemaining = countdownRemaining;
+        // The server owns control release. Mirroring it keeps a client locked through the
+        // countdown instead of streaming input the server discards.
+        GameManager.Instance?.SetAllKartControlsEnabled(_phase == MatchPhase.Active);
         MatchStateChanged?.Invoke(_timeRemaining, _matchActive, _winnerPeerId);
     }
 
@@ -905,6 +1051,30 @@ public partial class TaxiMode : Node3D
     public Vector3 GetPlayerDestination(int peerId)
     {
         return _playerDestinations.TryGetValue(peerId, out Vector3 dest) ? dest : Vector3.Zero;
+    }
+
+    public Vector3 GetStrategicPickupPosition(Vector3 from)
+    {
+        PickupZone bestZone = null;
+        float bestScore = float.MinValue;
+        foreach (PickupZone zone in _activeZones)
+        {
+            if (!IsInstanceValid(zone) || zone.IsQueuedForDeletion())
+                continue;
+
+            float dist = from.DistanceTo(zone.GlobalPosition);
+            float value = zone.Wealth == GameManager.CustomerWealth.High ? 350.0f : zone.Wealth == GameManager.CustomerWealth.Medium ? 200.0f : 100.0f;
+            if (zone.Archetype == GameManager.CustomerArchetype.VIP) value *= 1.4f;
+
+            float score = value - (dist * 0.85f);
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestZone = zone;
+            }
+        }
+
+        return bestZone != null ? bestZone.GlobalPosition : GetNearestPickupPosition(from);
     }
 
     public Vector3 GetNearestPickupPosition(Vector3 from)

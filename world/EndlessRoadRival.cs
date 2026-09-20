@@ -54,12 +54,24 @@ public partial class EndlessRoadRival : RigidBody3D
         _telegraphMesh = new MeshInstance3D { Name = "Telegraph", Mesh = new BoxMesh { Size = new Vector3(1.8f, 0.12f, 0.4f) }, Position = new Vector3(0, 1.35f, 0.9f), Visible = false };
         _telegraphMesh.MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(1, 0.2f, 0.2f), EmissionEnabled = true, Emission = new Color(1, 0.15f, 0.15f) * 1.2f };
         _visual.AddChild(_telegraphMesh);
-        var light = new SpotLight3D { Name = "RivalHeadlight", LightColor = new Color(1, 0.95f, 0.7f), LightEnergy = 1.6f, SpotRange = 18.0f, SpotAngle = 22.0f, Position = new Vector3(0, 0.5f, 1.35f) };
+        var light = new SpotLight3D
+        {
+            Name = "RivalHeadlight",
+            LightColor = new Color(1, 0.95f, 0.7f),
+            LightEnergy = 1.6f,
+            SpotRange = 18.0f,
+            SpotAngle = 22.0f,
+            Position = new Vector3(0, 0.5f, 1.35f),
+            // The rival drives along +Z (the yaw in DriveToward matches that), and a spot light
+            // points along its own -Z, so it needs a half turn to light the road ahead of itself.
+            RotationDegrees = new Vector3(0, 180, 0)
+        };
         _visual.AddChild(light);
     }
 
     public override void _PhysicsProcess(double delta)
     {
+        using var perf = PerfProbe.Measure(PerfHotspot.EndlessRivalProcess);
         if (_target == null || !IsInstanceValid(_target)) return;
         var mode = EndlessRoadMode.Instance;
         if (mode == null || mode.State != EndlessRoadMode.RunState.Running) return;
@@ -148,6 +160,21 @@ public partial class EndlessRoadRival : RigidBody3D
             _telegraphMesh.Visible = false;
     }
 
+    /// <summary>
+    /// The road and its shoulders are static bodies too, and resting on them is not a
+    /// takedown; only barriers, buildings, and vehicles read as eating a wall.
+    /// </summary>
+    private static bool IsObstacle(Node body)
+    {
+        string name = body.Name.ToString();
+        return !name.StartsWith("RoadBody", StringComparison.Ordinal)
+            && !name.StartsWith("RoadSegment", StringComparison.Ordinal)
+            && !name.StartsWith("Intersection", StringComparison.Ordinal)
+            && !name.StartsWith("LeftShoulder", StringComparison.Ordinal)
+            && !name.StartsWith("RightShoulder", StringComparison.Ordinal)
+            && !name.StartsWith("Ground", StringComparison.Ordinal);
+    }
+
     private void OnBodyEntered(Node body)
     {
         if (body is Kart kart && kart == _target)
@@ -158,7 +185,7 @@ public partial class EndlessRoadRival : RigidBody3D
             Transition(RivalState.Recover, 1.4f);
             AudioManager.Instance?.PlayLocal(AudioManager.Cue.CollisionMedium, -2.0f, 1.0f);
         }
-        else if (body is StaticBody3D && State == RivalState.Ram)
+        else if (body is StaticBody3D && State == RivalState.Ram && IsObstacle(body))
         {
             // Rival ate a wall on its own ram — big takedown.
             EndlessRoadMode.Instance?.AddScore(450);

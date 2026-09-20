@@ -6,6 +6,7 @@ public partial class VehicleAudioController : Node3D
     private AudioStreamPlayer3D _idlePlayer;
     private AudioStreamPlayer3D _drivePlayer;
     private AudioStreamPlayer3D _skidPlayer;
+    private AudioStreamPlayer3D _engineStartPlayer;
 
     public override void _Ready()
     {
@@ -21,6 +22,15 @@ public partial class VehicleAudioController : Node3D
         _drivePlayer = CreateLoopPlayer("EngineDrive", "res://assets/audio/vehicles/engine_drive.wav", -48.0f, 0.8f, 82.0f);
         _skidPlayer = CreateLoopPlayer("TireSkid", "res://assets/audio/vehicles/tire_skid.wav", -60.0f, 1.0f, 65.0f);
         PlayEngineStart();
+    }
+
+    public override void _ExitTree()
+    {
+        SetProcess(false);
+        StopAndRelease(_idlePlayer);
+        StopAndRelease(_drivePlayer);
+        StopAndRelease(_skidPlayer);
+        StopAndRelease(_engineStartPlayer);
     }
 
     public override void _Process(double delta)
@@ -39,8 +49,12 @@ public partial class VehicleAudioController : Node3D
 
         Vector3 localVelocity = _kart.GlobalTransform.Basis.Inverse() * _kart.LinearVelocity;
         float lateralSlip = Mathf.Abs(localVelocity.X);
-        float skidIntensity = speed > 5.0f ? Mathf.Clamp((lateralSlip - 2.0f) / 7.0f, 0.0f, 1.0f) : 0.0f;
-        float skidTarget = Mathf.Lerp(-60.0f, -7.0f, skidIntensity);
+        float skidIntensity = speed > 4.0f ? Mathf.Clamp((lateralSlip - 1.8f) / 6.0f, 0.0f, 1.0f) : 0.0f;
+        if (_kart.DriftAmount > 0.15f && speed > 4.0f)
+            skidIntensity = Mathf.Max(skidIntensity, _kart.DriftAmount * 0.9f);
+        if (speed > 5.0f && _kart.BrakeInputActive)
+            skidIntensity = Mathf.Max(skidIntensity, 0.7f);
+        float skidTarget = Mathf.Lerp(-60.0f, -6.0f, skidIntensity);
 
         float blend = 1.0f - Mathf.Exp(-8.0f * dt);
         _idlePlayer.VolumeDb = Mathf.Lerp(_idlePlayer.VolumeDb, idleTarget, blend);
@@ -81,7 +95,7 @@ public partial class VehicleAudioController : Node3D
         if (stream == null)
             return;
 
-        var player = new AudioStreamPlayer3D
+        _engineStartPlayer = new AudioStreamPlayer3D
         {
             Name = "EngineStart",
             Stream = stream,
@@ -90,8 +104,17 @@ public partial class VehicleAudioController : Node3D
             MaxDistance = 72.0f,
             UnitSize = 6.0f
         };
-        AddChild(player);
-        player.Finished += player.QueueFree;
-        player.Play();
+        AddChild(_engineStartPlayer);
+        _engineStartPlayer.Finished += _engineStartPlayer.QueueFree;
+        _engineStartPlayer.Play();
+    }
+
+    private static void StopAndRelease(AudioStreamPlayer3D player)
+    {
+        if (!GodotObject.IsInstanceValid(player))
+            return;
+
+        player.Stop();
+        player.Stream = null;
     }
 }

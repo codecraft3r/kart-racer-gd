@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dnonb1wl5fs0h"
-path="res://.godot/imported/decoration-forest.glb-bfbee35977499826d507c82e0483631d.scn"
+path="res://.godot/imported/decoration-forest.glb-92746f72633e61461e19bdc9cfb810e4.scn"
 
 [deps]
 
-source_file="res://models/decoration-forest.glb"
-dest_files=["res://.godot/imported/decoration-forest.glb-bfbee35977499826d507c82e0483631d.scn"]
+source_file="res://assets/kenney_starter-kit-racing/decoration-forest.glb"
+dest_files=["res://.godot/imported/decoration-forest.glb-92746f72633e61461e19bdc9cfb810e4.scn"]
 
 [params]
 

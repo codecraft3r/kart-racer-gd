@@ -89,7 +89,20 @@ func _run() -> void:
 	kart.free()
 	kart = null
 	packed = null
-	await process_frame
+	var probe_script: Script = load("res://tests/harness/HarnessProbe.cs")
+	var probe := probe_script.new() as Node if probe_script != null else null
+	if probe != null:
+		get_root().add_child(probe)
+		probe.call("ReleaseAudioManagerResources")
+	var audio := get_root().get_node_or_null("AudioManager") as Node
+	if audio != null:
+		audio.free()
+	audio = null
+	for _index in 8:
+		await process_frame
+	if probe != null:
+		probe.call("CollectManagedResources")
+		probe.free()
 	quit(0)
 
 func _fail(message: String) -> void:

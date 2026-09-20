@@ -11,6 +11,8 @@ public partial class EndlessRoadSettings : Resource
     [Export] public float ChunkLength = 80.0f;
     [Export] public int ActiveChunksAhead = 5;
     [Export] public int ActiveChunksBehind = 2;
+    [Export] public float StartZ = 8.0f;
+    [Export] public float StartHeight = 0.65f;
     [Export] public float VehicleHealth = 100.0f;
     [Export] public float ImpactDamageGlance = 6.0f;
     [Export] public float ImpactDamageBump = 14.0f;
@@ -30,6 +32,8 @@ public partial class EndlessRoadSettings : Resource
     [Export] public int MaxTrafficPerChunk = 5;
     [Export] public int StartingRivals = 1;
     [Export] public int MaxRivals = 4;
+    // Chunks of distance over which traffic and rivals reach their maximum.
+    [Export] public int EscalationChunks = 40;
     [Export] public float RivalSkillStart = 0.25f;
     [Export] public float RivalSkillMax = 0.85f;
     [Export] public float FirstHazardDelay = 8.0f;
