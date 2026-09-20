@@ -74,6 +74,10 @@ func _run() -> void:
 	_expect(results != null and results.visible, "cleared shift opens the intermission screen")
 	_expect(paused, "intermission safely pauses the level")
 	_expect(repair_button != null and repair_button.visible and not repair_button.disabled, "damaged taxi can buy a pit repair")
+	# The two deliveries above pay 110 + 165, which cannot cover both a $100 pit repair and the
+	# $200 armor plating. Bank the cash the storefront assertions need before spending it.
+	manager.call("AwardPayout", LOCAL_PLAYER_ID, 1000)
+	await process_frame
 	var bank_before_repair := int(manager.call("GetPlayerMoney", LOCAL_PLAYER_ID))
 	shell.call("BuyPitRepair")
 	_expect(int(manager.call("GetPlayerHealth", LOCAL_PLAYER_ID)) == 100, "pit repair restores taxi health")
