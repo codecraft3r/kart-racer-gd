@@ -560,7 +560,7 @@ function Invoke-PainTaxiHarness {
         $scenarioName = [string]$scenarioState
         $scenarioDir = Join-Path $context.scenarios ($scenarioName -replace '[^A-Za-z0-9_.-]', '_')
         New-Item -ItemType Directory -Path $scenarioDir -Force | Out-Null
-        $requestedOutputPath = if (-not [string]::IsNullOrWhiteSpace($Output) -and $states.Count -eq 1 -and $Output.EndsWith('.png', [System.StringComparison]::OrdinalIgnoreCase)) { ConvertTo-HarnessAbsolutePath -Path $Output -ProjectRoot $ProjectRoot } else { $null }
+		$requestedOutputPath = if (-not [string]::IsNullOrWhiteSpace($Output) -and @($states).Count -eq 1 -and $Output.EndsWith('.png', [System.StringComparison]::OrdinalIgnoreCase)) { ConvertTo-HarnessAbsolutePath -Path $Output -ProjectRoot $ProjectRoot } else { $null }
         $outputPath = Join-Path $scenarioDir "$scenarioName.png"
         $resultPath = Join-Path $scenarioDir 'result.json'
         $profileDir = Join-Path $context.profiles $scenarioName
@@ -580,13 +580,13 @@ function Invoke-PainTaxiHarness {
         } catch {
             $validation = [pscustomobject]@{ passed = $false; errors = @("Result validation raised an exception: $($_.Exception.Message)"); result = $null }
         }
-        $errors = [System.Collections.Generic.List[string]]::new(); foreach ($errorText in @($validation.errors)) { $errors.Add([string]$errorText) }; if (-not $process.succeeded) { $errors.Add("Engine process failed with exit=$($process.exit_code), timeout=$($process.timed_out).") }
-        foreach ($diagnostic in @(Get-HarnessDiagnostics -LogPaths @($process.stdout_path, $process.stderr_path))) { $errors.Add("Diagnostic: $diagnostic") }
-        if ($errors.Count -eq 0 -and $null -ne $requestedOutputPath) {
+		$scenarioErrors = [System.Collections.Generic.List[string]]::new(); foreach ($errorText in @($validation.errors)) { $scenarioErrors.Add([string]$errorText) }; if (-not $process.succeeded) { $scenarioErrors.Add("Engine process failed with exit=$($process.exit_code), timeout=$($process.timed_out).") }
+		foreach ($diagnostic in @(Get-HarnessDiagnostics -LogPaths @($process.stdout_path, $process.stderr_path))) { $scenarioErrors.Add("Diagnostic: $diagnostic") }
+		if ($scenarioErrors.Count -eq 0 -and $null -ne $requestedOutputPath) {
             try {
                 $requestedParent = Split-Path -Parent $requestedOutputPath; if (-not (Test-Path -LiteralPath $requestedParent -PathType Container)) { New-Item -ItemType Directory -Path $requestedParent -Force | Out-Null }
                 Copy-Item -LiteralPath $outputPath -Destination $requestedOutputPath -Force
-            } catch { $errors.Add("Legacy output copy failed: $($_.Exception.Message)") }
+		} catch { $scenarioErrors.Add("Legacy output copy failed: $($_.Exception.Message)") }
         }
         $reportedAssertions = @(); $reportedObservations = @{}; $reportedCleanup = $false
         if ($null -ne $validation.result) {
@@ -597,7 +597,7 @@ function Invoke-PainTaxiHarness {
             $property = $validation.result.PSObject.Properties['cleanup_complete']
             if ($null -ne $property) { $reportedCleanup = ($property.Value -is [bool] -and $property.Value -eq $true) }
         }
-        $scenarioResults.Add([pscustomobject]@{ name = $scenarioName; state = $scenarioName; status = if ($errors.Count -eq 0) { 'passed' } else { 'failed' }; output = $outputPath; requested_output = $requestedOutputPath; result_path = $resultPath; assertions = $reportedAssertions; observations = $reportedObservations; errors = @($errors); stdout_path = $process.stdout_path; stderr_path = $process.stderr_path; cleanup_complete = $reportedCleanup })
+		$scenarioResults.Add([pscustomobject]@{ name = $scenarioName; state = $scenarioName; status = if ($scenarioErrors.Count -eq 0) { 'passed' } else { 'failed' }; output = $outputPath; requested_output = $requestedOutputPath; result_path = $resultPath; assertions = $reportedAssertions; observations = $reportedObservations; errors = @($scenarioErrors); stdout_path = $process.stdout_path; stderr_path = $process.stderr_path; cleanup_complete = $reportedCleanup })
     }
     $endSource = Get-HarnessSourceIdentity -ProjectRoot $ProjectRoot
     $sourceDrift = $endSource.fingerprint -ne $source.fingerprint
