@@ -54,29 +54,22 @@ jobs:
         timeout-minutes: 8
         run: pwsh -File ./tools/dev.ps1 build -GodotPath "$GODOT"
 
-      # TEMPORARY DEBUG (scratch branch only): repeat each smoke test to measure leak flakiness.
-      - name: Repeat smoke tests to measure leak flakiness (advisory)
+      # TEMPORARY DEBUG (scratch branch only): verbose leak detail on Linux.
+      - name: Verbose leak detail (advisory)
         continue-on-error: true
         timeout-minutes: 25
         run: |
           set +e
-          "$GODOT" --headless --path "$GITHUB_WORKSPACE" --import >/dev/null 2>&1
-          for t in tests/*smoke_test.gd; do
-            name=$(basename "$t")
-            for i in 1 2 3; do
-              log="/tmp/${name}.${i}.log"
-              "$GODOT" --headless --path "$GITHUB_WORKSPACE" --script "res://$t" > "$log" 2>&1
-              code=$?
-              markers=$(grep -c -i -E 'leaked at exit|still in use at exit|^SCRIPT ERROR' "$log")
-              echo "RESULT $name run=$i exit=$code markers=$markers"
-            done
+          "$GODOT" --verbose --headless --path "$GITHUB_WORKSPACE" --import >/dev/null 2>&1
+          for i in 1 2; do
+            "$GODOT" --verbose --headless --path "$GITHUB_WORKSPACE" --script res://tests/ui_shell_smoke_test.gd > "/tmp/uiverb.$i.log" 2>&1
+            echo "=== ui_shell verbose run $i (exit=$?) ==="
+            grep -n -i -E 'leaked instance|still in use|ObjectDB instances' "/tmp/uiverb.$i.log" | tail -n 40
           done
-          echo "===== leaking logs ====="
-          for f in /tmp/*.log; do
-            if grep -q -i -E 'leaked at exit|still in use at exit|^SCRIPT ERROR' "$f"; then
-              echo "--- $f"
-              grep -i -E 'leaked at exit|still in use at exit|^SCRIPT ERROR|resources still in use|FAIL' "$f" | tail -n 12
-            fi
+          for i in 1 2 3; do
+            "$GODOT" --verbose --headless --path "$GITHUB_WORKSPACE" --script res://tests/harness_profile_smoke_test.gd > "/tmp/profverb.$i.log" 2>&1
+            echo "=== harness_profile verbose run $i (exit=$?) ==="
+            grep -n -i -E 'leaked instance|still in use|ObjectDB instances' "/tmp/profverb.$i.log" | tail -n 40
           done
 
       - name: Import, smoke test, and boot for 180 frames
