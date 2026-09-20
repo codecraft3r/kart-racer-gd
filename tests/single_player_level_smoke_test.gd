@@ -200,6 +200,11 @@ func _cleanup() -> void:
 	var mode := get_root().get_node_or_null("EndlessRoadMode") as Node
 	if mode != null and mode.has_method("ResetRun"):
 		mode.call("ResetRun")
+	var probe_script: Script = load("res://tests/harness/HarnessProbe.cs")
+	var probe := probe_script.new() as Node if probe_script != null else null
+	if probe != null:
+		get_root().add_child(probe)
+		probe.call("ReleaseAudioManagerResources")
 	var audio_manager := get_root().get_node_or_null("AudioManager") as Node
 	if audio_manager != null:
 		audio_manager.queue_free()
@@ -208,5 +213,8 @@ func _cleanup() -> void:
 	if current_scene == scene_to_free:
 		current_scene = null
 	scene_to_free.queue_free()
-	for _index in 8:
+	for _index in 60:
 		await process_frame
+	if probe != null:
+		probe.call("CollectManagedResources")
+		probe.free()
