@@ -6,6 +6,7 @@ public partial class VehicleAudioController : Node3D
     private AudioStreamPlayer3D _idlePlayer;
     private AudioStreamPlayer3D _drivePlayer;
     private AudioStreamPlayer3D _skidPlayer;
+    private AudioStreamPlayer3D _engineStartPlayer;
 
     public override void _Ready()
     {
@@ -26,9 +27,10 @@ public partial class VehicleAudioController : Node3D
     public override void _ExitTree()
     {
         SetProcess(false);
-        if (_idlePlayer != null) { _idlePlayer.Stop(); _idlePlayer.Stream = null; }
-        if (_drivePlayer != null) { _drivePlayer.Stop(); _drivePlayer.Stream = null; }
-        if (_skidPlayer != null) { _skidPlayer.Stop(); _skidPlayer.Stream = null; }
+        StopAndRelease(_idlePlayer);
+        StopAndRelease(_drivePlayer);
+        StopAndRelease(_skidPlayer);
+        StopAndRelease(_engineStartPlayer);
     }
 
     public override void _Process(double delta)
@@ -93,7 +95,7 @@ public partial class VehicleAudioController : Node3D
         if (stream == null)
             return;
 
-        var player = new AudioStreamPlayer3D
+        _engineStartPlayer = new AudioStreamPlayer3D
         {
             Name = "EngineStart",
             Stream = stream,
@@ -102,8 +104,17 @@ public partial class VehicleAudioController : Node3D
             MaxDistance = 72.0f,
             UnitSize = 6.0f
         };
-        AddChild(player);
-        player.Finished += player.QueueFree;
-        player.Play();
+        AddChild(_engineStartPlayer);
+        _engineStartPlayer.Finished += _engineStartPlayer.QueueFree;
+        _engineStartPlayer.Play();
+    }
+
+    private static void StopAndRelease(AudioStreamPlayer3D player)
+    {
+        if (!GodotObject.IsInstanceValid(player))
+            return;
+
+        player.Stop();
+        player.Stream = null;
     }
 }

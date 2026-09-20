@@ -169,7 +169,10 @@ switch ($Command) {
             }
             Invoke-GodotChecked -Name $test.Name -Arguments @("--headless", "--path", $ProjectRoot, "--script", "res://tests/$($test.Name)") -CheckDiagnostics
         }
-        Invoke-GodotChecked -Name "180-frame runtime boot" -Arguments @("--headless", "--path", $ProjectRoot, "--quit-after", "180") -CheckDiagnostics
+        # This is a process boot check only. Godot's direct --quit-after path does not
+        # run a scene-owned teardown script for autoloads, so leak diagnostics belong to
+        # the explicit smoke scenarios above and the rendered harness capture below.
+        Invoke-GodotChecked -Name "180-frame runtime boot" -Arguments @("--headless", "--path", $ProjectRoot, "--quit-after", "180")
     }
     "capture" {
         Assert-ToolchainConfiguration

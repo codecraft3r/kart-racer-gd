@@ -146,6 +146,19 @@ public partial class AudioManager : Node
                 player.Stream = null;
             }
         }
+
+        // Release the cached stream references as well as the player bindings. Godot's
+        // imported Ogg resources remain alive while CueDefinition retains them, which
+        // makes headless teardown report false-positive-looking leaks after a clean run.
+        _cues.Clear();
+        _musicNextTracks.Clear();
+        _localPlayers.Clear();
+        _worldPlayers.Clear();
+        _cityAmbience = null;
+        _neonAmbience = null;
+        _industrialAmbience = null;
+        _musicA = null;
+        _musicB = null;
     }
 
     public override void _Process(double delta)

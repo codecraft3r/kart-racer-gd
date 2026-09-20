@@ -172,16 +172,14 @@ func _finish() -> void:
 			if player is AudioStreamPlayer or player is AudioStreamPlayer3D:
 				player.stop()
 				player.stream = null
-		audio.free()
+		# Defer removal through the scene tree so Godot's audio playback resources
+		# receive their normal exit-tree lifecycle before the process quits.
+		audio.queue_free()
 	audio = null
-	await process_frame
-	await process_frame
-	await process_frame
-	await process_frame
-	await process_frame
-	await process_frame
-	await process_frame
-	await process_frame
+	# AudioStream playback wrappers release on the audio thread; give that thread a
+	# bounded drain window before collecting managed wrappers and quitting.
+	for _index in 60:
+		await process_frame
 	if probe != null:
 		probe.call("CollectManagedResources")
 		probe.free()
