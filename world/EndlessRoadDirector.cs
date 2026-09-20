@@ -56,9 +56,9 @@ public partial class EndlessRoadDirector : Node
         if (resetRoad && EndlessRoadMode.Instance != null)
         {
             EndlessRoadSettings s = EndlessRoadMode.Instance.Settings;
-            float seed = EndlessRoadMode.Instance.RunSeed;
+            int seed = EndlessRoadMode.Instance.RunSeed;
             _streamer.Settings = s;
-            _streamer.Initialize(Mathf.RoundToInt(seed));
+            _streamer.Initialize(seed);
         }
     }
 

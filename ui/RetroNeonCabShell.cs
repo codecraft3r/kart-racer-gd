@@ -9,7 +9,9 @@ public partial class RetroNeonCabShell : CanvasLayer
     [Export] public int DefaultPixelation { get; set; } = 4;
 
     private const string VersionText = "v1.86 - PAIN TAXI EDITION";
+    private const string SettingsPath = "user://pain_taxi_settings.cfg";
     private const int PitRepairCost = 100;
+    private static string ResolvedSettingsPath => HarnessProfile.Resolve(SettingsPath);
 
     private enum ShellScreen
     {
@@ -21,6 +23,8 @@ public partial class RetroNeonCabShell : CanvasLayer
         Credits,
         Results
     }
+
+    public static RetroNeonCabShell Instance { get; private set; }
 
     private Control _shellRoot;
     private Control _crtWarp;
@@ -51,6 +55,8 @@ public partial class RetroNeonCabShell : CanvasLayer
     private Label _countdownLabel;
     private Label _objectiveLabel;
     private Label _resultTitleLabel;
+    private Label _resultGradeLabel;
+    private Label _vehicleSubtitleLabel;
     
     private bool _wasBoarding = false;
     private float _goLabelAlpha = 0.0f;
@@ -105,8 +111,13 @@ public partial class RetroNeonCabShell : CanvasLayer
     }
     private Label _resultSummaryLabel;
     private Label _resultStandingsLabel;
+    private Label _resultRecordLabel;
     private Button _resultPrimaryButton;
     private Button _pitRepairButton;
+    private Button _pitArmorButton;
+    private Button _pitNitrousButton;
+    private Button _pitRadarButton;
+    private Label _weaponLabel;
     private Label _connectionStatusLabel;
     private LineEdit _joinAddressField;
     private LineEdit _playerNameField;
@@ -114,10 +125,13 @@ public partial class RetroNeonCabShell : CanvasLayer
     private Label _pauseSpeedLabel;
     private Label _pauseDriftLabel;
     private Label _volumeLabel;
+    private HSlider _volumeSlider;
     private Label _pixelLabel;
     private Button _audioButton;
     private Button _scanlineButton;
     private Button _crtButton;
+    private Button _reducedMotionButton;
+    private Button _dailyRunButton;
     private Label _vehicleLabel;
     private readonly Dictionary<int, Button> _pixelButtons = new();
 
@@ -127,49 +141,98 @@ public partial class RetroNeonCabShell : CanvasLayer
     private FontFile _fontScript;
     private Kart _kart;
     private ShaderMaterial _postProcessMaterial;
+    private MeshInstance3D _postProcessMesh;
     private Transform3D _kartInitialTransform;
     private bool _hasKartInitialTransform;
     private bool _pendingStartRun;
+    private bool _pendingStartEndless;
+    private int? _pendingSeedOverride;
     private bool _modeEventsWired;
     private bool _endlessRoadActive;
+    private bool _endlessResultsShown;
+    private int _announcedUnlockMask = -1;
+    private int _awaitingBindingIndex = -1;
+    private readonly List<Button> _bindingButtons = new();
+    private Label _bindingStatusLabel;
 
     private ShellScreen _currentScreen = ShellScreen.Main;
     private ShellScreen _previousScreen = ShellScreen.Main;
     private int _pixelationFactor;
+    private float _masterVolume = 80.0f;
     private bool _audioEnabled = true;
     private bool _scanlinesEnabled = true;
     private bool _crtEnabled = true;
+    private bool _reducedMotion;
     private double _score;
     private double _driftMeters;
     private ulong _lastFareReceiptSeen;
 
+    // Cached HUD dirty tracking to eliminate per-frame allocations
+    private int _cachedScore = int.MinValue;
+    private int _cachedMult = int.MinValue;
+    private int _cachedHealth = int.MinValue;
+    private int _cachedBoostPct = int.MinValue;
+    private int _cachedDist = int.MinValue;
+    private int _cachedMph = int.MinValue;
+    private int _cachedCountdownSec = int.MinValue;
+    private int _cachedObjectiveDistance = int.MinValue;
+    private bool _cachedObjectiveDropoff;
+    private bool _cachedObjectiveSearching;
+    private Color _cachedObjectiveColor = new(-1.0f, -1.0f, -1.0f, -1.0f);
+    private int _cachedTimerSec = int.MinValue;
+    private int _cachedRank = int.MinValue;
+    private int _cachedRankTotal = int.MinValue;
+    private EndlessRoadMode.RunState _cachedErState = (EndlessRoadMode.RunState)(-1);
+    private Label _floatingCashLabel;
+    private PanelContainer _passengerSpeechPanel;
+    private Label _passengerSpeechLabel;
+    private ulong _lastPassengerSpeechMs;
+    private string _lastPassengerSpeechText = string.Empty;
+
     public override void _Ready()
     {
+        Instance = this;
         ProcessMode = ProcessModeEnum.Always;
         _pixelationFactor = Mathf.Clamp(DefaultPixelation, 1, 16);
 
         LoadFonts();
         ResolveSceneReferences();
+        LoadSettings();
+        InputBindings.LoadAndApply();
         BuildShell();
         WireNetworkEvents();
         SetPixelation(_pixelationFactor);
-        SetScanlinesEnabled(true);
-        SetCrtEnabled(true);
+        SetScanlinesEnabled(_scanlinesEnabled);
+        SetCrtEnabled(_crtEnabled);
+        SetReducedMotion(_reducedMotion);
+        ApplyMasterVolume(_masterVolume);
         ShowScreen(ShellScreen.Main);
 
         if (_pendingStartRun)
-            CallDeferred(nameof(StartRun));
+            CallDeferred(_pendingStartEndless ? nameof(StartEndlessRoad) : nameof(StartRun));
 
         GetViewport().SizeChanged += UpdateCrtTransform;
     }
 
     public override void _ExitTree()
     {
+        if (Instance == this)
+            Instance = null;
+
         if (IsInstanceValid(GetViewport()))
             GetViewport().SizeChanged -= UpdateCrtTransform;
 
         if (GetTree() != null)
             GetTree().Paused = false;
+
+        if (MultiplayerManager.Instance != null)
+            MultiplayerManager.Instance.ConnectionStateChanged -= OnConnectionStateChanged;
+
+        if (EndlessRoadMode.Instance != null)
+        {
+            EndlessRoadMode.Instance.ScoreChanged -= OnEndlessScoreChanged;
+            EndlessRoadMode.Instance.StateChanged -= OnEndlessStateChanged;
+        }
 
         if (_modeEventsWired && TaxiMode.Instance != null)
         {
@@ -181,6 +244,12 @@ public partial class RetroNeonCabShell : CanvasLayer
 
     public override void _Input(InputEvent @event)
     {
+        if (_awaitingBindingIndex >= 0)
+        {
+            CaptureBinding(@event);
+            return;
+        }
+
         if (@event.IsActionPressed("ui_cancel"))
         {
             AudioManager.Instance?.PlayUiBack();
@@ -242,10 +311,12 @@ public partial class RetroNeonCabShell : CanvasLayer
         if (IsShellReady() == false)
         {
             _pendingStartRun = true;
+            _pendingStartEndless = false;
             return;
         }
 
         _pendingStartRun = false;
+        _pendingStartEndless = false;
         _score = 0.0;
         _playTime = 0.0;
         _driftMeters = 0.0;
@@ -256,6 +327,7 @@ public partial class RetroNeonCabShell : CanvasLayer
             _objectiveLabel.Text = $"SHIFT 1  //  QUOTA {TaxiMode.Instance.WinningCashTarget}";
         UpdateGameplayStats(GetKartSpeedMetersPerSecond());
         ShowScreen(ShellScreen.Gameplay);
+        AnnounceNewUnlocks();
 
         if (!IsNetworked())
         {
@@ -263,33 +335,166 @@ public partial class RetroNeonCabShell : CanvasLayer
         }
     }
 
+    /// <summary>
+    /// Public entry point for the endless mode. The smoke test and the perf benchmark both
+    /// need to start a run, and neither should have to reach a private method to do it.
+    /// </summary>
+    public void StartEndlessRoadRun()
+    {
+        StartEndlessRoad();
+    }
+
+    /// <summary>
+    /// The day's shared seed as YYYYMMDD. It follows UTC so players in every timezone get
+    /// the same road on the same day, and the value is printed on the results screen so a
+    /// run can be compared or replayed.
+    /// </summary>
+    public static int DailyRunSeed()
+    {
+        DateTime today = DateTime.UtcNow.Date;
+        return today.Year * 10000 + today.Month * 100 + today.Day;
+    }
+
+    public void StartDailyRun()
+    {
+        _pendingSeedOverride = DailyRunSeed();
+        StartEndlessRoadRun();
+    }
+
+    /// <summary>Starts Endless Road with a caller-supplied reproducible seed.</summary>
+    public void StartEndlessRoadWithSeed(int seed)
+    {
+        _pendingSeedOverride = seed;
+        StartEndlessRoadRun();
+    }
+
+    /// <summary>
+    /// Typed shell state for the scene harness. Values come from mode and kart APIs rather
+    /// than rendered labels, so missing or stale text cannot masquerade as telemetry.
+    /// </summary>
+    public Godot.Collections.Dictionary ObserveHarnessState()
+    {
+        Kart kart = _kart;
+        EndlessRoadMode endless = EndlessRoadMode.Instance;
+        TaxiMode taxi = TaxiMode.Instance;
+        bool validKart = kart != null && GodotObject.IsInstanceValid(kart);
+        bool hasPassenger = validKart && kart.ActivePassenger.HasValue;
+        string modeName = _endlessRoadActive ? "endless" : taxi != null ? "taxi" : "unknown";
+        int peerId = IsNetworked() ? Multiplayer.GetUniqueId() : 1;
+        double score = _endlessRoadActive && endless != null
+            ? endless.Score
+            : GameManager.Instance?.GetPlayerScore(peerId) ?? _score;
+        double timeRemaining = taxi?.TimeRemaining ?? 0.0;
+        float settleProgress = taxi?.GetDropoffSettleProgress(peerId) ?? 0.0f;
+        bool repairActive = false;
+        if (validKart && TrackBuilder.Instance != null)
+        {
+            RepairShop shop = TrackBuilder.Instance.GetNearestRepairShop(kart.GlobalPosition);
+            repairActive = shop != null && shop.IsRepairingPeer(peerId);
+        }
+        string passengerState = !validKart || (!hasPassenger && kart.BoardingProgress <= 0.0f)
+            ? "vacant"
+            : kart.BoardingProgress > 0.0f
+                ? "boarding"
+                : "hired";
+        var visibleScreens = new Godot.Collections.Array<string>();
+        AddVisibleScreen(visibleScreens, _mainMenuScreen, "main");
+        AddVisibleScreen(visibleScreens, _multiplayerScreen, "multiplayer");
+        AddVisibleScreen(visibleScreens, _gameplayScreen, "gameplay");
+        AddVisibleScreen(visibleScreens, _pauseScreen, "paused");
+        AddVisibleScreen(visibleScreens, _settingsScreen, "settings");
+        AddVisibleScreen(visibleScreens, _creditsScreen, "credits");
+        AddVisibleScreen(visibleScreens, _resultsScreen, "results");
+
+        var result = new Godot.Collections.Dictionary();
+        result["screen"] = _currentScreen.ToString().ToLowerInvariant();
+        result["actual_screen"] = _currentScreen.ToString().ToLowerInvariant();
+        result["visible_screens"] = visibleScreens;
+        result["mode"] = modeName;
+        result["phase"] = _endlessRoadActive && endless != null
+            ? endless.State.ToString().ToLowerInvariant()
+            : taxi?.Phase.ToString().ToLowerInvariant() ?? "unknown";
+        result["score"] = score;
+        result["elapsed_seconds"] = _playTime;
+        result["time_remaining_seconds"] = timeRemaining;
+        result["distance_meters"] = endless?.DistanceMeters ?? 0.0f;
+        result["health"] = _endlessRoadActive && endless != null
+            ? endless.Health
+            : GameManager.Instance?.GetPlayerHealth(peerId) ?? 100;
+        result["boost"] = endless?.Boost ?? 0.0f;
+        result["boost_active"] = endless?.IsBoosting ?? false;
+        result["repair_active"] = repairActive;
+        result["has_passenger"] = hasPassenger;
+        result["passenger_state"] = passengerState;
+        result["boarding_progress"] = validKart ? kart.BoardingProgress : 0.0f;
+        result["dropoff_settle_progress"] = settleProgress;
+        result["panic_meter"] = validKart ? kart.PanicMeter : 0.0f;
+        result["drift_phase"] = validKart ? kart.CurrentDriftPhase.ToString().ToLowerInvariant() : "none";
+        result["drift_amount"] = validKart ? kart.DriftAmount : 0.0f;
+        result["drift_meters"] = _driftMeters;
+        result["vehicle_option"] = validKart ? kart.VehicleOption : -1;
+        result["vehicle_name"] = validKart ? kart.VehicleName : string.Empty;
+        result["seed"] = endless?.RunSeed ?? 0;
+        result["results_visible"] = _currentScreen == ShellScreen.Results;
+        return result;
+    }
+
+    private static void AddVisibleScreen(Godot.Collections.Array<string> screens, Control screen, string name)
+    {
+        if (screen != null && screen.Visible)
+            screens.Add(name);
+    }
+
+    /// <summary>
+    /// Shows today's best on the menu entry, so the daily is meaningful before a run
+    /// rather than only afterwards.
+    /// </summary>
+    private void RefreshDailyRunLabel()
+    {
+        if (_dailyRunButton == null)
+            return;
+
+        int best = RunRecordManager.GetEndlessBest(DailyRunSeed());
+        _dailyRunButton.Text = best > 0 ? $"DAILY RUN  •  BEST {best:N0} m" : "DAILY RUN";
+    }
+
     private void StartEndlessRoad()
     {
         if (IsShellReady() == false)
         {
             _pendingStartRun = true;
+            _pendingStartEndless = true;
             return;
         }
 
         _pendingStartRun = false;
+        _pendingStartEndless = false;
+        // Consumed here so a later unseeded run is not pinned to the daily seed.
+        int? seedOverride = _pendingSeedOverride;
+        _pendingSeedOverride = null;
         _score = 0.0;
         _playTime = 0.0;
         _driftMeters = 0.0;
         _endlessRoadActive = true;
+        _endlessResultsShown = false;
         _modeEventsWired = false;
         WireModeEvents();
         UpdateGameplayStats(GetKartSpeedMetersPerSecond());
         ShowScreen(ShellScreen.Gameplay);
+        AnnounceNewUnlocks();
 
         if (!IsNetworked())
         {
-            EndlessRoadMode.Instance?.StartRun();
+            EndlessRoadMode.Instance?.StartRun(seedOverride);
             GameManager.Instance?.ResetSoloSession();
-            GameManager.Instance?.SetAllKartControlsEnabled(true);
             // Bind the rival + score systems to this kart and bring up the road.
             Kart kart = _kart ?? GetNodeOrNull<Kart>(KartPath);
             if (kart != null)
             {
+                EndlessRoadSettings settings = EndlessRoadMode.Instance?.Settings;
+                float startHeight = settings?.StartHeight ?? 0.65f;
+                float startZ = settings?.StartZ ?? 8.0f;
+                kart.ResetForRun(new Transform3D(Basis.Identity, new Vector3(0.0f, startHeight, startZ)));
                 EndlessRoadDirector.EnsureInTree(this);
                 EndlessRoadDirector.Instance?.Activate(kart, true);
             }
@@ -382,7 +587,40 @@ public partial class RetroNeonCabShell : CanvasLayer
         if (GameManager.Instance?.TryPurchaseRepair(1, PitRepairCost) == true)
             AudioManager.Instance?.PlayUiConfirm();
 
-        RefreshPitRepairButton();
+        RefreshPitStoreButtons();
+    }
+
+    public void BuyArmorUpgrade()
+    {
+        if (IsNetworked() || TaxiMode.Instance?.Phase != TaxiMode.MatchPhase.Intermission)
+            return;
+
+        if (GameManager.Instance?.TryPurchaseArmor(1, 200) == true)
+            AudioManager.Instance?.PlayUiConfirm();
+
+        RefreshPitStoreButtons();
+    }
+
+    public void BuyNitrousUpgrade()
+    {
+        if (IsNetworked() || TaxiMode.Instance?.Phase != TaxiMode.MatchPhase.Intermission)
+            return;
+
+        if (GameManager.Instance?.TryPurchaseNitrous(1, 150) == true)
+            AudioManager.Instance?.PlayUiConfirm();
+
+        RefreshPitStoreButtons();
+    }
+
+    public void BuyRadarUpgrade()
+    {
+        if (IsNetworked() || TaxiMode.Instance?.Phase != TaxiMode.MatchPhase.Intermission)
+            return;
+
+        if (GameManager.Instance?.TryPurchaseRadar(1, 150) == true)
+            AudioManager.Instance?.PlayUiConfirm();
+
+        RefreshPitStoreButtons();
     }
 
     public void ExitToMainMenu()
@@ -410,6 +648,8 @@ public partial class RetroNeonCabShell : CanvasLayer
 
     public void CloseSettings()
     {
+        // Leaving the screen must end any key capture, or gameplay would keep eating input.
+        _awaitingBindingIndex = -1;
         ShowScreen(_previousScreen == ShellScreen.Paused ? ShellScreen.Paused : ShellScreen.Main);
     }
 
@@ -427,6 +667,10 @@ public partial class RetroNeonCabShell : CanvasLayer
     {
         _pixelationFactor = Mathf.Clamp(factor, 1, 16);
         _postProcessMaterial?.SetShaderParameter("pixel_size", _pixelationFactor);
+        // The grade, quantisation, and dither run in one full-screen pass even at 1x, so OFF
+        // hides the overlay instead of paying for a pass with neutral settings.
+        if (_postProcessMesh != null)
+            _postProcessMesh.Visible = _pixelationFactor > 1;
 
         if (_pixelLabel != null)
             _pixelLabel.Text = PixelationLabel(_pixelationFactor);
@@ -447,6 +691,21 @@ public partial class RetroNeonCabShell : CanvasLayer
         {
             _scanlineButton.Text = enabled ? "ON" : "OFF";
             ApplyPixelButtonStyle(_scanlineButton, enabled);
+        }
+    }
+
+    /// <summary>
+    /// Accessibility option: stops camera shake and the prompts that pulse at roughly
+    /// 2-3 Hz. Nothing else about the run changes.
+    /// </summary>
+    public void SetReducedMotion(bool enabled)
+    {
+        _reducedMotion = enabled;
+        AccessibilitySettings.ReducedMotion = enabled;
+        if (_reducedMotionButton != null)
+        {
+            _reducedMotionButton.Text = enabled ? "REDUCED" : "FULL";
+            ApplyPixelButtonStyle(_reducedMotionButton, enabled);
         }
     }
 
@@ -493,8 +752,8 @@ public partial class RetroNeonCabShell : CanvasLayer
             _hasKartInitialTransform = true;
         }
 
-        MeshInstance3D postProcessMesh = GetNodeOrNull<MeshInstance3D>(PostProcessMeshPath);
-        _postProcessMaterial = postProcessMesh?.MaterialOverride as ShaderMaterial;
+        _postProcessMesh = GetNodeOrNull<MeshInstance3D>(PostProcessMeshPath);
+        _postProcessMaterial = _postProcessMesh?.MaterialOverride as ShaderMaterial;
     }
 
     private void BuildShell()
@@ -630,18 +889,29 @@ public partial class RetroNeonCabShell : CanvasLayer
             CustomMinimumSize = new Vector2(600.0f, 0.0f),
             SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter
         };
-        menuButtons.AddThemeConstantOverride("separation", 14);
+        // Menu content must fit the scroll viewport (about 626 px at 1080p) so no scrollbar
+        // appears; the six entries plus the garage row and version line sit just under it.
+        menuButtons.AddThemeConstantOverride("separation", 10);
         menuScroll.AddChild(menuButtons);
 
-        Button start = MakePixelButton("START DOWNTOWN SHIFT", true, 600.0f, 72.0f);
+        Button start = MakePixelButton("START DOWNTOWN SHIFT", true, 600.0f, 64.0f);
         start.Name = "StartRunButton";
         start.Pressed += StartRun;
         menuButtons.AddChild(start);
 
-        Button endless = MakePixelButton("ENDLESS ROAD", false, 600.0f, 72.0f);
+        Button endless = MakePixelButton("ENDLESS ROAD", false, 600.0f, 64.0f);
         endless.Name = "EndlessRoadButton";
         endless.Pressed += StartEndlessRoad;
         menuButtons.AddChild(endless);
+
+        _dailyRunButton = MakePixelButton("DAILY RUN", false, 600.0f, 64.0f);
+        _dailyRunButton.Name = "DailyRunButton";
+        _dailyRunButton.Pressed += StartDailyRun;
+        menuButtons.AddChild(_dailyRunButton);
+        RefreshDailyRunLabel();
+
+        VBoxContainer garageColumn = new() { Name = "GarageColumn", Alignment = BoxContainer.AlignmentMode.Center };
+        garageColumn.AddThemeConstantOverride("separation", 2);
 
         HBoxContainer garageRow = new() { Name = "GarageSelector", Alignment = BoxContainer.AlignmentMode.Center };
         garageRow.AddThemeConstantOverride("separation", 8);
@@ -656,19 +926,25 @@ public partial class RetroNeonCabShell : CanvasLayer
         nextCar.Name = "NextCarButton";
         nextCar.Pressed += () => CycleVehicle(1);
         garageRow.AddChild(nextCar);
-        menuButtons.AddChild(garageRow);
+        garageColumn.AddChild(garageRow);
 
-        Button multiplayer = MakePixelButton("MULTIPLAYER", true, 600.0f, 72.0f);
+        _vehicleSubtitleLabel = MakeLabel("[BALANCED ALL-ROUNDER]", _fontPixel, 12, Hex("35e7f2"), HorizontalAlignment.Center);
+        _vehicleSubtitleLabel.Name = "VehicleSubtitleLabel";
+        garageColumn.AddChild(_vehicleSubtitleLabel);
+
+        menuButtons.AddChild(garageColumn);
+
+        Button multiplayer = MakePixelButton("MULTIPLAYER", true, 600.0f, 64.0f);
         multiplayer.Name = "MultiplayerButton";
         multiplayer.Pressed += () => ShowScreen(ShellScreen.Multiplayer);
         menuButtons.AddChild(multiplayer);
 
-        Button settings = MakePixelButton("SETTINGS", false, 600.0f, 72.0f);
+        Button settings = MakePixelButton("SETTINGS", false, 600.0f, 64.0f);
         settings.Name = "MainSettingsButton";
         settings.Pressed += () => OpenSettings("main");
         menuButtons.AddChild(settings);
 
-        Button credits = MakePixelButton("CREDITS", false, 600.0f, 72.0f);
+        Button credits = MakePixelButton("CREDITS", false, 600.0f, 64.0f);
         credits.Name = "CreditsButton";
         credits.Pressed += OpenCredits;
         menuButtons.AddChild(credits);
@@ -684,9 +960,71 @@ public partial class RetroNeonCabShell : CanvasLayer
     {
         if (_kart == null)
             return;
-        _kart.SetVehicleOption(_kart.VehicleOption + direction);
+
+        RunRecordManager.RunRecordData records = RunRecordManager.Load();
+        int count = _kart.VehicleOptionCount;
+
+        // Step past locked cars instead of selecting them, so the arrows always land on
+        // something the player can actually drive.
+        for (int step = 1; step <= count; step++)
+        {
+            int candidate = Mathf.PosMod(_kart.VehicleOption + direction * step, count);
+            if (!VehicleUnlocks.IsUnlocked(candidate, records))
+                continue;
+
+            _kart.SetVehicleOption(candidate);
+            RefreshGarageLabel(records);
+            AudioManager.Instance?.PlayUiHover();
+            return;
+        }
+
+        // Everything that way is locked: say what the garage is waiting for.
+        RefreshGarageLabel(records);
+        int next = VehicleUnlocks.NextLocked(records);
+        if (next >= 0 && _vehicleSubtitleLabel != null)
+            _vehicleSubtitleLabel.Text = $"NEXT: {VehicleUnlocks.Get(next).Description}";
+    }
+
+    private void RefreshGarageLabel(RunRecordManager.RunRecordData records)
+    {
+        if (_kart == null)
+            return;
+
         if (_vehicleLabel != null)
             _vehicleLabel.Text = $"CAR: {_kart.VehicleName}";
+
+        if (_vehicleSubtitleLabel != null)
+            _vehicleSubtitleLabel.Text = $"[{_kart.GetVehicleSubtitle()}]";
+    }
+
+    /// <summary>
+    /// Tells the player about cars that became available since the last check. The first
+    /// check only records the baseline, so a returning player is not read old news.
+    /// </summary>
+    private void AnnounceNewUnlocks()
+    {
+        RunRecordManager.RunRecordData records = RunRecordManager.Load();
+        int mask = 0;
+        for (int option = 0; option < VehicleUnlocks.Count; option++)
+        {
+            if (VehicleUnlocks.IsUnlocked(option, records))
+                mask |= 1 << option;
+        }
+
+        if (_announcedUnlockMask < 0)
+        {
+            _announcedUnlockMask = mask;
+            return;
+        }
+
+        for (int option = 1; option < VehicleUnlocks.Count; option++)
+        {
+            int bit = 1 << option;
+            if ((mask & bit) != 0 && (_announcedUnlockMask & bit) == 0)
+                TriggerFloatingCash($"NEW CAR: {Kart.GetVehicleName(option)}", Hex("fcd34d"));
+        }
+
+        _announcedUnlockMask = mask;
     }
 
     private Control BuildMultiplayerScreen()
@@ -761,7 +1099,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         hudRow.AnchorTop = 0.0f;
         hudRow.OffsetLeft = 32.0f;
         hudRow.OffsetTop = 32.0f;
-        hudRow.OffsetRight = 770.0f;
+        hudRow.OffsetRight = 550.0f;
         hudRow.OffsetBottom = 92.0f;
         hudRow.AddThemeConstantOverride("separation", 6);
         screen.AddChild(hudRow);
@@ -775,8 +1113,27 @@ public partial class RetroNeonCabShell : CanvasLayer
         _timerLabel = MakeLabel("TIME: SOLO", _fontBody, 30, Colors.White, HorizontalAlignment.Center);
         hudRow.AddChild(WrapPill("TimerPill", _timerLabel, Hex("f5c451"), 180.0f, 60.0f));
 
+        HBoxContainer hudRowRight = new()
+        {
+            Name = "HudTopRight",
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        hudRowRight.AnchorLeft = 1.0f;
+        hudRowRight.AnchorRight = 1.0f;
+        hudRowRight.AnchorTop = 0.0f;
+        hudRowRight.AnchorBottom = 0.0f;
+        hudRowRight.OffsetLeft = -570.0f;
+        hudRowRight.OffsetRight = -230.0f;
+        hudRowRight.OffsetTop = 32.0f;
+        hudRowRight.OffsetBottom = 92.0f;
+        hudRowRight.AddThemeConstantOverride("separation", 6);
+        screen.AddChild(hudRowRight);
+
         _rankLabel = MakeLabel("RANK: SOLO", _fontBody, 30, Colors.White, HorizontalAlignment.Center);
-        hudRow.AddChild(WrapPill("RankPill", _rankLabel, Hex("35e7f2"), 160.0f, 60.0f));
+        hudRowRight.AddChild(WrapPill("RankPill", _rankLabel, Hex("35e7f2"), 150.0f, 60.0f));
+
+        _weaponLabel = MakeLabel("LOADOUT: READY", _fontBody, 24, Colors.White, HorizontalAlignment.Center);
+        hudRowRight.AddChild(WrapPill("WeaponPill", _weaponLabel, Hex("00f0ff"), 176.0f, 60.0f));
 
         PanelContainer objectivePanel = new()
         {
@@ -846,6 +1203,41 @@ public partial class RetroNeonCabShell : CanvasLayer
         _stopLabel.Visible = false;
         screen.AddChild(_stopLabel);
 
+        _floatingCashLabel = MakeLabel("", _fontOrbitron, 36, Hex("00ff88"), HorizontalAlignment.Center);
+        _floatingCashLabel.Name = "FloatingCashLabel";
+        _floatingCashLabel.AnchorLeft = 0.5f;
+        _floatingCashLabel.AnchorRight = 0.5f;
+        _floatingCashLabel.AnchorTop = 0.5f;
+        _floatingCashLabel.AnchorBottom = 0.5f;
+        _floatingCashLabel.OffsetLeft = -250.0f;
+        _floatingCashLabel.OffsetRight = 250.0f;
+        _floatingCashLabel.OffsetTop = 60.0f;
+        _floatingCashLabel.OffsetBottom = 110.0f;
+        _floatingCashLabel.AddThemeColorOverride("font_outline_color", Hex("090717"));
+        _floatingCashLabel.AddThemeConstantOverride("outline_size", 8);
+        _floatingCashLabel.Visible = false;
+        screen.AddChild(_floatingCashLabel);
+
+        _passengerSpeechPanel = new PanelContainer
+        {
+            Name = "PassengerSpeechPanel",
+            CustomMinimumSize = new Vector2(300.0f, 44.0f),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            Visible = false
+        };
+        _passengerSpeechPanel.AddThemeStyleboxOverride("panel", MakePillStyle(Hex("f5c451")));
+        _passengerSpeechPanel.AnchorLeft = 0.5f;
+        _passengerSpeechPanel.AnchorRight = 0.5f;
+        _passengerSpeechPanel.AnchorTop = 1.0f;
+        _passengerSpeechPanel.AnchorBottom = 1.0f;
+        _passengerSpeechPanel.OffsetLeft = -150.0f;
+        _passengerSpeechPanel.OffsetRight = 150.0f;
+        _passengerSpeechPanel.OffsetTop = -170.0f;
+        _passengerSpeechPanel.OffsetBottom = -124.0f;
+        _passengerSpeechLabel = MakeLabel("STEP ON IT!", _fontBody, 24, Hex("090717"), HorizontalAlignment.Center);
+        _passengerSpeechPanel.AddChild(_passengerSpeechLabel);
+        screen.AddChild(_passengerSpeechPanel);
+
         Label shiftTag = MakeLabel("DOWNTOWN SHIFT // CH 86", _fontPixel, 10, Hex("9ba8d8"), HorizontalAlignment.Left);
         shiftTag.Name = "ShiftTag";
         shiftTag.AnchorLeft = 0.0f;
@@ -860,7 +1252,7 @@ public partial class RetroNeonCabShell : CanvasLayer
 
         Button pause = MakePixelButton("PAUSE [ESC]", false, 148.0f, 40.0f);
         pause.Name = "PauseButton";
-        AnchorTopRight(pause, 32.0f, 32.0f, 210.0f, 60.0f);
+        AnchorTopRight(pause, 32.0f, 32.0f, 180.0f, 60.0f);
         pause.Pressed += TogglePause;
         screen.AddChild(pause);
 
@@ -987,6 +1379,10 @@ public partial class RetroNeonCabShell : CanvasLayer
         _resultTitleLabel.Name = "ResultTitleLabel";
         stack.AddChild(_resultTitleLabel);
 
+        _resultGradeLabel = MakeLabel("GRADE: S", _fontOrbitron, 34, Hex("fcd34d"), HorizontalAlignment.Center);
+        _resultGradeLabel.Name = "ResultGradeLabel";
+        stack.AddChild(WrapDarkBox("ResultGradeBox", _resultGradeLabel));
+
         _resultSummaryLabel = MakeLabel("DOWNTOWN SHIFT COMPLETE", _fontBody, 28, Colors.White, HorizontalAlignment.Center);
         _resultSummaryLabel.Name = "ResultSummaryLabel";
         stack.AddChild(_resultSummaryLabel);
@@ -998,17 +1394,36 @@ public partial class RetroNeonCabShell : CanvasLayer
         Label hint = MakeLabel("THE CITY IS READY FOR ANOTHER SHIFT", _fontPixel, 13, Hex("ff007f"), HorizontalAlignment.Center);
         stack.AddChild(hint);
 
-        _pitRepairButton = MakePixelButton("REPAIR TAXI - $100", false, 380.0f, 48.0f);
+        _pitRepairButton = MakePixelButton("REPAIR TAXI - $100", false, 380.0f, 44.0f);
         _pitRepairButton.Name = "PitRepairButton";
         _pitRepairButton.Pressed += BuyPitRepair;
         stack.AddChild(_pitRepairButton);
+
+        _pitArmorButton = MakePixelButton("BUY ARMOR PLATING - $200", false, 380.0f, 44.0f);
+        _pitArmorButton.Name = "PitArmorButton";
+        _pitArmorButton.Pressed += BuyArmorUpgrade;
+        stack.AddChild(_pitArmorButton);
+
+        _pitNitrousButton = MakePixelButton("BUY NITROUS (3x) - $150", false, 380.0f, 44.0f);
+        _pitNitrousButton.Name = "PitNitrousButton";
+        _pitNitrousButton.Pressed += BuyNitrousUpgrade;
+        stack.AddChild(_pitNitrousButton);
+
+        _pitRadarButton = MakePixelButton("BUY FARE RADAR - $150", false, 380.0f, 44.0f);
+        _pitRadarButton.Name = "PitRadarButton";
+        _pitRadarButton.Pressed += BuyRadarUpgrade;
+        stack.AddChild(_pitRadarButton);
+
+        _resultRecordLabel = MakeLabel("PERSONAL BESTS: SHIFT 1  •  CASH $0", _fontBody, 20, Hex("fcd34d"), HorizontalAlignment.Center);
+        _resultRecordLabel.Name = "ResultRecordLabel";
+        stack.AddChild(WrapDarkBox("ResultRecordBox", _resultRecordLabel));
 
         _resultPrimaryButton = MakePixelButton("RUN IT AGAIN", true, 380.0f, 54.0f);
         _resultPrimaryButton.Name = "ResultRestartButton";
         _resultPrimaryButton.Pressed += AdvanceOrRestartRun;
         stack.AddChild(_resultPrimaryButton);
 
-        Button main = MakePixelButton("BACK TO MAIN", false, 380.0f, 50.0f);
+        Button main = MakePixelButton("BACK TO MAIN", false, 380.0f, 48.0f);
         main.Name = "ResultMainButton";
         main.Pressed += ExitToMainMenu;
         stack.AddChild(main);
@@ -1077,11 +1492,16 @@ public partial class RetroNeonCabShell : CanvasLayer
         toggles.AddThemeConstantOverride("v_separation", 12);
         _crtButton = AddToggleBox(toggles, "CRT BULGE FILTER", () => SetCrtEnabled(!_crtEnabled));
         _scanlineButton = AddToggleBox(toggles, "SCANLINE GRID", () => SetScanlinesEnabled(!_scanlinesEnabled));
+        _reducedMotionButton = AddToggleBox(toggles, "REDUCED MOTION", () => SetReducedMotion(!_reducedMotion));
         stack.AddChild(toggles);
+
+        HBoxContainer controlsHeader = new();
+        controlsHeader.AddChild(MakeLabel("CONTROLS", _fontBody, 24, Hex("efeff5"), HorizontalAlignment.Left));
+        stack.AddChild(WrapDarkBox("ControlsBox", MakeSettingStack(controlsHeader, BuildControlsSection())));
 
         Button save = MakePixelButton("SAVE AND APPLY", true, 430.0f, 52.0f);
         save.Name = "SaveApplyButton";
-        save.Pressed += CloseSettings;
+        save.Pressed += SaveAndApplySettings;
         stack.AddChild(save);
 
         return screen;
@@ -1175,7 +1595,11 @@ public partial class RetroNeonCabShell : CanvasLayer
             GetTree().Paused = !gameplayActive;
 
         if (screen == ShellScreen.Main)
+        {
+            RefreshDailyRunLabel();
+            RefreshGarageLabel(RunRecordManager.Load());
             FocusFirstButton(_mainMenuScreen);
+        }
         else if (screen == ShellScreen.Multiplayer)
             FocusFirstButton(_multiplayerScreen);
         else if (screen == ShellScreen.Paused)
@@ -1198,46 +1622,97 @@ public partial class RetroNeonCabShell : CanvasLayer
             int scoreER = erMode.Score;
             int multER = erMode.Multiplier;
             int healthER = Mathf.RoundToInt(erMode.Health);
-            float boostER = erMode.Boost;
-            float distER = erMode.DistanceMeters;
-            if (_scoreLabel != null)
-                _scoreLabel.Text = multER > 1 ? $"SCORE: {scoreER}  x{multER}" : $"SCORE: {scoreER}";
-            if (_boostLabel != null)
-                _boostLabel.Text = $"HP: {healthER}%  BOOST: {Mathf.RoundToInt(boostER * 100)}%";
-            if (_speedometer != null)
+            int boostPctER = Mathf.RoundToInt(erMode.Boost * 100);
+            int distER = Mathf.RoundToInt(erMode.DistanceMeters);
+            var erState = erMode.State;
+
+            // The labels below refresh the caches, so keep the prior values to compare against.
+            int prevMph = _cachedMph;
+            int prevMult = _cachedMult;
+            int prevHealth = _cachedHealth;
+            int prevBoostPct = _cachedBoostPct;
+
+            if (_scoreLabel != null && (scoreER != _cachedScore || multER != _cachedMult))
             {
+                _cachedScore = scoreER;
+                _cachedMult = multER;
+                _scoreLabel.Text = multER > 1 ? $"SCORE: {scoreER}  x{multER}" : $"SCORE: {scoreER}";
+            }
+            if (_boostLabel != null && (healthER != _cachedHealth || boostPctER != _cachedBoostPct))
+            {
+                _cachedHealth = healthER;
+                _cachedBoostPct = boostPctER;
+                _boostLabel.Text = $"HP: {healthER}%  BOOST: {boostPctER}%";
+            }
+            if (_speedometer != null && mphER != _cachedMph)
+            {
+                _cachedMph = mphER;
                 _speedometer.CurrentSpeed = mphER;
                 _speedometer.QueueRedraw();
             }
             if (_timerLabel != null)
             {
-                if (erMode.State == EndlessRoadMode.RunState.Countdown)
-                    _timerLabel.Text = $"START: {Mathf.Max(1, Mathf.CeilToInt(erMode.CountdownSeconds - 0.0f))}";
-                else if (erMode.State == EndlessRoadMode.RunState.Running)
-                    _timerLabel.Text = $"DIST: {Mathf.RoundToInt(distER):N0} m";
-                else if (erMode.State == EndlessRoadMode.RunState.ImpactRecovery)
-                    _timerLabel.Text = "HIT!";
-                else if (erMode.State == EndlessRoadMode.RunState.GameOver)
-                    _timerLabel.Text = "WRECKED";
+                if (erState == EndlessRoadMode.RunState.Countdown)
+                {
+                    int cd = Mathf.Max(1, Mathf.CeilToInt(erMode.CountdownSeconds - 0.0f));
+                    if (cd != _cachedCountdownSec || erState != _cachedErState)
+                    {
+                        _cachedCountdownSec = cd;
+                        _timerLabel.Text = $"START: {cd}";
+                    }
+                }
+                else if (erState == EndlessRoadMode.RunState.Running)
+                {
+                    if (distER != _cachedDist || erState != _cachedErState)
+                    {
+                        _cachedDist = distER;
+                        _timerLabel.Text = $"DIST: {distER:N0} m";
+                    }
+                }
+                else if (erState == EndlessRoadMode.RunState.ImpactRecovery)
+                {
+                    if (erState != _cachedErState)
+                        _timerLabel.Text = "HIT!";
+                }
+                else if (erState == EndlessRoadMode.RunState.GameOver)
+                {
+                    if (erState != _cachedErState)
+                        _timerLabel.Text = "WRECKED";
+                }
                 else
-                    _timerLabel.Text = $"DIST: {Mathf.RoundToInt(distER):N0} m";
+                {
+                    if (distER != _cachedDist || erState != _cachedErState)
+                    {
+                        _cachedDist = distER;
+                        _timerLabel.Text = $"DIST: {distER:N0} m";
+                    }
+                }
             }
-            if (_rankLabel != null)
-                _rankLabel.Text = erMode.State == EndlessRoadMode.RunState.Running ? $"SPEED: {mphER} MPH" : $"BEST: {Mathf.RoundToInt(distER):N0} m";
-            // Keep the rest of the gameplay-status area useful but quiet in this mode.
-            if (_checkpointLabel != null)
-                _checkpointLabel.Text = erMode.State == EndlessRoadMode.RunState.Running ? "ENDLESS ROAD" : erMode.State.ToString().ToUpperInvariant();
-            if (_objectiveLabel != null)
-                _objectiveLabel.Text = boostER > 0.05f ? "SHIFT / RB: BOOST  •  S: BRAKE  •  SPACE: DRIFT" : "BOOST EMPTY — DRAFT & NEAR-MISS TO RECHARGE";
-            if (_driftMetersLabel != null)
+            if (_rankLabel != null && (mphER != prevMph || distER != _cachedDist || erState != _cachedErState))
+            {
+                _rankLabel.Text = erState == EndlessRoadMode.RunState.Running ? $"SPEED: {mphER} MPH" : $"BEST: {distER:N0} m";
+            }
+            if (_checkpointLabel != null && erState != _cachedErState)
+            {
+                _checkpointLabel.Text = erState == EndlessRoadMode.RunState.Running ? "ENDLESS ROAD" : erState.ToString().ToUpperInvariant();
+            }
+            if (_objectiveLabel != null && ((boostPctER > 5) != (prevBoostPct > 5)))
+            {
+                _objectiveLabel.Text = boostPctER > 5
+                    ? $"{InputBindings.DescribeAction("boost")}: BOOST  •  {InputBindings.DescribeAction("move_backward")}: BRAKE  •  {InputBindings.DescribeAction("drift")}: DRIFT"
+                    : "BOOST EMPTY — DRAFT & NEAR-MISS TO RECHARGE";
+            }
+            if (_driftMetersLabel != null && multER != prevMult)
+            {
                 _driftMetersLabel.Text = $"MULTI x{multER}";
-            if (_statusLabel != null)
+            }
+            if (_statusLabel != null && (healthER != prevHealth || erState != _cachedErState))
             {
                 bool critical = healthER <= 30;
-                _statusLabel.Text = erMode.State == EndlessRoadMode.RunState.GameOver ? "STATUS: WRECKED" : critical ? "STATUS: CRITICAL" : "STATUS: RUNNING";
-                _statusLabel.AddThemeColorOverride("font_color", erMode.State == EndlessRoadMode.RunState.GameOver ? Hex("ff0055") : critical ? Hex("f5c451") : Hex("00f0ff"));
+                _statusLabel.Text = erState == EndlessRoadMode.RunState.GameOver ? "STATUS: WRECKED" : critical ? "STATUS: CRITICAL" : "STATUS: RUNNING";
+                _statusLabel.AddThemeColorOverride("font_color", erState == EndlessRoadMode.RunState.GameOver ? Hex("ff0055") : critical ? Hex("f5c451") : Hex("00f0ff"));
             }
-            if (_panicBar != null)
+            if (_panicBar != null && healthER != prevHealth)
             {
                 _panicBar.Visible = true;
                 _panicBar.Value = healthER;
@@ -1248,9 +1723,12 @@ public partial class RetroNeonCabShell : CanvasLayer
                     if (fill != null) fill.BgColor = c;
                 }
             }
-            // Still run the objective/repair subsystems so camera/director housekeeping stays warm,
-            // but don't let Taxi fare copy overwrite what we just wrote.
-            UpdateObjectiveIndicator(TaxiMode.Instance);
+            _cachedErState = erState;
+
+            // The endless HUD owns the checkpoint and objective copy for this run. The taxi
+            // indicator would overwrite it with fare text, so only its arrow is cleared here.
+            if (_objectiveDirectionLabel != null)
+                _objectiveDirectionLabel.Visible = false;
             // Show the stop/go prompt only via our own health/impact path; suppress fare STOP spam.
             if (erMode.State == EndlessRoadMode.RunState.GameOver && _currentScreen != ShellScreen.Results)
             {
@@ -1267,35 +1745,114 @@ public partial class RetroNeonCabShell : CanvasLayer
         int health = GameManager.Instance != null ? GameManager.Instance.GetPlayerHealth(peerId) : 100;
         TaxiMode mode = TaxiMode.Instance;
 
-        if (_scoreLabel != null)
-            _scoreLabel.Text = $"CASH: ${cash}";
-        if (_boostLabel != null)
-            _boostLabel.Text = $"HP: {health}%";
-        if (_speedometer != null)
+        if (_scoreLabel != null && cash != _cachedScore)
         {
+            _cachedScore = cash;
+            _scoreLabel.Text = $"CASH: ${cash}";
+        }
+        if (_boostLabel != null && health != _cachedHealth)
+        {
+            _cachedHealth = health;
+            _boostLabel.Text = $"HP: {health}%";
+        }
+        if (_speedometer != null && mph != _cachedMph)
+        {
+            _cachedMph = mph;
             _speedometer.CurrentSpeed = mph;
             _speedometer.QueueRedraw();
         }
-        if (_timerLabel != null)
+        if (_timerLabel != null && mode != null)
         {
-            if (mode?.Phase == TaxiMode.MatchPhase.Countdown)
+            if (mode.Phase == TaxiMode.MatchPhase.Countdown)
             {
-                _timerLabel.Text = $"START: {Mathf.Max(1, Mathf.CeilToInt((float)mode.CountdownRemaining))}";
+                int cd = Mathf.Max(1, Mathf.CeilToInt((float)mode.CountdownRemaining));
+                if (cd != _cachedCountdownSec)
+                {
+                    _cachedCountdownSec = cd;
+                    _timerLabel.Text = $"START: {cd}";
+                }
             }
-            else if (mode?.Phase == TaxiMode.MatchPhase.Active)
+            else if (mode.Phase == TaxiMode.MatchPhase.Active)
             {
                 int totalSeconds = Mathf.Max(0, Mathf.CeilToInt((float)mode.TimeRemaining));
-                int minutes = totalSeconds / 60;
-                int seconds = totalSeconds % 60;
-                _timerLabel.Text = $"TIME: {minutes:00}:{seconds:00}";
+                if (totalSeconds != _cachedTimerSec)
+                {
+                    _cachedTimerSec = totalSeconds;
+                    int minutes = totalSeconds / 60;
+                    int seconds = totalSeconds % 60;
+                    _timerLabel.Text = $"TIME: {minutes:00}:{seconds:00}";
+                }
+
+                if (totalSeconds <= 30 && totalSeconds > 0)
+                {
+                    Color pulseColor = AccessibilitySettings.ReducedMotion ? Hex("ff0055") : (Time.GetTicksMsec() % 400 < 200) ? Hex("ff0055") : Colors.White;
+                    _timerLabel.AddThemeColorOverride("font_color", pulseColor);
+                }
+                else
+                {
+                    _timerLabel.AddThemeColorOverride("font_color", Colors.White);
+                }
             }
-            else if (mode?.Phase == TaxiMode.MatchPhase.Finished || mode?.Phase == TaxiMode.MatchPhase.Intermission)
-                _timerLabel.Text = "TIME: DONE";
+            else if (mode.Phase == TaxiMode.MatchPhase.Finished || mode.Phase == TaxiMode.MatchPhase.Intermission)
+            {
+                if (_cachedTimerSec != -10)
+                {
+                    _cachedTimerSec = -10;
+                    _timerLabel.Text = "TIME: DONE";
+                }
+            }
             else
-                _timerLabel.Text = "TIME: --:--";
+            {
+                if (_cachedTimerSec != -20)
+                {
+                    _cachedTimerSec = -20;
+                    _timerLabel.Text = "TIME: --:--";
+                }
+            }
         }
         if (_rankLabel != null && mode != null)
-            _rankLabel.Text = $"RANK: {mode.GetRank(peerId)}/{Mathf.Max(1, mode.Scores.Count)}";
+        {
+            int rank = mode.GetRank(peerId);
+            int total = Mathf.Max(1, mode.Scores.Count);
+            if (rank != _cachedRank || total != _cachedRankTotal)
+            {
+                _cachedRank = rank;
+                _cachedRankTotal = total;
+                _rankLabel.Text = $"RANK: {rank}/{total}";
+            }
+        }
+
+        if (_weaponLabel != null)
+        {
+            var currentWeapon = GameManager.Instance?.GetPlayerWeapon(peerId);
+            if (currentWeapon != null && !currentWeapon.IsDepleted)
+            {
+                string wName = currentWeapon.Class == GameManager.WeaponClass.Rocket ? "ROCKET" : "ASSAULT";
+                _weaponLabel.Text = $"{wName} [{currentWeapon.Ammo}]";
+                _weaponLabel.AddThemeColorOverride("font_color", currentWeapon.Class == GameManager.WeaponClass.Rocket ? Hex("ff007f") : Hex("00f0ff"));
+            }
+            else
+            {
+                int nitrous = GameManager.Instance?.GetNitrousCharges(peerId) ?? 0;
+                bool armor = GameManager.Instance?.HasArmorPlating(peerId) ?? false;
+                bool radar = GameManager.Instance?.HasFareRadar(peerId) ?? false;
+
+                if (nitrous > 0 || armor || radar)
+                {
+                    string badges = "";
+                    if (armor) badges += "ARMOR ";
+                    if (nitrous > 0) badges += $"NITRO({nitrous}) ";
+                    if (radar) badges += "RADAR";
+                    _weaponLabel.Text = badges.Trim();
+                    _weaponLabel.AddThemeColorOverride("font_color", Hex("fcd34d"));
+                }
+                else
+                {
+                    _weaponLabel.Text = "WEAPON: NONE";
+                    _weaponLabel.AddThemeColorOverride("font_color", Colors.White);
+                }
+            }
+        }
 
         if (_kart != null && GodotObject.IsInstanceValid(_kart))
         {
@@ -1373,6 +1930,15 @@ public partial class RetroNeonCabShell : CanvasLayer
             {
                 _lastFareReceiptSeen = _kart.LastFarePayoutMs;
                 var payout = _kart.LastFarePayout;
+                TriggerFloatingCash($"+${payout.FinalPayout} FARE PAID!", Hex("00ff88"));
+
+                string comment = payout.PanicDeduction > 0
+                    ? "PHEW! GLAD TO SURVIVE!"
+                    : payout.StyleTip > 0
+                        ? "5 STARS! KEEP THE CHANGE!"
+                        : "5 STARS! OUTSTANDING!";
+                TriggerPassengerSpeech(comment, Hex("f5c451"));
+
                 if (_stopLabel != null)
                 {
                     _stopLabel.Visible = true;
@@ -1394,7 +1960,7 @@ public partial class RetroNeonCabShell : CanvasLayer
 
                     if (distance > 0 && distance <= 5 && _kart.LinearVelocity.Length() >= 0.8f && _kart.BoardingProgress == 0.0f)
                     {
-                        Color flashTint = (Time.GetTicksMsec() % 500 < 250) ? Colors.White : Hex("ff0055");
+                        Color flashTint = AccessibilitySettings.ReducedMotion ? Hex("ff0055") : (Time.GetTicksMsec() % 500 < 250) ? Colors.White : Hex("ff0055");
                         RequestKartPrompt(KartPrompt.Stop, flashTint, ">> STOP <<");
                     }
                 }
@@ -1415,7 +1981,7 @@ public partial class RetroNeonCabShell : CanvasLayer
                         _statusLabel.Text = $"LOADING: {boardingPercent}%";
                         _statusLabel.AddThemeColorOverride("font_color", Hex("f5c451"));
 
-                        Color waitTint = (Time.GetTicksMsec() % 500 < 250) ? Colors.White : Hex("f5c451");
+                        Color waitTint = AccessibilitySettings.ReducedMotion ? Hex("f5c451") : (Time.GetTicksMsec() % 500 < 250) ? Colors.White : Hex("f5c451");
                         RequestKartPrompt(KartPrompt.Wait, waitTint, ">> WAIT <<");
                     }
                     else
@@ -1452,16 +2018,39 @@ public partial class RetroNeonCabShell : CanvasLayer
 
         if (!mode.TryGetObjectiveForKart(_kart, out TaxiMode.ObjectiveTarget target))
         {
-            _checkpointLabel.Text = "FARE: SEARCHING";
+            if (_cachedObjectiveSearching == false)
+            {
+                _cachedObjectiveSearching = true;
+                _cachedObjectiveDistance = int.MinValue;
+                _checkpointLabel.Text = "FARE: SEARCHING";
+            }
             _objectiveDirectionLabel.Visible = false;
             return;
         }
 
-        string verb = target.Kind == TaxiMode.ObjectiveKind.Dropoff ? "DROPOFF" : "PICKUP";
-        _checkpointLabel.Text = $"{verb}: {Mathf.RoundToInt(target.Distance)}m";
-        _checkpointLabel.AddThemeColorOverride("font_color", target.Color);
+        bool dropoff = target.Kind == TaxiMode.ObjectiveKind.Dropoff;
+        int distanceInt = Mathf.RoundToInt(target.Distance);
+        if (_cachedObjectiveSearching || dropoff != _cachedObjectiveDropoff || distanceInt != _cachedObjectiveDistance)
+        {
+            _cachedObjectiveSearching = false;
+            _cachedObjectiveDropoff = dropoff;
+            _cachedObjectiveDistance = distanceInt;
+            _checkpointLabel.Text = $"{(dropoff ? "DROPOFF" : "PICKUP")}: {distanceInt}m";
+        }
+
+        Color targetColor = target.Color;
+        if (target.Distance <= 45.0f && target.Distance > 0.0f)
+        {
+            // Close proximity beacon flash
+            targetColor = AccessibilitySettings.ReducedMotion ? Hex("fcd34d") : (Time.GetTicksMsec() % 300 < 150) ? Hex("fcd34d") : target.Color;
+        }
+        if (targetColor != _cachedObjectiveColor)
+        {
+            _cachedObjectiveColor = targetColor;
+            _checkpointLabel.AddThemeColorOverride("font_color", targetColor);
+            _objectiveDirectionLabel.AddThemeColorOverride("font_color", targetColor);
+        }
         _objectiveDirectionLabel.Visible = true;
-        _objectiveDirectionLabel.AddThemeColorOverride("font_color", target.Color);
 
         Camera3D camera = GetViewport().GetCamera3D();
         if (camera == null)
@@ -1515,6 +2104,66 @@ public partial class RetroNeonCabShell : CanvasLayer
                 if (_panicBar != null) _panicBar.Visible = false;
                 break;
         }
+
+        if (_kart.ActivePassenger.HasValue)
+        {
+            int panic = Mathf.RoundToInt(_kart.PanicMeter);
+            if (panic >= 82)
+                TriggerPassengerSpeech("WATCH THE CURB!", Hex("ff0055"));
+            else if (_kart.DriftAmount >= 0.65f && _kart.LinearVelocity.Length() > 10.0f)
+                TriggerPassengerSpeech("NICE DRIFT!", Hex("35e7f2"));
+            else if (_kart.LinearVelocity.Length() >= 28.0f)
+                TriggerPassengerSpeech("STEP ON IT!", Hex("fcd34d"));
+        }
+        else if (_kart.BoardingProgress >= 0.95f)
+        {
+            TriggerPassengerSpeech("DOWNTOWN ASAP!", Hex("00ff88"));
+        }
+    }
+
+    public void TriggerFloatingCash(string text, Color color)
+    {
+        if (_floatingCashLabel == null) return;
+        _floatingCashLabel.Text = text;
+        _floatingCashLabel.Modulate = color;
+        _floatingCashLabel.Visible = true;
+        _floatingCashLabel.Scale = new Vector2(0.5f, 0.5f);
+        _floatingCashLabel.Position = new Vector2(960.0f - 250.0f, 620.0f);
+
+        AudioManager.Instance?.PlayLocal(AudioManager.Cue.Cash, -2.0f, 1.05f);
+
+        var tween = CreateTween();
+        tween.SetParallel(true);
+        tween.TweenProperty(_floatingCashLabel, "scale", Vector2.One, 0.18f).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        tween.TweenProperty(_floatingCashLabel, "position:y", 520.0f, 1.6f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        tween.TweenProperty(_floatingCashLabel, "modulate:a", 0.0f, 0.5f).SetDelay(1.1f);
+        tween.Chain().TweenCallback(Callable.From(() => { _floatingCashLabel.Visible = false; }));
+    }
+
+    public void TriggerPassengerSpeech(string text, Color color)
+    {
+        if (_passengerSpeechPanel == null || _passengerSpeechLabel == null) return;
+        ulong now = Time.GetTicksMsec();
+        if (now - _lastPassengerSpeechMs < 2500) return;
+        _lastPassengerSpeechMs = now;
+        _lastPassengerSpeechText = text;
+
+        _passengerSpeechLabel.Text = text;
+        _passengerSpeechLabel.Modulate = color;
+        _passengerSpeechPanel.Visible = true;
+        _passengerSpeechPanel.Scale = new Vector2(0.4f, 0.4f);
+        _passengerSpeechPanel.PivotOffset = new Vector2(150.0f, 22.0f);
+
+        AudioManager.Instance?.PlayLocal(AudioManager.Cue.UiConfirm, -9.0f, 1.35f);
+
+        var tween = CreateTween();
+        tween.TweenProperty(_passengerSpeechPanel, "scale", Vector2.One, 0.16f).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        tween.TweenInterval(1.6f);
+        tween.TweenProperty(_passengerSpeechPanel, "modulate:a", 0.0f, 0.35f);
+        tween.TweenCallback(Callable.From(() => {
+            _passengerSpeechPanel.Visible = false;
+            _passengerSpeechPanel.Modulate = Colors.White;
+        }));
     }
 
     private void UpdateRepairKartPrompt()
@@ -1551,7 +2200,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         // so the prompt isn't noisy while the player is just driving in.
         if (inProgress)
         {
-            Color waitTint = (Time.GetTicksMsec() % 500 < 250) ? Colors.White : Hex("f5c451");
+            Color waitTint = AccessibilitySettings.ReducedMotion ? Hex("f5c451") : (Time.GetTicksMsec() % 500 < 250) ? Colors.White : Hex("f5c451");
             RequestKartPrompt(KartPrompt.Wait, waitTint, ">> WAIT <<");
         }
     }
@@ -1688,18 +2337,57 @@ public partial class RetroNeonCabShell : CanvasLayer
     private void ShowEndlessResults()
     {
         if (EndlessRoadMode.Instance == null) return;
+        if (_endlessResultsShown) return;
+        _endlessResultsShown = true;
         ShowScreen(ShellScreen.Results);
         float dist = EndlessRoadMode.Instance.DistanceMeters;
         int score = EndlessRoadMode.Instance.Score;
-        // Use the existing end-card labels through UpdateResultsScreen's backing fields
-        // via a direct paint so we don't have to break that helper's internal layout.
-        // Title + two stat lines below it read distance/score in this mode.
-        var title = GetNodeOrNull<Label>("SidePanel/ResultsPanel/ResultsTitle");
-        var scoreLine = GetNodeOrNull<Label>("SidePanel/ResultsPanel/FinalScoreLabel");
-        var timeLine = GetNodeOrNull<Label>("SidePanel/ResultsPanel/FinalTimeLabel");
-        if (title != null) title.Text = "WRECKED";
-        if (scoreLine != null) scoreLine.Text = $"DISTANCE: {Mathf.RoundToInt(dist):N0} m";
-        if (timeLine != null) timeLine.Text = $"SCORE: {score:N0}  (x{EndlessRoadMode.Instance.Multiplier})";
+        int seed = EndlessRoadMode.Instance.RunSeed;
+        int distanceMetres = Mathf.RoundToInt(dist);
+        // Recorded once per run, guarded above, so the previous best stays meaningful.
+        int previousBest = RunRecordManager.RecordEndlessRun(seed, distanceMetres);
+
+        if (_resultTitleLabel != null)
+        {
+            _resultTitleLabel.Text = "WRECKED";
+            _resultTitleLabel.AddThemeColorOverride("font_color", Hex("ff007f"));
+        }
+        if (_resultSummaryLabel != null)
+            _resultSummaryLabel.Text = $"DISTANCE: {distanceMetres:N0} m  •  SEED {seed}";
+
+        if (_resultRecordLabel != null)
+        {
+            if (previousBest > 0)
+                _resultRecordLabel.Text = $"SEED {seed} BEST: {Mathf.Max(previousBest, distanceMetres):N0} m  •  PREVIOUS {previousBest:N0} m";
+            else
+                _resultRecordLabel.Text = $"FIRST RUN ON SEED {seed}  •  BEST {distanceMetres:N0} m";
+        }
+        if (_resultStandingsLabel != null)
+            _resultStandingsLabel.Text = $"FINAL SCORE: {score:N0}  (x{EndlessRoadMode.Instance.Multiplier})";
+
+        string grade;
+        Color gradeColor;
+        if (dist >= 5000) { grade = "GRADE: S  //  HIGHWAY LEGEND"; gradeColor = Hex("fcd34d"); }
+        else if (dist >= 3000) { grade = "GRADE: A  //  ROAD WARRIOR"; gradeColor = Hex("00f0ff"); }
+        else if (dist >= 1500) { grade = "GRADE: B  //  SPEED DEMON"; gradeColor = Hex("00ff88"); }
+        else if (dist >= 600) { grade = "GRADE: C  //  CRUISER"; gradeColor = Colors.White; }
+        else { grade = "GRADE: D  //  FENDER BENDER"; gradeColor = Hex("ff007f"); }
+
+        if (_resultGradeLabel != null)
+        {
+            _resultGradeLabel.Text = grade;
+            _resultGradeLabel.AddThemeColorOverride("font_color", gradeColor);
+        }
+
+        if (_resultPrimaryButton != null)
+            _resultPrimaryButton.Text = "RUN IT AGAIN";
+
+        if (_pitRepairButton != null) _pitRepairButton.Visible = false;
+        if (_pitArmorButton != null) _pitArmorButton.Visible = false;
+        if (_pitNitrousButton != null) _pitNitrousButton.Visible = false;
+        if (_pitRadarButton != null) _pitRadarButton.Visible = false;
+
+        AudioManager.Instance?.PlayLocal(AudioManager.Cue.CollisionHeavy, -2.0f, 0.9f);
         _endlessRoadActive = false;
     }
 
@@ -1754,7 +2442,7 @@ public partial class RetroNeonCabShell : CanvasLayer
             ShowResults(winnerPeerId);
     }
 
-    private void ShowResults(int winnerPeerId)
+    public void ShowResults(int winnerPeerId)
     {
         TaxiMode mode = TaxiMode.Instance;
         int localPeerId = IsNetworked() ? Multiplayer.GetUniqueId() : 1;
@@ -1767,6 +2455,23 @@ public partial class RetroNeonCabShell : CanvasLayer
             _resultTitleLabel.AddThemeColorOverride("font_color", shiftCleared ? Hex("fcd34d") : Hex("ff007f"));
         }
 
+        string grade;
+        Color gradeColor;
+        int quota = mode?.CurrentCashQuota ?? 500;
+        float scoreRatio = quota > 0 ? (float)score / quota : 1.0f;
+
+        if (scoreRatio >= 1.5f) { grade = "GRADE: S  //  OUTSTANDING"; gradeColor = Hex("fcd34d"); }
+        else if (scoreRatio >= 1.2f) { grade = "GRADE: A  //  EXCELLENT"; gradeColor = Hex("00f0ff"); }
+        else if (scoreRatio >= 1.0f) { grade = "GRADE: B  //  PROFITABLE"; gradeColor = Hex("00ff88"); }
+        else if (scoreRatio >= 0.7f) { grade = "GRADE: C  //  SCRAPING BY"; gradeColor = Colors.White; }
+        else { grade = "GRADE: D  //  BUST"; gradeColor = Hex("ff007f"); }
+
+        if (_resultGradeLabel != null)
+        {
+            _resultGradeLabel.Text = grade;
+            _resultGradeLabel.AddThemeColorOverride("font_color", gradeColor);
+        }
+
         if (_resultSummaryLabel != null)
             _resultSummaryLabel.Text = shiftCleared
                 ? $"SHIFT {mode.ShiftNumber} QUOTA CRUSHED"
@@ -1777,9 +2482,47 @@ public partial class RetroNeonCabShell : CanvasLayer
                 : $"TOTAL: ${mode?.TotalRunCash ?? 0}  •  SHIFTS: {Mathf.Max(0, (mode?.ShiftNumber ?? 1) - 1)}";
         if (_resultPrimaryButton != null)
             _resultPrimaryButton.Text = shiftCleared ? "NEXT SHIFT" : "RUN IT AGAIN";
-        RefreshPitRepairButton();
+
+        if (_resultRecordLabel != null)
+        {
+            var records = RunRecordManager.Load();
+            _resultRecordLabel.Text = $"PERSONAL BESTS: SHIFT {records.BestShiftNumber}  •  CASH ${records.HighestTotalCash:N0}  •  FARE ${records.HighestSingleFare:N0}";
+        }
+
+        RefreshPitStoreButtons();
+
+        if (shiftCleared)
+            AudioManager.Instance?.PlayLocal(AudioManager.Cue.Cash, 0.0f, 1.1f);
+        else
+            AudioManager.Instance?.PlayLocal(AudioManager.Cue.CollisionHeavy, -4.0f, 0.85f);
 
         ShowScreen(ShellScreen.Results);
+    }
+
+    private void RefreshPitStoreButtons()
+    {
+        RefreshPitRepairButton();
+        if (_pitArmorButton == null) return;
+
+        bool availableAtPit = !IsNetworked() && TaxiMode.Instance?.Phase == TaxiMode.MatchPhase.Intermission;
+        _pitArmorButton.Visible = availableAtPit;
+        _pitNitrousButton.Visible = availableAtPit;
+        _pitRadarButton.Visible = availableAtPit;
+        if (!availableAtPit) return;
+
+        int bank = GameManager.Instance?.GetPlayerMoney(1) ?? 0;
+        bool hasArmor = GameManager.Instance?.HasArmorPlating(1) ?? false;
+        int nitrous = GameManager.Instance?.GetNitrousCharges(1) ?? 0;
+        bool hasRadar = GameManager.Instance?.HasFareRadar(1) ?? false;
+
+        _pitArmorButton.Disabled = hasArmor || bank < 200;
+        _pitArmorButton.Text = hasArmor ? "ARMOR PLATING: INSTALLED" : bank < 200 ? "ARMOR PLATING: $200" : "BUY ARMOR PLATING - $200";
+
+        _pitNitrousButton.Disabled = nitrous >= 3 || bank < 150;
+        _pitNitrousButton.Text = nitrous >= 3 ? "NITROUS TANK: FULL (3)" : bank < 150 ? "NITROUS TANK: $150" : "BUY NITROUS (3x) - $150";
+
+        _pitRadarButton.Disabled = hasRadar || bank < 150;
+        _pitRadarButton.Text = hasRadar ? "FARE RADAR: ONLINE" : bank < 150 ? "FARE RADAR: $150" : "BUY FARE RADAR - $150";
     }
 
     private void RefreshPitRepairButton()
@@ -1835,13 +2578,169 @@ public partial class RetroNeonCabShell : CanvasLayer
 
     private void OnVolumeValueChanged(double value)
     {
-        float normalized = Mathf.Clamp((float)value / 100.0f, 0.0f, 1.0f);
+        ApplyMasterVolume((float)value);
+    }
+
+    private void ApplyMasterVolume(float value)
+    {
+        _masterVolume = Mathf.Clamp(value, 0.0f, 100.0f);
+
+        float normalized = _masterVolume / 100.0f;
         int busIndex = AudioServer.GetBusIndex("Master");
         if (busIndex >= 0)
             AudioServer.SetBusVolumeDb(busIndex, normalized <= 0.001f ? -80.0f : Mathf.LinearToDb(normalized));
 
         if (_volumeLabel != null)
-            _volumeLabel.Text = $"{Mathf.RoundToInt((float)value)}%";
+            _volumeLabel.Text = $"{Mathf.RoundToInt(_masterVolume)}%";
+
+        if (_volumeSlider != null && !Mathf.IsEqualApprox((float)_volumeSlider.Value, _masterVolume))
+            _volumeSlider.SetValueNoSignal(_masterVolume);
+    }
+
+    /// <summary>
+    /// Reads the persisted options before the shell is built, so the menus open on the
+    /// saved values instead of the defaults.
+    /// </summary>
+    private void LoadSettings()
+    {
+        var config = new ConfigFile();
+        if (config.Load(ResolvedSettingsPath) != Error.Ok)
+            return;
+
+        _pixelationFactor = Mathf.Clamp(config.GetValue("video", "pixelation", DefaultPixelation).AsInt32(), 1, 16);
+        _scanlinesEnabled = config.GetValue("video", "scanlines", true).AsBool();
+        _crtEnabled = config.GetValue("video", "crt", true).AsBool();
+        _reducedMotion = config.GetValue("accessibility", "reduced_motion", false).AsBool();
+        _masterVolume = Mathf.Clamp(config.GetValue("audio", "master_volume", 80.0f).AsSingle(), 0.0f, 100.0f);
+    }
+
+    /// <summary>
+    /// Keyboard rebinding. The settings screen only opens while the tree is paused, so
+    /// capturing a key here cannot also drive the kart.
+    /// </summary>
+    private Control BuildControlsSection()
+    {
+        VBoxContainer section = new() { Name = "ControlsSection" };
+        section.AddThemeConstantOverride("separation", 8);
+
+        GridContainer grid = new() { Name = "ControlsGrid", Columns = 2 };
+        grid.AddThemeConstantOverride("h_separation", 12);
+        grid.AddThemeConstantOverride("v_separation", 8);
+
+        for (int index = 0; index < InputBindings.Count; index++)
+        {
+            int captured = index;
+            Label label = MakeLabel(InputBindings.Get(captured).Label, _fontBody, 20, Hex("efeff5"), HorizontalAlignment.Left);
+            label.CustomMinimumSize = new Vector2(240.0f, 30.0f);
+            grid.AddChild(label);
+
+            Button button = MakePixelButton(InputBindings.Describe(captured), false, 180.0f, 34.0f);
+            button.Name = $"Bind{InputBindings.Get(captured).Action}Button";
+            button.Pressed += () => BeginBindingCapture(captured);
+            _bindingButtons.Add(button);
+            grid.AddChild(button);
+        }
+
+        section.AddChild(grid);
+
+        _bindingStatusLabel = MakeLabel("", _fontBody, 18, Hex("7bb374"), HorizontalAlignment.Center);
+        section.AddChild(_bindingStatusLabel);
+
+        Button reset = MakePixelButton("RESET CONTROLS", false, 240.0f, 38.0f);
+        reset.Name = "ResetControlsButton";
+        reset.Pressed += ResetControls;
+        section.AddChild(reset);
+
+        return section;
+    }
+
+    private void BeginBindingCapture(int index)
+    {
+        _awaitingBindingIndex = index;
+        RefreshBindingButtons();
+
+        if (index < _bindingButtons.Count)
+            _bindingButtons[index].Text = "...";
+
+        SetBindingStatus($"PRESS A KEY FOR {InputBindings.Get(index).Label}  (ESC CANCELS)", Hex("fcd34d"));
+    }
+
+    private void CaptureBinding(InputEvent @event)
+    {
+        // Mouse events keep flowing so the panel stays usable while a key is expected.
+        if (@event is not InputEventKey keyEvent)
+            return;
+
+        GetViewport().SetInputAsHandled();
+        if (!keyEvent.Pressed || keyEvent.Echo)
+            return;
+
+        int index = _awaitingBindingIndex;
+        _awaitingBindingIndex = -1;
+
+        if (keyEvent.Keycode == Key.Escape)
+        {
+            SetBindingStatus("BINDING CANCELLED", Hex("fcd34d"));
+            RefreshBindingButtons();
+            return;
+        }
+
+        if (InputBindings.TryRebind(index, keyEvent.PhysicalKeycode, out string conflict))
+        {
+            SetBindingStatus($"{InputBindings.Get(index).Label} BOUND TO {InputBindings.Describe(index)}", Hex("7bb374"));
+        }
+        else if (!string.IsNullOrEmpty(conflict))
+        {
+            string keyName = OS.GetKeycodeString(keyEvent.PhysicalKeycode).ToUpperInvariant();
+            SetBindingStatus($"{keyName} IS ALREADY {conflict}", Hex("ff007f"));
+        }
+
+        RefreshBindingButtons();
+    }
+
+    private void ResetControls()
+    {
+        InputBindings.ResetToDefaults();
+        _awaitingBindingIndex = -1;
+        RefreshBindingButtons();
+        SetBindingStatus("CONTROLS RESET TO DEFAULTS", Hex("7bb374"));
+    }
+
+    private void RefreshBindingButtons()
+    {
+        for (int index = 0; index < _bindingButtons.Count; index++)
+            _bindingButtons[index].Text = InputBindings.Describe(index);
+    }
+
+    private void SetBindingStatus(string text, Color color)
+    {
+        if (_bindingStatusLabel == null)
+            return;
+
+        _bindingStatusLabel.Text = text;
+        _bindingStatusLabel.AddThemeColorOverride("font_color", color);
+    }
+
+    private void SaveSettings()
+    {
+        var config = new ConfigFile();
+        // Merge rather than overwrite so the input bindings section survives a settings save.
+        config.Load(ResolvedSettingsPath);
+        config.SetValue("video", "pixelation", _pixelationFactor);
+        config.SetValue("video", "scanlines", _scanlinesEnabled);
+        config.SetValue("video", "crt", _crtEnabled);
+        config.SetValue("accessibility", "reduced_motion", _reducedMotion);
+        config.SetValue("audio", "master_volume", _masterVolume);
+
+        Error error = config.Save(ResolvedSettingsPath);
+        if (error != Error.Ok)
+            GD.PushWarning($"RetroNeonCabShell: could not save settings to {SettingsPath} ({error}).");
+    }
+
+    public void SaveAndApplySettings()
+    {
+        SaveSettings();
+        CloseSettings();
     }
 
     private HSlider MakeVolumeSlider()
@@ -1852,10 +2751,11 @@ public partial class RetroNeonCabShell : CanvasLayer
             MinValue = 0.0,
             MaxValue = 100.0,
             Step = 1.0,
-            Value = 80.0,
+            Value = _masterVolume,
             CustomMinimumSize = new Vector2(0, 28)
         };
         slider.ValueChanged += OnVolumeValueChanged;
+        _volumeSlider = slider;
         return slider;
     }
 
@@ -1984,6 +2884,9 @@ public partial class RetroNeonCabShell : CanvasLayer
         ScrollContainer scroll = new()
         {
             Name = $"{name}Scroll",
+            // CenterContainer allocates its child's minimum size. Scroll containers
+            // otherwise report no content height, collapsing this viewport to zero.
+            CustomMinimumSize = new Vector2(width, height),
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.ExpandFill
@@ -2292,7 +3195,7 @@ public partial class RetroNeonCabShell : CanvasLayer
     {
         return factor switch
         {
-            1 => "1x (SHARP)",
+            1 => "OFF (NO POST-FX)",
             2 => "2x (SMOOTH)",
             4 => "4x (RETRO)",
             8 => "8x (CHUNKY)",

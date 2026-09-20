@@ -5,6 +5,38 @@ public partial class Kart : RigidBody3D
 {
     public enum DriftPhase { None, Initiate, Holding }
     public enum ImpactSeverity { Glance, Bump, Crash }
+
+    public readonly struct VehicleArchetype
+    {
+        public string Name { get; }
+        public string Subtitle { get; }
+        public float MaxSpeed { get; }
+        public float Acceleration { get; }
+        public float SteeringSpeed { get; }
+        public float DriftChargeMultiplier { get; }
+        public float PanicDampener { get; }
+
+        public VehicleArchetype(string name, string subtitle, float maxSpeed, float acceleration, float steeringSpeed, float driftChargeMultiplier, float panicDampener)
+        {
+            Name = name;
+            Subtitle = subtitle;
+            MaxSpeed = maxSpeed;
+            Acceleration = acceleration;
+            SteeringSpeed = steeringSpeed;
+            DriftChargeMultiplier = driftChargeMultiplier;
+            PanicDampener = panicDampener;
+        }
+    }
+
+    public static readonly VehicleArchetype[] VehicleArchetypes = new[]
+    {
+        new VehicleArchetype("NEON CAB", "BALANCED ALL-ROUNDER", 28.16f, 22.88f, 3.4f, 1.0f, 1.0f),
+        new VehicleArchetype("CITY TAXI", "HEAVY TANK / LOW PANIC", 25.5f, 20.5f, 3.2f, 0.9f, 0.70f),
+        new VehicleArchetype("SPORT SEDAN", "DRIFT SPECIALIST", 30.5f, 25.5f, 3.8f, 1.35f, 1.0f),
+        new VehicleArchetype("FUTURE RACER", "HYPER SPEED ROCKET", 34.0f, 29.0f, 3.2f, 1.1f, 1.25f),
+        new VehicleArchetype("LUXURY SUV", "VIP CRUISER / HEAVY", 26.0f, 22.0f, 3.0f, 0.85f, 0.65f),
+    };
+
     private static readonly string[] VehicleNames = { "NEON CAB", "CITY TAXI", "SPORT SEDAN", "FUTURE RACER", "LUXURY SUV" };
     private static readonly string[] VehiclePaths =
     {
@@ -14,6 +46,8 @@ public partial class Kart : RigidBody3D
         "res://assets/kenny_car-kit/race-future.glb",
         "res://assets/kenny_car-kit/suv-luxury.glb"
     };
+    private static readonly PackedScene[] VehicleSceneCache = new PackedScene[VehiclePaths.Length];
+    private static Font _cachedSpeechFont;
     [ExportGroup("Input")]
     [Export] public int OwnerPeerId { get; set; } = 1;
     [Export] public bool UseLocalInput { get; set; } = true;
@@ -22,6 +56,12 @@ public partial class Kart : RigidBody3D
     [Export] public float TapInputHoldTime = 0.16f;
 
     public bool ControlsEnabled { get; private set; } = true;
+
+    /// <summary>
+    /// True while this kart's own controls ask for brakes. AI and remote karts drive
+    /// their lamps and skid audio from this instead of the local player's keyboard.
+    /// </summary>
+    public bool BrakeInputActive { get; private set; }
 
     [ExportGroup("Driving")]
     [Export] public float Acceleration = 22.88f;
@@ -65,8 +105,11 @@ public partial class Kart : RigidBody3D
     public float DriftCharge { get; private set; }
     public int PendingStyleTip { get; private set; }
     public int VehicleOption { get; private set; }
-    public int VehicleOptionCount => VehicleNames.Length;
-    public string VehicleName => VehicleNames[Mathf.Clamp(VehicleOption, 0, VehicleNames.Length - 1)];
+    public int VehicleOptionCount => VehicleCount;
+
+    public static int VehicleCount => VehicleNames.Length;
+    public static string GetVehicleName(int option) => VehicleNames[Mathf.PosMod(option, VehicleNames.Length)];
+    public string VehicleName => GetVehicleName(VehicleOption);
     public Vector3 NetworkTargetPosition => _netTargetPosition;
 
     private RayCast3D[] _groundRays;
@@ -79,6 +122,7 @@ public partial class Kart : RigidBody3D
     private float _forwardInput;
     private float _steeringInput;
     private bool _handbrakeInput;
+    private bool _brakeHeld;
     private float _forwardTapInput;
     private float _steeringTapInput;
     private float _forwardTapTimer;
@@ -89,6 +133,9 @@ public partial class Kart : RigidBody3D
     private float _driftTimer;
     private bool _driftWasHeld;
     private readonly System.Collections.Generic.Dictionary<ulong, ulong> _collisionCooldowns = new();
+    private const ulong CollisionCooldownMs = 450;
+    private const ulong CollisionCooldownSweepMs = 5000;
+    private ulong _lastCollisionCooldownSweepMs;
 
     private Vector3 _netTargetPosition;
     private Vector3 _netTargetRotation;
@@ -96,10 +143,15 @@ public partial class Kart : RigidBody3D
     private int _nextInputSequence;
     private int _lastAcceptedInputSequence = -1;
     private int _lastNetworkSnapshotSequence = -1;
+    private int _nextFireSequence;
+    private int _lastAcceptedFireSequence = -1;
+    private int _shotSequence;
+    private ulong _lastShotMs;
     private ulong _lastValidInputAtMs;
     private ulong _lastRejectedInputWarningMs;
 
     private const ulong InputTimeoutMs = 250;
+    private const ulong FireIntervalMs = 120;
     private const ulong RejectedInputWarningIntervalMs = 1000;
     private const float NetworkSnapDistance = 8.0f;
 
@@ -142,6 +194,7 @@ public partial class Kart : RigidBody3D
         BodyEntered += OnBodyCollision;
 
         EnsureLocalPlayerFeatures();
+        ApplyVehicleStats();
         ApplyVehicleVisual();
     }
 
@@ -193,6 +246,10 @@ public partial class Kart : RigidBody3D
             BufferTapInput(0.0f, 1.0f);
         else if (@event.IsActionPressed("move_left"))
             BufferTapInput(0.0f, -1.0f);
+        // fire_weapon is registered by InputBindings, so the raw F/E fallback is no longer
+        // needed and no longer overrides a rebound key.
+        else if (@event.IsActionPressed("fire_weapon"))
+            FireWeapon();
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Unreliable)]
@@ -247,6 +304,9 @@ public partial class Kart : RigidBody3D
             _steeringInput = 0.0f;
             _handbrakeInput = false;
         }
+
+        BrakeInputActive = ControlsEnabled && (_brakeHeld || _forwardInput < -InputDeadzone);
+        PruneCollisionCooldowns();
 
         if (Multiplayer.IsServer() && !IsAI && OwnerPeerId != Multiplayer.GetUniqueId() &&
             Time.GetTicksMsec() - _lastValidInputAtMs > InputTimeoutMs)
@@ -424,10 +484,35 @@ public partial class Kart : RigidBody3D
             _steeringInput = 0.0f;
             _forwardTapTimer = 0.0f;
             _steeringTapTimer = 0.0f;
+            _brakeHeld = false;
+            BrakeInputActive = false;
         }
     }
 
     public bool GetControlsEnabled() => ControlsEnabled;
+
+    private void PruneCollisionCooldowns()
+    {
+        // Streamed traffic is freed constantly, so the map would keep one entry per body
+        // ever hit. Entries past the cooldown window can never suppress another impact.
+        if (_collisionCooldowns.Count == 0)
+            return;
+
+        ulong now = Time.GetTicksMsec();
+        if (now - _lastCollisionCooldownSweepMs < CollisionCooldownSweepMs)
+            return;
+
+        _lastCollisionCooldownSweepMs = now;
+        var stale = new System.Collections.Generic.List<ulong>();
+        foreach (var entry in _collisionCooldowns)
+        {
+            if (now - entry.Value >= CollisionCooldownMs)
+                stale.Add(entry.Key);
+        }
+
+        for (int index = 0; index < stale.Count; index++)
+            _collisionCooldowns.Remove(stale[index]);
+    }
 
     public void ClearInput()
     {
@@ -450,7 +535,8 @@ public partial class Kart : RigidBody3D
                 BroadcastAudioCue(AudioManager.Cue.CollisionLight, -14.0f, 1.35f);
             }
 
-            DriftCharge = Mathf.Min(DriftMaxChargeTime, DriftCharge + dt);
+            float chargeRate = GetCurrentArchetype().DriftChargeMultiplier;
+            DriftCharge = Mathf.Min(DriftMaxChargeTime, DriftCharge + dt * chargeRate);
             if (DriftCharge >= 0.4f)
                 CurrentDriftPhase = DriftPhase.Holding;
             _driftTimer = DriftDuration;
@@ -567,7 +653,8 @@ public partial class Kart : RigidBody3D
             if (Input.IsActionJustPressed("boost") || Input.IsActionPressed("boost"))
                 EndlessRoadMode.Instance?.ActivateBoost();
             // Allow light braking to scrub speed without reversing the endless run.
-            if (Input.IsActionPressed("move_backward"))
+            _brakeHeld = Input.IsActionPressed("move_backward");
+            if (_brakeHeld)
                 _forwardInput = Mathf.Clamp(_forwardInput - 0.55f, 0.35f, 1.0f);
             _forwardInput = Mathf.Clamp(_forwardInput, -1.0f, 1.0f);
             _steeringInput = Mathf.Clamp(_steeringInput, -1.0f, 1.0f);
@@ -582,10 +669,22 @@ public partial class Kart : RigidBody3D
 
         _handbrakeInput = Input.IsActionPressed("drift");
         if (Input.IsActionJustPressed("boost") || Input.IsActionPressed("boost"))
-            EndlessRoadMode.Instance?.ActivateBoost();
+        {
+            if (EndlessRoadMode.Instance != null && EndlessRoadMode.Instance.State == EndlessRoadMode.RunState.Running)
+                EndlessRoadMode.Instance.ActivateBoost();
+            else if (GameManager.Instance != null && GameManager.Instance.TryUseNitrousCharge(OwnerPeerId))
+            {
+                ApplyCentralImpulse(GetForwardDirection(_groundNormal) * (34.0f * Mass));
+                AudioManager.Instance?.PlayLocal(AudioManager.Cue.CountdownGo, 1.5f, 1.4f);
+                TriggerSpeechBubble(">> NITROUS BOOST <<");
+                if (GetViewport()?.GetCamera3D() is TrackCamera cam)
+                    cam.AddTrauma(0.42f);
+            }
+        }
 
         _forwardInput = Mathf.Clamp(_forwardInput, -1.0f, 1.0f);
         _steeringInput = Mathf.Clamp(_steeringInput, -1.0f, 1.0f);
+        _brakeHeld = _forwardInput < -InputDeadzone;
     }
 
     private void BufferTapInput(float forward, float steering)
@@ -635,8 +734,21 @@ public partial class Kart : RigidBody3D
             Basis targetBasis = new Basis(visualRight, groundNormal, visualForward).Orthonormalized();
             Vector3 planarVelocity = LinearVelocity - groundNormal * LinearVelocity.Dot(groundNormal);
             float speedRatio = Mathf.Clamp(planarVelocity.Length() / Mathf.Max(1.0f, MaxForwardSpeed), 0.0f, 1.0f);
+            
+            // Lateral body lean
             float lean = Mathf.DegToRad(-_steeringInput * VisualSteerLeanDegrees * speedRatio * Mathf.Lerp(0.45f, 1.0f, DriftAmount));
             targetBasis = targetBasis.Rotated(targetBasis.Z.Normalized(), lean).Orthonormalized();
+
+            // Dynamic suspension pitch: squat on acceleration, dive on braking
+            float pitchAngle = 0.0f;
+            if (_forwardInput > 0.05f)
+                pitchAngle = -Mathf.DegToRad(Mathf.Clamp(_forwardInput * 2.4f * (1.0f - speedRatio * 0.35f), 0.0f, 2.8f));
+            else if (_forwardInput < -0.05f && planarVelocity.Length() > 1.0f)
+                pitchAngle = Mathf.DegToRad(Mathf.Clamp(3.2f * speedRatio, 0.0f, 3.6f));
+
+            if (Mathf.Abs(pitchAngle) > 0.0001f)
+                targetBasis = targetBasis.Rotated(targetBasis.X.Normalized(), pitchAngle).Orthonormalized();
+
             Basis currentBasis = _visualContainer.GlobalTransform.Basis.Orthonormalized();
             float blend = 1.0f - Mathf.Exp(-VisualRotationSpeed * delta);
 
@@ -706,20 +818,30 @@ public partial class Kart : RigidBody3D
     {
         if (!ActivePassenger.HasValue) return;
 
+        var passenger = ActivePassenger.Value;
+        bool isVip = passenger.Archetype == GameManager.CustomerArchetype.VIP;
+        bool isThrill = passenger.Archetype == GameManager.CustomerArchetype.ThrillSeeker;
+        float speed = LinearVelocity.Length();
+
         if (!_isGrounded)
         {
             _airtimeAccumulator += dt;
-            if (_airtimeAccumulator > 0.4f)
+            if (_airtimeAccumulator > (isThrill ? 0.8f : 0.4f))
             {
-                SetPanic(PanicMeter + 25.0f * dt);
+                float rate = isVip ? 45.0f : isThrill ? 10.0f : 25.0f;
+                SetPanic(PanicMeter + rate * dt);
                 if (GD.Randf() < dt * 1.5f)
-                    TriggerSpeechBubble(GetHumorousAirtimePhrase());
+                    TriggerSpeechBubble(isThrill ? "WOOOOO! AIRTIME!" : GetHumorousAirtimePhrase());
             }
         }
         else
         {
             _airtimeAccumulator = 0.0f;
-            if (LinearVelocity.Length() > 2.0f)
+            if (isThrill && (speed > 16.0f || DriftAmount > 0.3f))
+            {
+                SetPanic(PanicMeter - 20.0f * dt);
+            }
+            else if (speed > 2.0f)
             {
                 SetPanic(PanicMeter - 5.0f * dt);
             }
@@ -731,7 +853,7 @@ public partial class Kart : RigidBody3D
 
         if (PanicMeter >= 100.0f)
         {
-            TriggerSpeechBubble("I'M OUTTA HERE!");
+            TriggerSpeechBubble(isVip ? "TERRIBLE DRIVING! I'M SUING!" : "I'M OUTTA HERE!");
             if (TaxiMode.Instance != null && GameManager.Instance != null)
             {
                 TaxiMode.Instance.ClearActiveFare(OwnerPeerId);
@@ -744,23 +866,55 @@ public partial class Kart : RigidBody3D
         }
     }
 
+    /// <summary>
+    /// Velocity of whatever was hit. Rigid bodies report their own, moving endless-road
+    /// traffic reports its travel speed, and everything else counts as parked geometry.
+    /// </summary>
+    private static Vector3 BodyVelocity(Node body)
+    {
+        if (body is RigidBody3D rigidBody)
+            return rigidBody.LinearVelocity;
+
+        if (body is EndlessRoadTraffic traffic)
+            return traffic.Velocity;
+
+        return Vector3.Zero;
+    }
+
     private void OnBodyCollision(Node body)
     {
         if (Multiplayer.HasMultiplayerPeer() && !Multiplayer.IsServer()) return;
 
         // Ignore harmless road/ground surfaces
-        string name = body.Name;
-        if (name == "Ground" || 
-            name == "RoadMesh" ||
-            name == "RoadBody" ||
-            name.IndexOf("RoadSegment") == 0 || 
-            name.IndexOf("Intersection") == 0 || 
-            name.IndexOf("LaneMarker") == 0 || 
-            name.IndexOf("Crosswalk") == 0 ||
-            name.IndexOf("LeftShoulder") == 0 ||
-            name.IndexOf("RightShoulder") == 0)
+        string name = body.Name.ToString();
+        if (name.Length > 0)
         {
-            return;
+            char first = name[0];
+            if (first == 'R')
+            {
+                if (name == "RoadMesh" || name == "RoadBody" || name.StartsWith("RoadSegment", StringComparison.Ordinal) || name.StartsWith("RightShoulder", StringComparison.Ordinal))
+                    return;
+            }
+            else if (first == 'I')
+            {
+                if (name.StartsWith("Intersection", StringComparison.Ordinal))
+                    return;
+            }
+            else if (first == 'L')
+            {
+                if (name.StartsWith("LaneMarker", StringComparison.Ordinal) || name.StartsWith("LeftShoulder", StringComparison.Ordinal))
+                    return;
+            }
+            else if (first == 'C')
+            {
+                if (name.StartsWith("Crosswalk", StringComparison.Ordinal))
+                    return;
+            }
+            else if (first == 'G')
+            {
+                if (name == "Ground")
+                    return;
+            }
         }
 
         // Endless Road: route impact through EndlessRoadMode and degrade to Burnout-style scoring elsewhere.
@@ -772,7 +926,7 @@ public partial class Kart : RigidBody3D
                 // Barrier hit at speed — still counts, but via severity path below.
             }
 
-            Vector3 otherVelocityER = body is RigidBody3D rigidBodyER ? rigidBodyER.LinearVelocity : Vector3.Zero;
+            Vector3 otherVelocityER = BodyVelocity(body);
             Vector3 otherPositionER = body is Node3D body3DER ? body3DER.GlobalPosition : GlobalPosition - LinearVelocity;
             Vector3 normalER = GlobalPosition - otherPositionER;
             normalER = normalER.LengthSquared() > 0.001f ? normalER.Normalized() : -LinearVelocity.Normalized();
@@ -781,7 +935,7 @@ public partial class Kart : RigidBody3D
             {
                 ulong nowER = Time.GetTicksMsec();
                 ulong keyER = body.GetInstanceId();
-                if (_collisionCooldowns.TryGetValue(keyER, out ulong lastHitER) && nowER - lastHitER < 450)
+                if (_collisionCooldowns.TryGetValue(keyER, out ulong lastHitER) && nowER - lastHitER < CollisionCooldownMs)
                     return;
                 _collisionCooldowns[keyER] = nowER;
                 ImpactSeverity severityER = impactSpeedER >= 13.0f ? ImpactSeverity.Crash : impactSpeedER >= 6.0f ? ImpactSeverity.Bump : ImpactSeverity.Glance;
@@ -802,7 +956,7 @@ public partial class Kart : RigidBody3D
             return;
         }
 
-        Vector3 otherVelocity = body is RigidBody3D rigidBody ? rigidBody.LinearVelocity : Vector3.Zero;
+        Vector3 otherVelocity = BodyVelocity(body);
         Vector3 otherPosition = body is Node3D body3D ? body3D.GlobalPosition : GlobalPosition - LinearVelocity;
         Vector3 normal = GlobalPosition - otherPosition;
         normal = normal.LengthSquared() > 0.001f ? normal.Normalized() : -LinearVelocity.Normalized();
@@ -811,7 +965,7 @@ public partial class Kart : RigidBody3D
         {
             ulong now = Time.GetTicksMsec();
             ulong key = body.GetInstanceId();
-            if (_collisionCooldowns.TryGetValue(key, out ulong lastHit) && now - lastHit < 450)
+            if (_collisionCooldowns.TryGetValue(key, out ulong lastHit) && now - lastHit < CollisionCooldownMs)
                 return;
             _collisionCooldowns[key] = now;
             ImpactSeverity severity = impactSpeed >= 13.0f ? ImpactSeverity.Crash : impactSpeed >= 6.0f ? ImpactSeverity.Bump : ImpactSeverity.Glance;
@@ -827,9 +981,16 @@ public partial class Kart : RigidBody3D
             {
                 if (severity != ImpactSeverity.Glance)
                 {
-                    float panicIncrease = severity == ImpactSeverity.Crash ? impactSpeed * 2.0f : impactSpeed * 0.65f;
+                    bool isVip = ActivePassenger.Value.Archetype == GameManager.CustomerArchetype.VIP;
+                    bool isThrill = ActivePassenger.Value.Archetype == GameManager.CustomerArchetype.ThrillSeeker;
+                    bool hasArmor = GameManager.Instance != null && GameManager.Instance.HasArmorPlating(OwnerPeerId);
+
+                    float panicScale = isVip ? 2.0f : isThrill ? 0.5f : 1.0f;
+                    if (hasArmor) panicScale *= 0.75f;
+
+                    float panicIncrease = (severity == ImpactSeverity.Crash ? impactSpeed * 2.0f : impactSpeed * 0.65f) * panicScale;
                     SetPanic(PanicMeter + panicIncrease);
-                    TriggerSpeechBubble(GetHumorousCollisionPhrase());
+                    TriggerSpeechBubble(isThrill ? "YEAH! RUBBIN' IS RACIN'!" : GetHumorousCollisionPhrase());
                     CancelDriftReward();
                 }
             }
@@ -856,9 +1017,21 @@ public partial class Kart : RigidBody3D
 
     public bool HasPassenger() => ActivePassenger.HasValue;
 
+    public VehicleArchetype GetCurrentArchetype() => VehicleArchetypes[Mathf.Clamp(VehicleOption, 0, VehicleArchetypes.Length - 1)];
+    public string GetVehicleSubtitle() => GetCurrentArchetype().Subtitle;
+
+    public void ApplyVehicleStats()
+    {
+        var arch = GetCurrentArchetype();
+        MaxForwardSpeed = arch.MaxSpeed;
+        Acceleration = arch.Acceleration;
+        SteeringSpeed = arch.SteeringSpeed;
+    }
+
     public void SetVehicleOption(int option)
     {
         VehicleOption = Mathf.PosMod(option, VehicleNames.Length);
+        ApplyVehicleStats();
         if (IsNodeReady())
             ApplyVehicleVisual();
     }
@@ -883,7 +1056,13 @@ public partial class Kart : RigidBody3D
         if (VehicleOption == 0)
             return;
 
-        PackedScene scene = GD.Load<PackedScene>(VehiclePaths[VehicleOption]);
+        PackedScene scene = VehicleSceneCache[VehicleOption];
+        if (scene == null)
+        {
+            scene = GD.Load<PackedScene>(VehiclePaths[VehicleOption]);
+            VehicleSceneCache[VehicleOption] = scene;
+        }
+
         if (scene == null)
         {
             GD.PushWarning($"Vehicle asset missing: {VehiclePaths[VehicleOption]}");
@@ -952,6 +1131,11 @@ public partial class Kart : RigidBody3D
 
     public void SetPanic(float panic)
     {
+        if (panic > PanicMeter)
+        {
+            float delta = (panic - PanicMeter) * GetCurrentArchetype().PanicDampener;
+            panic = PanicMeter + delta;
+        }
         PanicMeter = Mathf.Clamp(panic, 0.0f, 100.0f);
         if (Multiplayer.IsServer())
         {
@@ -1130,10 +1314,12 @@ public partial class Kart : RigidBody3D
         };
 
         // Try loading neon font, fallback to default
-        var font = GD.Load<Font>("res://assets/fonts/VT323-Regular.ttf");
-        if (font != null)
+        if (_cachedSpeechFont == null)
+            _cachedSpeechFont = GD.Load<Font>("res://assets/fonts/VT323-Regular.ttf");
+
+        if (_cachedSpeechFont != null)
         {
-            label.Font = font;
+            label.Font = _cachedSpeechFont;
             label.FontSize = 48;
         }
         else
@@ -1176,5 +1362,143 @@ public partial class Kart : RigidBody3D
             "WE'RE GONNA CRASH!"
         };
         return phrases[GD.RandRange(0, phrases.Length - 1)];
+    }
+
+    public void FireWeapon()
+    {
+        if (!ControlsEnabled || (UseLocalInput == false && IsLocalPlayer == false && IsOffline() == false))
+            return;
+
+        // A client only signals intent. Ammo, damage, and projectile spawning belong to the
+        // server, so a client cannot spend ammo it does not own or invent a hit.
+        if (IsConnectedClient())
+        {
+            RpcId(1, nameof(RequestFireWeaponRpc), ++_nextFireSequence);
+            return;
+        }
+
+        ExecuteShot();
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void RequestFireWeaponRpc(int sequence)
+    {
+        if (!Multiplayer.IsServer())
+            return;
+
+        int senderId = Multiplayer.GetRemoteSenderId();
+        if (senderId != OwnerPeerId)
+        {
+            WarnRejectedInput($"Rejected fire request from peer {senderId}; kart belongs to peer {OwnerPeerId}.");
+            return;
+        }
+
+        if (sequence <= _lastAcceptedFireSequence)
+        {
+            WarnRejectedInput($"Rejected stale fire request {sequence} from peer {senderId}.");
+            return;
+        }
+
+        _lastAcceptedFireSequence = sequence;
+        ExecuteShot();
+    }
+
+    private void ExecuteShot()
+    {
+        var weapon = GameManager.Instance?.GetPlayerWeapon(OwnerPeerId);
+        if (weapon == null || weapon.IsDepleted)
+            return;
+
+        // One rate limit for both input and replay-style request spam.
+        ulong now = Time.GetTicksMsec();
+        if (now - _lastShotMs < FireIntervalMs)
+            return;
+
+        _lastShotMs = now;
+
+        if (weapon.Class == GameManager.WeaponClass.Rocket)
+        {
+            weapon.Ammo--;
+            BroadcastAudioCue(AudioManager.Cue.RocketLaunch, 1.0f, (float)GD.RandRange(0.95, 1.05));
+
+            // The kart's nose is +Basis.Z (front lamps and GetForwardDirection agree),
+            // so the muzzle sits 1.5 m in front of the cab.
+            Vector3 spawnOffset = -GlobalTransform.Basis.X * 0.65f + Vector3.Up * 0.75f + GlobalTransform.Basis.Z * 1.5f;
+            Vector3 spawnPosition = GlobalPosition + spawnOffset;
+            int shot = ++_shotSequence;
+
+            if (Multiplayer.HasMultiplayerPeer())
+            {
+                Rpc(nameof(SpawnRocketRpc), spawnPosition, Rotation, OwnerPeerId, shot);
+            }
+            else
+            {
+                SpawnRocket(spawnPosition, Rotation, OwnerPeerId, shot);
+            }
+
+            TriggerSpeechBubble("ROCKET FIRED!");
+        }
+        else if (weapon.Class == GameManager.WeaponClass.Assault)
+        {
+            weapon.Ammo--;
+            BroadcastAudioCue(AudioManager.Cue.AssaultFire, 0.0f, (float)GD.RandRange(0.95, 1.08));
+            FireAssaultShot();
+        }
+
+        if (weapon.IsDepleted)
+        {
+            GameManager.Instance?.SetPlayerWeapon(OwnerPeerId, null);
+            TriggerSpeechBubble("WEAPON EMPTY");
+        }
+        else
+        {
+            GameManager.Instance?.SyncWeaponState(OwnerPeerId);
+        }
+    }
+
+    private void FireAssaultShot()
+    {
+        var spaceState = GetWorld3D()?.DirectSpaceState;
+        if (spaceState == null)
+            return;
+
+        Vector3 forward = GlobalTransform.Basis.Z;
+        Vector3 start = GlobalPosition + Vector3.Up * 0.8f;
+        Vector3 end = start + forward * 65.0f;
+        var query = PhysicsRayQueryParameters3D.Create(start, end);
+        query.CollisionMask = 1;
+        var hit = spaceState.IntersectRay(query);
+        if (hit.Count > 0 && hit.TryGetValue("collider", out var col) && col.As<GodotObject>() is Kart targetKart)
+        {
+            if (targetKart.OwnerPeerId != OwnerPeerId)
+            {
+                GameManager.Instance?.ApplyVehicleDamage(targetKart.OwnerPeerId, 10);
+                targetKart.ApplyCentralImpulse(forward * 8.0f * targetKart.Mass);
+                if (targetKart.ActivePassenger.HasValue)
+                    targetKart.SetPanic(targetKart.PanicMeter + 15.0f);
+            }
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = true, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void SpawnRocketRpc(Vector3 position, Vector3 rotation, int sourcePeerId, int shot)
+    {
+        SpawnRocket(position, rotation, sourcePeerId, shot);
+    }
+
+    /// <summary>
+    /// Every peer spawns its own copy for the flight and explosion visuals, but only the
+    /// server's copy deals damage, which RocketProjectile already enforces.
+    /// </summary>
+    private void SpawnRocket(Vector3 position, Vector3 rotation, int sourcePeerId, int shot)
+    {
+        var rocket = new RocketProjectile
+        {
+            Name = $"Rocket_{sourcePeerId}_{shot}",
+            Position = position,
+            Rotation = rotation,
+            SourcePeerId = sourcePeerId
+        };
+        GetParent()?.AddChild(rocket);
     }
 }

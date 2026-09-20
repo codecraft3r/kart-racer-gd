@@ -2,6 +2,8 @@ extends SceneTree
 
 const MAIN_SCENE := "res://default_3d.tscn"
 
+var _scene_root: Node
+
 func _initialize() -> void:
 	call_deferred("_run")
 
@@ -9,31 +11,33 @@ func _run() -> void:
 	var packed_scene: PackedScene = load(MAIN_SCENE)
 	if packed_scene == null:
 		_fail("Unable to load %s" % MAIN_SCENE)
+		await _finish()
 		return
 
-	var root: Node = packed_scene.instantiate()
-	get_root().add_child(root)
+	_scene_root = packed_scene.instantiate()
+	get_root().add_child(_scene_root)
 	await process_frame
 	await physics_frame
 
-	var track_builder: Node = root.get_node_or_null("TrackBuilder")
+	var track_builder: Node = _scene_root.get_node_or_null("TrackBuilder")
 	if track_builder == null:
 		_fail("TrackBuilder node missing")
+		await _finish()
 		return
 
 	var road_segments := _count_children_with_prefix(track_builder, "RoadSegment")
 	var intersections := _count_children_with_prefix(track_builder, "Intersection")
-	var lane_markers := _count_children_with_prefix(track_builder, "LaneMarker")
-	var curb_markers := _count_children_with_prefix(track_builder, "CurbMarker")
-	var crosswalks := _count_children_with_prefix(track_builder, "Crosswalk")
-	var track_light_glows := _count_children_with_prefix(track_builder, "TrackLightGlow")
+	var lane_markers := _count_instances_with_prefix(track_builder, "LaneMarker")
+	var curb_markers := _count_instances_with_prefix(track_builder, "CurbMarker")
+	var crosswalks := _count_instances_with_prefix(track_builder, "Crosswalk")
+	var track_light_glows := _count_instances_with_prefix(track_builder, "TrackLightGlow")
 	var building_nodes := _get_children_with_prefix(track_builder, "Building")
 	var decoration_nodes := _get_children_with_prefix(track_builder, "Decoration")
 	var building_colliders := _count_children_with_prefix(track_builder, "WorldCollider")
 	var repair_shops := _count_children_with_prefix(track_builder, "RepairShop")
 	var world_boundaries := _count_children_with_prefix(track_builder, "WorldBoundary")
 	var depot: Node3D = track_builder.get_node_or_null("TaxiDepot")
-	var distant_skyline: Node = root.get_node_or_null("DistantSkyline")
+	var distant_skyline: Node = _scene_root.get_node_or_null("DistantSkyline")
 
 	var city_columns := int(track_builder.get("CityColumns"))
 	var city_rows := int(track_builder.get("CityRows"))
@@ -68,7 +72,7 @@ func _run() -> void:
 	_expect(int(distant_skyline.call("GetTowerCount")) >= 60, "distant skyline has both parallax tower bands")
 
 	if get_meta("failed", false):
-		quit(1)
+		await _finish()
 	else:
 		print("City road generation smoke test passed: %d road panels, %d intersections, %d lane markers, %d curbs, %d track lights, %d buildings." % [
 			road_segments,
@@ -78,7 +82,38 @@ func _run() -> void:
 			track_light_glows,
 			building_nodes.size()
 		])
+		await _finish()
+
+func _finish() -> void:
+	paused = false
+	await _cleanup()
+	if get_meta("failed", false):
+		quit(1)
+	else:
 		quit(0)
+
+func _cleanup() -> void:
+	if _scene_root == null or not is_instance_valid(_scene_root):
+		return
+	var shell := _scene_root.get_node_or_null("RetroNeonCabShell") as Node
+	if shell != null and shell.has_method("ExitToMainMenu"):
+		shell.call("ExitToMainMenu")
+	var director := get_root().find_child("EndlessRoadDirector", true, false) as Node
+	if director != null and director.has_method("Deactivate"):
+		director.call("Deactivate")
+	var mode := get_root().get_node_or_null("EndlessRoadMode") as Node
+	if mode != null and mode.has_method("ResetRun"):
+		mode.call("ResetRun")
+	var audio_manager := get_root().get_node_or_null("AudioManager") as Node
+	if audio_manager != null:
+		audio_manager.queue_free()
+	var scene_to_free := _scene_root
+	_scene_root = null
+	if current_scene == scene_to_free:
+		current_scene = null
+	scene_to_free.queue_free()
+	for _index in 8:
+		await process_frame
 
 func _building_colliders_clear_of_repair_shops(track_builder: Node) -> bool:
 	var shops: Array[Node] = []
@@ -124,6 +159,19 @@ func _count_children_with_prefix(parent: Node, child_prefix: String) -> int:
 		if child.name.begins_with(child_prefix):
 			count += 1
 	return count
+
+# Batched decoration groups are one node with many instances; plain nodes count as one.
+func _count_instances_with_prefix(parent: Node, child_prefix: String) -> int:
+	var total := 0
+	for child in parent.get_children():
+		if not child.name.begins_with(child_prefix):
+			continue
+		var batch := child as MultiMeshInstance3D
+		if batch != null and batch.multimesh != null:
+			total += batch.multimesh.instance_count
+		else:
+			total += 1
+	return total
 
 func _get_children_with_prefix(parent: Node, child_prefix: String) -> Array[Node3D]:
 	var result: Array[Node3D] = []

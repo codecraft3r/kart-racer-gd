@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Structural regression ceilings for the scenarios in perf/PerfBenchmark.cs.",
+    "All three are measured: node_count max 1812 (solo-default), 2823 (visual-worst),",
+    "and 1410 (endless-road) in artifacts/performance/current on 2026-09-20, plus about",
+    "10% margin. The earlier seeded ceilings came from the 2026-07-26 captures and were",
+    "loose by roughly 30% once the batching work landed.",
+    "Node counts are gated because they are structural and stable: solo-default held",
+    "exactly 1812 across a whole run, while frame times and draw calls vary with the",
+    "GPU, the driver, and host contention, as the accompanying report notes.",
+    "Update a ceiling deliberately, in the same change that justifies the new cost."
+  ],
+  "scenarios": {
+    "solo-default": { "node_count_max": 2000 },
+    "visual-worst": { "node_count_max": 3100 },
+    "endless-road": { "node_count_max": 1600 }
+  }
+}

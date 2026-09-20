@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dbxlwm3ctpl6a"
-path="res://.godot/imported/track-tents.glb-3aef14d328b56c0b53671d8b1646f7ad.scn"
+path="res://.godot/imported/track-tents.glb-a6286f1a90c756839382ecccc262bef6.scn"
 
 [deps]
 
-source_file="res://models/track-tents.glb"
-dest_files=["res://.godot/imported/track-tents.glb-3aef14d328b56c0b53671d8b1646f7ad.scn"]
+source_file="res://assets/kenney_starter-kit-racing/track-tents.glb"
+dest_files=["res://.godot/imported/track-tents.glb-a6286f1a90c756839382ecccc262bef6.scn"]
 
 [params]
 

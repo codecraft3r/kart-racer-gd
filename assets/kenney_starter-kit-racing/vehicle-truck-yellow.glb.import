@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bynb5jk1d478y"
-path="res://.godot/imported/vehicle-truck-yellow.glb-e040a7a7b7c7095fe014b39036de9a78.scn"
+path="res://.godot/imported/vehicle-truck-yellow.glb-e18fda010ca3bd8a5a7bc625ae6eaf24.scn"
 
 [deps]
 
-source_file="res://models/vehicle-truck-yellow.glb"
-dest_files=["res://.godot/imported/vehicle-truck-yellow.glb-e040a7a7b7c7095fe014b39036de9a78.scn"]
+source_file="res://assets/kenney_starter-kit-racing/vehicle-truck-yellow.glb"
+dest_files=["res://.godot/imported/vehicle-truck-yellow.glb-e18fda010ca3bd8a5a7bc625ae6eaf24.scn"]
 
 [params]
 

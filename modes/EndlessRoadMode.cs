@@ -39,9 +39,15 @@ public partial class EndlessRoadMode : Node
     public int Multiplier { get; private set; } = 1;
     public float Health { get; set; }
     public float Boost { get; set; }
+    /// <summary>Whether the run is currently consuming boost energy.</summary>
+    public bool IsBoosting => _boostActive;
     public float CurrentSpeedMps { get; private set; }
     public int CurrentSpeedDisplayMph { get; private set; }
-    public float RunSeed { get; private set; }
+    /// <summary>
+    /// Identity of the current run. Kept as an integer because a float silently rounds
+    /// above 2^24, which would make distinct eight-digit seeds collide.
+    /// </summary>
+    public int RunSeed { get; private set; }
 
     private float _stateTimer;
     private float _speed;
@@ -54,6 +60,7 @@ public partial class EndlessRoadMode : Node
     private float _lastReportedBoost = -1.0f;
     private int _lastReportedSpeedMph = -1;
     private bool _boostActive;
+    private RunState _lastPublishedState = RunState.Idle;
 
     public override void _EnterTree()
     {
@@ -83,7 +90,7 @@ public partial class EndlessRoadMode : Node
 
     public void RestartRun()
     {
-        StartRun(RunSeed > 0 ? (int)RunSeed : null);
+        StartRun(RunSeed > 0 ? RunSeed : null);
     }
 
     public void ResetRun(int? seedOverride = null)
@@ -127,6 +134,9 @@ public partial class EndlessRoadMode : Node
                 if (_stateTimer <= 0.0f)
                 {
                     State = RunState.Running;
+                    // ResetRun unlocks controls, but StartRun locks them again for the
+                    // countdown, so the unlock has to happen here when the run actually starts.
+                    SetKartControlsEnabled(true);
                     PublishStateChanged();
                 }
                 break;
@@ -260,7 +270,9 @@ public partial class EndlessRoadMode : Node
 
     private void PublishStateChanged()
     {
-        StateChanged?.Invoke(State, State);
+        RunState previous = _lastPublishedState;
+        _lastPublishedState = State;
+        StateChanged?.Invoke(previous, State);
     }
 
     private void PublishRuntimeEvents()

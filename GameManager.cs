@@ -587,7 +587,8 @@ public partial class GameManager : Node
             if (TrackBuilder.Instance != null && TrackBuilder.Instance.IsPeerBeingRepaired(id))
                 return;
 
-            state.Health = Mathf.Max(0, state.Health - damage);
+            int effectiveDamage = state.HasArmorPlating ? Mathf.Max(1, Mathf.RoundToInt(damage * 0.75f)) : damage;
+            state.Health = Mathf.Max(0, state.Health - effectiveDamage);
             SyncPlayerState(id, state.Score, state.Money, state.Health);
 
             if (state.Health <= 0)
@@ -627,6 +628,11 @@ public partial class GameManager : Node
 
         float panicFactor = kart.PanicMeter / 100.0f;
         int damagePenalty = Mathf.RoundToInt(scoreYield * 0.4f * panicFactor);
+        if (passenger.Archetype == CustomerArchetype.VIP)
+            scoreYield = Mathf.RoundToInt(scoreYield * 1.5f);
+        else if (passenger.Archetype == CustomerArchetype.ThrillSeeker)
+            styleTip *= 2;
+
         int finalPayout = Mathf.Max(10, scoreYield + cleanDrivingBonus + styleTip - damagePenalty);
         FarePayoutBreakdown breakdown = new(scoreYield, cleanDrivingBonus, styleTip, damagePenalty, finalPayout);
 
@@ -650,11 +656,42 @@ public partial class GameManager : Node
         public int Score;
         public int Money;
         public int Health = 100;
+        public bool HasArmorPlating;
+        public int NitrousCharges;
+        public bool HasFareRadar;
+        public Weapon CurrentWeapon;
     }
 
-    // Replicate key state to clients (simple RPC broadcast for now)
-    [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = true)]
+    /// <summary>
+    /// Publishes a player's replicated state. Callers pass the score/money/health they just
+    /// changed; the rest is read from the stored state so clients also receive armor,
+    /// nitrous, fare radar, and the equipped weapon. Without a peer this applies locally.
+    /// </summary>
     public void SyncPlayerState(int id, int score, int money, int health)
+    {
+        if (!_playerStates.TryGetValue(id, out var state))
+            return;
+
+        int weaponClass = state.CurrentWeapon != null ? (int)state.CurrentWeapon.Class : -1;
+        int weaponAmmo = state.CurrentWeapon?.Ammo ?? 0;
+
+        // Only the authority publishes. A client applying its own copy would otherwise
+        // attempt an authority-mode RPC, which Godot rejects.
+        bool isAuthority = Multiplayer.IsServer() || Multiplayer.HasMultiplayerPeer() == false;
+        if (isAuthority && Multiplayer.HasMultiplayerPeer())
+        {
+            Rpc(nameof(SyncPlayerStateRpc), id, score, money, health,
+                state.HasArmorPlating, state.NitrousCharges, state.HasFareRadar, weaponClass, weaponAmmo);
+        }
+        else
+        {
+            SyncPlayerStateRpc(id, score, money, health,
+                state.HasArmorPlating, state.NitrousCharges, state.HasFareRadar, weaponClass, weaponAmmo);
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = true)]
+    private void SyncPlayerStateRpc(int id, int score, int money, int health, bool armor, int nitrous, bool radar, int weaponClass, int weaponAmmo)
     {
         if (!_playerStates.ContainsKey(id))
             _playerStates[id] = new PlayerState();
@@ -663,23 +700,29 @@ public partial class GameManager : Node
         state.Score = score;
         state.Money = money;
         state.Health = health;
+        state.HasArmorPlating = armor;
+        state.NitrousCharges = nitrous;
+        state.HasFareRadar = radar;
+        state.CurrentWeapon = weaponClass < 0 ? null : new Weapon { Class = (WeaponClass)weaponClass, Ammo = weaponAmmo };
     }
 
-    // --- Phase 2 scaffolding: Pickup zone + customer data structures ---
+    // --- Customer archetypes + data structures ---
 
     public enum CustomerDistance { Near, Moderate, Far }
     public enum CustomerWealth { Low, Medium, High }
+    public enum CustomerArchetype { Standard, VIP, ThrillSeeker, Commuter }
 
     public struct CustomerData
     {
         public CustomerDistance Distance;
         public CustomerWealth Wealth;
+        public CustomerArchetype Archetype;
         public int MaxAcceptableDamage;
         public int GroupSize;
         public float LoadTime; // 5-10s
     }
 
-    // --- Phase 3 scaffolding: Weapon classes + inventory stubs ---
+    // --- Weapon classes + inventory ---
 
     public enum WeaponClass { Rocket, Assault, Special }
 
@@ -690,16 +733,10 @@ public partial class GameManager : Node
         public bool IsDepleted => Ammo <= 0;
     }
 
-    // Server-tracked per-player loadout (max 1 per class)
-    private readonly Dictionary<int, Dictionary<WeaponClass, Weapon>> _playerLoadouts = new();
-
-    // Distance bias helper (more weapons farther from depot)
     public bool ShouldSpawnWeapon(Vector3 pos, float depotDistThreshold = 30f)
     {
         return pos.Length() > depotDistThreshold;
     }
-
-    // --- Phase 4 scaffolding: Economy stubs ---
 
     public void AwardPayout(int id, int amount)
     {
@@ -723,6 +760,80 @@ public partial class GameManager : Node
         return false;
     }
 
+    public bool TryPurchaseArmor(int id, int cost)
+    {
+        if (_playerStates.TryGetValue(id, out var state) && !state.HasArmorPlating && state.Money >= cost)
+        {
+            state.Money -= cost;
+            state.HasArmorPlating = true;
+            SyncPlayerState(id, state.Score, state.Money, state.Health);
+            return true;
+        }
+        return false;
+    }
+
+    public bool TryPurchaseNitrous(int id, int cost)
+    {
+        if (_playerStates.TryGetValue(id, out var state) && state.NitrousCharges < 3 && state.Money >= cost)
+        {
+            state.Money -= cost;
+            state.NitrousCharges += 3;
+            SyncPlayerState(id, state.Score, state.Money, state.Health);
+            return true;
+        }
+        return false;
+    }
+
+    public bool TryPurchaseRadar(int id, int cost)
+    {
+        if (_playerStates.TryGetValue(id, out var state) && !state.HasFareRadar && state.Money >= cost)
+        {
+            state.Money -= cost;
+            state.HasFareRadar = true;
+            SyncPlayerState(id, state.Score, state.Money, state.Health);
+            return true;
+        }
+        return false;
+    }
+
+    public bool HasArmorPlating(int id) => _playerStates.TryGetValue(id, out var state) && state.HasArmorPlating;
+    public int GetNitrousCharges(int id) => _playerStates.TryGetValue(id, out var state) ? state.NitrousCharges : 0;
+    public bool HasFareRadar(int id) => _playerStates.TryGetValue(id, out var state) && state.HasFareRadar;
+
+    public bool TryUseNitrousCharge(int id)
+    {
+        if (_playerStates.TryGetValue(id, out var state) && state.NitrousCharges > 0)
+        {
+            state.NitrousCharges--;
+            return true;
+        }
+        return false;
+    }
+
+    public Weapon GetPlayerWeapon(int id) => _playerStates.TryGetValue(id, out var state) ? state.CurrentWeapon : null;
+
+    /// <summary>
+    /// Authority-side weapon change. The broadcast carries the weapon and its ammo so clients
+    /// stop guessing what the owner is holding.
+    /// </summary>
+    public void SetPlayerWeapon(int id, Weapon weapon)
+    {
+        if (_playerStates.TryGetValue(id, out var state))
+            state.CurrentWeapon = weapon;
+
+        SyncWeaponState(id);
+    }
+
+    /// <summary>
+    /// Republishes the stored weapon and ammo after an authority-side change that only spends
+    /// a round, so clients track the magazine instead of counting their own shots.
+    /// </summary>
+    public void SyncWeaponState(int id)
+    {
+        if (_playerStates.TryGetValue(id, out var state))
+            SyncPlayerState(id, state.Score, state.Money, state.Health);
+    }
+
     public bool TryPurchaseAmmo(int id, Weapon w, int cost)
     {
         if (_playerStates.TryGetValue(id, out var state) && state.Money >= cost && w != null)
@@ -732,6 +843,11 @@ public partial class GameManager : Node
             SyncPlayerState(id, state.Score, state.Money, state.Health);
             return true;
         }
+        return false;
+    }
+
+    public bool AddNudgeCharge(int id)
+    {
         return false;
     }
 }

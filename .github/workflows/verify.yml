@@ -17,6 +17,7 @@ env:
 jobs:
   verify:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,27 +43,50 @@ jobs:
           echo "GODOT=$GODOT_BINARY" >> "$GITHUB_ENV"
 
       - name: Verify pinned toolchain
+        timeout-minutes: 3
         run: pwsh -File ./tools/dev.ps1 verify -GodotPath "$GODOT"
 
+      - name: Harness supervisor contract tests
+        timeout-minutes: 5
+        run: pwsh -NoProfile -File ./tests/harness_runner_tests.ps1
+
       - name: Build C# without warnings
+        timeout-minutes: 8
         run: pwsh -File ./tools/dev.ps1 build -GodotPath "$GODOT"
 
       - name: Import, smoke test, and boot for 180 frames
+        timeout-minutes: 10
         run: pwsh -File ./tools/dev.ps1 test -GodotPath "$GODOT"
 
+      # Advisory until a few runs show the structural ceiling is stable on this runner.
+      # Flip to a blocking step by removing continue-on-error once the numbers are trusted.
+      - name: Performance budget (advisory)
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          xvfb-run --auto-servernum "$GODOT" --path "$GITHUB_WORKSPACE" \
+            --perf-scenario=solo-default --perf-output=artifacts/performance/ci \
+            --perf-warmup=6 --perf-duration=10
+          pwsh -File ./tools/check-perf-budget.ps1 -SummaryPath artifacts/performance/ci
+
       - name: Capture and check teardown diagnostics
-        run: xvfb-run --auto-servernum pwsh -File ./tools/dev.ps1 capture -GodotPath "$GODOT" -State gameplay
+        timeout-minutes: 10
+        run: xvfb-run --auto-servernum pwsh -File ./tools/dev.ps1 capture -GodotPath "$GODOT" -State gameplay -Output artifacts/harness/ci/gameplay.png -TimeoutSeconds 180
 
       - name: Reject generated configuration or metadata changes
+        timeout-minutes: 2
         run: |
           git diff --exit-code -- project.godot kart_racer.csproj global.json
           git diff --exit-code
           git diff --cached --exit-code
 
-      - name: Upload visual capture
+      - name: Upload harness evidence and failure logs
         if: always()
+        timeout-minutes: 3
         uses: actions/upload-artifact@v4
         with:
-          name: gameplay-capture
-          path: artifacts/visual/captures/
+          name: harness-evidence
+          path: |
+            artifacts/harness/
+            artifacts/performance/
           if-no-files-found: ignore

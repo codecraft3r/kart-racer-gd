@@ -4,9 +4,14 @@ param(
     [ValidateSet("verify", "build", "test", "capture", "launch")]
     [string]$Command = "verify",
     [string]$GodotPath,
-    [ValidateSet("menu", "gameplay", "vehicle", "boarding", "dropoff")]
     [string]$State = "menu",
     [string]$Output,
+    [string]$Resolution = "1920x1080",
+    [string]$Suite,
+    [int]$Seed = 1337,
+    [ValidateRange(1, 86400)][int]$TimeoutSeconds = 120,
+    [ValidateSet("", "fixture", "journey")][string]$SetupMode = "",
+    [switch]$SkipBuild,
     [switch]$Headless,
     [switch]$SkipWorldGenerationSmoke
 )
@@ -17,6 +22,8 @@ Set-StrictMode -Version Latest
 # the collected diagnostics ourselves, so stderr must not become a terminating
 # PowerShell native-command error before the exit code is checked.
 $PSNativeCommandUseErrorActionPreference = $false
+$HarnessModule = Join-Path $PSScriptRoot "harness/PainTaxiHarness.psm1"
+Import-Module $HarnessModule -Force
 
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $ExpectedGodotVersion = "4.6.3"
@@ -71,8 +78,8 @@ function Resolve-GodotExecutable {
 
 function Assert-ToolchainConfiguration {
     $projectConfig = Get-Content -Raw (Join-Path $ProjectRoot "project.godot")
-    if ($projectConfig -notmatch 'config/features=PackedStringArray\("4\.6", "C#", "Forward Plus"\)') {
-        throw "project.godot must target Godot 4.6 with C# and Forward Plus."
+    if ($projectConfig -notmatch 'config/features=PackedStringArray\("4\.6", "C#", "GL Compatibility"\)') {
+        throw "project.godot must target Godot 4.6 with C# and GL Compatibility."
     }
     if ($projectConfig -notmatch 'toolchain/godot_version="4\.6\.3-stable-mono"') {
         throw "project.godot must pin Godot 4.6.3 stable Mono."
@@ -93,34 +100,23 @@ function Invoke-GodotChecked {
     param(
         [string]$Name,
         [string[]]$Arguments,
-        [switch]$CheckDiagnostics
+        [switch]$CheckDiagnostics,
+        [ValidateRange(1, 86400)][int]$TimeoutSeconds = 120
     )
 
     Write-Host "==> $Name"
-    $diagnosticsPath = Join-Path ([System.IO.Path]::GetTempPath()) ("pain-taxi-godot-" + [guid]::NewGuid().ToString("N") + ".log")
-    & $script:Godot @Arguments *> $diagnosticsPath
-    $exitCode = $LASTEXITCODE
-    $outputLines = @(Get-Content -LiteralPath $diagnosticsPath)
-    Remove-Item -LiteralPath $diagnosticsPath -Force
+    $logicRoot = Join-Path $ProjectRoot ("artifacts/harness/logic-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $logicRoot -Force | Out-Null
+    $process = Invoke-HarnessProcess -FilePath $script:Godot -ArgumentList $Arguments -WorkingDirectory $ProjectRoot -StdoutPath (Join-Path $logicRoot "stdout.log") -StderrPath (Join-Path $logicRoot "stderr.log") -TimeoutSeconds $TimeoutSeconds
+    $outputLines = @((Get-Content -LiteralPath $process.stdout_path) + (Get-Content -LiteralPath $process.stderr_path))
     $outputLines | ForEach-Object { Write-Host $_ }
-    if ($exitCode -ne 0) {
-        throw "$Name failed with exit code $exitCode."
+    if (-not $process.succeeded) {
+        throw "$Name failed with exit code $($process.exit_code) (timeout=$($process.timed_out)). Logs: $logicRoot"
     }
 
     if ($CheckDiagnostics) {
-        $output = $outputLines -join [Environment]::NewLine
-        $leakPatterns = @(
-            '(?im)^SCRIPT ERROR:',
-            '(?im)ObjectDB instances leaked at exit',
-            '(?im)Leaked instance:',
-            '(?im)Resources still in use at exit',
-            '(?im)RID allocations'
-        )
-        foreach ($pattern in $leakPatterns) {
-            if ($output -match $pattern) {
-                throw "$Name emitted a script error or resource-leak diagnostic: $pattern"
-            }
-        }
+        $diagnostics = @(Get-HarnessDiagnostics -LogPaths @($process.stdout_path, $process.stderr_path))
+        if ($diagnostics.Count -gt 0) { throw "$Name emitted diagnostics: $($diagnostics -join '; '). Logs: $logicRoot" }
     }
 }
 
@@ -149,7 +145,7 @@ function ConvertTo-ProjectResourcePath {
     return "res://" + $relativePath.Replace("\", "/")
 }
 
-$script:Godot = Resolve-GodotExecutable -RequestedPath $GodotPath
+$script:Godot = Resolve-HarnessGodotExecutable -RequestedPath $GodotPath
 
 switch ($Command) {
     "verify" {
@@ -165,34 +161,23 @@ switch ($Command) {
         # A fresh CI checkout needs enough editor frames to finish every
         # asynchronous texture, model, and audio import before smoke tests
         # resolve resources from .godot/imported.
-        Invoke-GodotChecked -Name "Godot import" -Arguments @("--headless", "--path", $ProjectRoot, "--editor", "--quit-after", "1800") -CheckDiagnostics
+        Invoke-GodotChecked -Name "Godot import" -Arguments @("--headless", "--path", $ProjectRoot, "--import") -CheckDiagnostics
         foreach ($test in Get-ChildItem (Join-Path $ProjectRoot "tests") -Filter "*smoke_test.gd" | Sort-Object Name) {
             if ($SkipWorldGenerationSmoke -and $test.Name -eq "road_generation_smoke_test.gd") {
                 Write-Host "Skipping known world-generation regression until #7 lands."
                 continue
             }
-            Invoke-GodotChecked -Name $test.Name -Arguments @("--headless", "--path", $ProjectRoot, "--script", "res://tests/$($test.Name)")
+            Invoke-GodotChecked -Name $test.Name -Arguments @("--headless", "--path", $ProjectRoot, "--script", "res://tests/$($test.Name)") -CheckDiagnostics
         }
-        Invoke-GodotChecked -Name "180-frame runtime boot" -Arguments @("--headless", "--path", $ProjectRoot, "--quit-after", "180")
+        Invoke-GodotChecked -Name "180-frame runtime boot" -Arguments @("--headless", "--path", $ProjectRoot, "--quit-after", "180") -CheckDiagnostics
     }
     "capture" {
         Assert-ToolchainConfiguration
         if ($Headless) {
             throw "Visual capture requires a rendering display; do not use -Headless."
         }
-        if ([string]::IsNullOrWhiteSpace($Output)) {
-            $Output = "artifacts/visual/captures/$State.png"
-        }
-        $resourceOutput = ConvertTo-ProjectResourcePath -Path $Output
-        $absoluteOutput = Join-Path $ProjectRoot ($resourceOutput.Substring(6).Replace("/", [System.IO.Path]::DirectorySeparatorChar))
-        if (Test-Path -LiteralPath $absoluteOutput) {
-            Remove-Item -LiteralPath $absoluteOutput -Force
-        }
-        Invoke-GodotChecked -Name "visual capture ($State)" -Arguments @("--path", $ProjectRoot, "--script", "res://tests/visual_capture.gd", "--", "--state=$State", "--output=$resourceOutput") -CheckDiagnostics
-        if (-not (Test-Path -LiteralPath $absoluteOutput -PathType Leaf) -or (Get-Item -LiteralPath $absoluteOutput).Length -le 0) {
-            throw "Visual capture was not written: $absoluteOutput"
-        }
-        Write-Host "Visual capture verified: $absoluteOutput"
+        $manifest = Invoke-PainTaxiHarness -ProjectRoot $ProjectRoot -GodotPath $Godot -State $State -Suite $Suite -Resolution $Resolution -Seed $Seed -TimeoutSeconds $TimeoutSeconds -Output $Output -SetupMode $SetupMode -SkipBuild:$SkipBuild
+        Write-Host "Harness manifest: $($manifest.run_id) ($($manifest.status))"
     }
     "launch" {
         Assert-ToolchainConfiguration

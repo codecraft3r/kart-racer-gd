@@ -114,6 +114,19 @@ public partial class PerfBenchmark : Node
             manager.SoloAiCount = _scenario is "solo-max" or "visual-worst" ? 6 : 2;
             shell.StartRun();
         }
+        else if (_scenario == "endless-road")
+        {
+            // Endless Road spawns its own rivals, so the shell entry point is all this needs.
+            RetroNeonCabShell shell = GetParent()?.GetNodeOrNull<RetroNeonCabShell>("RetroNeonCabShell");
+            if (shell == null)
+            {
+                GD.PushError("PERF benchmark could not find RetroNeonCabShell for endless-road.");
+                GetTree().Quit(2);
+                return;
+            }
+
+            shell.StartEndlessRoadRun();
+        }
     }
 
     public override void _PhysicsProcess(double delta)
@@ -180,6 +193,10 @@ public partial class PerfBenchmark : Node
 
     private bool ScenarioIsReady()
     {
+        // Endless Road never activates a taxi match, so it is answered before that guard.
+        if (_scenario == "endless-road")
+            return EndlessRoadMode.Instance?.State == EndlessRoadMode.RunState.Running;
+
         if (TaxiMode.Instance?.MatchActive != true || GameManager.Instance == null)
             return false;
 

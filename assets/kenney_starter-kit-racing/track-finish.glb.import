@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://ck8rhvuaa76a5"
-path="res://.godot/imported/track-finish.glb-0f7675a6517cd5b2f58e5233ef75c841.scn"
+path="res://.godot/imported/track-finish.glb-d87ad643d070bb39efcc594ae27e37db.scn"
 
 [deps]
 
-source_file="res://models/track-finish.glb"
-dest_files=["res://.godot/imported/track-finish.glb-0f7675a6517cd5b2f58e5233ef75c841.scn"]
+source_file="res://assets/kenney_starter-kit-racing/track-finish.glb"
+dest_files=["res://.godot/imported/track-finish.glb-d87ad643d070bb39efcc594ae27e37db.scn"]
 
 [params]
 

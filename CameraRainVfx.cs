@@ -7,13 +7,16 @@ using Godot;
 public partial class CameraRainVfx : MultiMeshInstance3D
 {
     [Export] public int DropCount = 104;
-    private readonly Vector3[] _drops = new Vector3[104];
+    private Vector3[] _drops = System.Array.Empty<Vector3>();
     private readonly RandomNumberGenerator _rng = new();
     private Kart _kart;
     private float _speed;
 
     public override void _Ready()
     {
+        PhysicsInterpolationMode = PhysicsInterpolationModeEnum.Off;
+        DropCount = Mathf.Max(1, DropCount);
+        _drops = new Vector3[DropCount];
         _kart = GetNodeOrNull<Kart>("../../Kart");
         var material = new StandardMaterial3D
         {
@@ -43,13 +46,18 @@ public partial class CameraRainVfx : MultiMeshInstance3D
         }
     }
 
+    public override void _ExitTree()
+    {
+        SetProcess(false);
+        Multimesh = null;
+    }
+
     public override void _Process(double delta)
     {
         using var perf = PerfProbe.Measure(PerfHotspot.CameraRainProcess);
         if (Multimesh == null) return;
         _speed = _kart != null && GodotObject.IsInstanceValid(_kart) ? _kart.LinearVelocity.Length() : 0.0f;
         float fallSpeed = 13.0f + _speed * 1.18f;
-        _rng.Seed = (ulong)Time.GetTicksMsec();
         for (int index = 0; index < DropCount; index++)
         {
             _drops[index].Y -= fallSpeed * (float)delta;

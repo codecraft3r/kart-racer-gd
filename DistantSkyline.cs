@@ -1,4 +1,5 @@
 using Godot;
+using System.Collections.Generic;
 
 /// <summary>
 /// Collision-free, camera-parallax skyline used to extend the playable city beyond its road grid.
@@ -29,11 +30,11 @@ public partial class DistantSkyline : Node3D
 
     public override void _Process(double delta)
     {
-        _camera ??= GetViewport().GetCamera3D();
-        if (_camera == null)
-        {
+        if (!IsInstanceValid(_camera))
+            _camera = GetViewport()?.GetCamera3D();
+
+        if (!IsInstanceValid(_camera))
             return;
-        }
 
         Vector3 cameraPlanar = _camera.GlobalPosition;
         cameraPlanar.Y = 0f;
@@ -65,6 +66,9 @@ public partial class DistantSkyline : Node3D
             EmissionEnergyMultiplier = 1.8f
         };
 
+        var towerTransforms = new List<Transform3D>(TowersPerBand);
+        var crownTransforms = new List<Transform3D>(TowersPerBand / 3 + 1);
+
         for (int index = 0; index < TowersPerBand; index++)
         {
             bool alongX = index % 2 == 0;
@@ -76,29 +80,50 @@ public partial class DistantSkyline : Node3D
             float width = random.RandfRange(5f, 12f);
             float depthSize = random.RandfRange(5f, 12f);
 
-            var tower = new MeshInstance3D
-            {
-                Name = $"SkylineTower{index:00}",
-                Position = position + Vector3.Up * (height * 0.5f),
-                Mesh = new BoxMesh { Size = new Vector3(width, height, depthSize) },
-                MaterialOverride = bodyMaterial,
-                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
-            };
-            band.AddChild(tower);
+            towerTransforms.Add(new Transform3D(
+                Basis.FromScale(new Vector3(width, height, depthSize)),
+                position + Vector3.Up * (height * 0.5f)));
             _towerCount++;
 
             if (index % 3 == 0)
             {
-                var crown = new MeshInstance3D
-                {
-                    Name = "NeonCrown",
-                    Position = position + Vector3.Up * (height + 0.7f),
-                    Mesh = new BoxMesh { Size = new Vector3(width * 0.92f, 0.7f, depthSize * 0.92f) },
-                    MaterialOverride = crownMaterial,
-                    CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
-                };
-                band.AddChild(crown);
+                crownTransforms.Add(new Transform3D(
+                    Basis.FromScale(new Vector3(width * 0.92f, 0.7f, depthSize * 0.92f)),
+                    position + Vector3.Up * (height + 0.7f)));
             }
         }
+
+        // A band used to be one mesh node per tower and crown. The instance transforms
+        // below describe the same boxes, so only the draw submission count changes.
+        float extent = radius + 16f;
+        var bandBounds = new Aabb(new Vector3(-extent, 0f, -extent), new Vector3(extent * 2f, 90f, extent * 2f));
+
+        AddInstancedBand(band, "SkylineTowers", towerTransforms, bodyMaterial, bandBounds);
+        AddInstancedBand(band, "SkylineCrowns", crownTransforms, crownMaterial, bandBounds);
+    }
+
+    private static void AddInstancedBand(Node3D band, string name, List<Transform3D> transforms, Material material, Aabb bounds)
+    {
+        if (transforms.Count == 0)
+            return;
+
+        var multimesh = new MultiMesh
+        {
+            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+            InstanceCount = transforms.Count,
+            Mesh = new BoxMesh { Size = Vector3.One },
+            CustomAabb = bounds
+        };
+
+        for (int index = 0; index < transforms.Count; index++)
+            multimesh.SetInstanceTransform(index, transforms[index]);
+
+        band.AddChild(new MultiMeshInstance3D
+        {
+            Name = name,
+            Multimesh = multimesh,
+            MaterialOverride = material,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
+        });
     }
 }

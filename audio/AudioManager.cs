@@ -57,10 +57,12 @@ public partial class AudioManager : Node
     public static AudioManager Instance { get; private set; }
 
     private const int LocalPoolSize = 12;
+    private const int MaxWorldPoolSize = 24;
     private readonly Dictionary<Cue, CueDefinition> _cues = new();
     private readonly List<AudioStreamPlayer> _localPlayers = new();
     private readonly List<AudioStreamPlayer3D> _worldPlayers = new();
     private int _nextLocalPlayer;
+    private int _nextWorldPlayer;
 
     private AudioStreamPlayer _cityAmbience;
     private AudioStreamPlayer _neonAmbience;
@@ -101,6 +103,49 @@ public partial class AudioManager : Node
     {
         if (Instance == this)
             Instance = null;
+
+        if (_cityAmbience != null)
+        {
+            _cityAmbience.Stop();
+            _cityAmbience.Stream = null;
+        }
+        if (_neonAmbience != null)
+        {
+            _neonAmbience.Stop();
+            _neonAmbience.Stream = null;
+        }
+        if (_industrialAmbience != null)
+        {
+            _industrialAmbience.Stop();
+            _industrialAmbience.Stream = null;
+        }
+        if (_musicA != null)
+        {
+            _musicA.Stop();
+            _musicA.Stream = null;
+        }
+        if (_musicB != null)
+        {
+            _musicB.Stop();
+            _musicB.Stream = null;
+        }
+        _activeMusic = null;
+        foreach (AudioStreamPlayer player in _localPlayers)
+        {
+            if (GodotObject.IsInstanceValid(player))
+            {
+                player.Stop();
+                player.Stream = null;
+            }
+        }
+        foreach (AudioStreamPlayer3D player in _worldPlayers)
+        {
+            if (GodotObject.IsInstanceValid(player))
+            {
+                player.Stop();
+                player.Stream = null;
+            }
+        }
     }
 
     public override void _Process(double delta)
@@ -201,14 +246,22 @@ public partial class AudioManager : Node
                 return player;
         }
 
-        var created = new AudioStreamPlayer3D
+        if (_worldPlayers.Count < MaxWorldPoolSize)
         {
-            ProcessMode = ProcessModeEnum.Pausable
-        };
-        AddChild(created);
-        _worldPlayers.Add(created);
-        PerfProbe.Count(PerfEvent.WorldAudioPlayerCreated);
-        return created;
+            var created = new AudioStreamPlayer3D
+            {
+                Name = $"WorldOneShot{_worldPlayers.Count:00}",
+                ProcessMode = ProcessModeEnum.Pausable
+            };
+            AddChild(created);
+            _worldPlayers.Add(created);
+            PerfProbe.Count(PerfEvent.WorldAudioPlayerCreated);
+            return created;
+        }
+
+        AudioStreamPlayer3D fallback = _worldPlayers[_nextWorldPlayer];
+        _nextWorldPlayer = (_nextWorldPlayer + 1) % _worldPlayers.Count;
+        return fallback;
     }
 
     private void LoadCueLibrary()

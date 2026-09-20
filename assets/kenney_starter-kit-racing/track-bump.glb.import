@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://crryafm176p4a"
-path="res://.godot/imported/track-bump.glb-614153bd27a1dfd99af77ca9ba8acfe9.scn"
+path="res://.godot/imported/track-bump.glb-dfef05c873ea8c85582e4b00af48b90d.scn"
 
 [deps]
 
-source_file="res://models/track-bump.glb"
-dest_files=["res://.godot/imported/track-bump.glb-614153bd27a1dfd99af77ca9ba8acfe9.scn"]
+source_file="res://assets/kenney_starter-kit-racing/track-bump.glb"
+dest_files=["res://.godot/imported/track-bump.glb-dfef05c873ea8c85582e4b00af48b90d.scn"]
 
 [params]
 

@@ -6,6 +6,7 @@ public partial class PickupZone : Area3D
 {
     [Export] public GameManager.CustomerDistance Distance = GameManager.CustomerDistance.Near;
     [Export] public GameManager.CustomerWealth Wealth = GameManager.CustomerWealth.Low;
+    [Export] public GameManager.CustomerArchetype Archetype = GameManager.CustomerArchetype.Standard;
     [Export] public int MaxAcceptableDamage = 30;
     [Export] public int GroupSize = 1;
     [Export] public float LoadTime = 5.0f;
@@ -99,6 +100,41 @@ public partial class PickupZone : Area3D
             Position = new Vector3(0.0f, 4.0f, 0.0f)
         };
         _visual.AddChild(_markerArrow);
+
+        string wealthSymbols = Wealth switch
+        {
+            GameManager.CustomerWealth.High => "$$$",
+            GameManager.CustomerWealth.Medium => "$$",
+            _ => "$"
+        };
+        string distanceBadge = Distance switch
+        {
+            GameManager.CustomerDistance.Far => "FAR",
+            GameManager.CustomerDistance.Moderate => "MID",
+            _ => "NEAR"
+        };
+        string archetypeBadge = Archetype switch
+        {
+            GameManager.CustomerArchetype.VIP => "★ VIP",
+            GameManager.CustomerArchetype.ThrillSeeker => "⚡ THRILL",
+            GameManager.CustomerArchetype.Commuter => $"👥 GROUP ({GroupSize})",
+            _ => "FARE"
+        };
+
+        var hologramLabel = new Label3D
+        {
+            Name = "FareHologramLabel",
+            Text = $"{archetypeBadge}\n{wealthSymbols} • {distanceBadge}",
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            NoDepthTest = true,
+            FontSize = 32,
+            PixelSize = 0.020f,
+            Modulate = _markerColor,
+            OutlineModulate = Colors.Black,
+            OutlineSize = 8,
+            Position = new Vector3(0.0f, 5.2f, 0.0f)
+        };
+        _visual.AddChild(hologramLabel);
 
         // Visible customers turn the abstract pickup ring into a readable curbside scene.
         for (int index = 0; index < GroupSize; index++)
@@ -260,6 +296,7 @@ public partial class PickupZone : Area3D
         {
             Distance = Distance,
             Wealth = Wealth,
+            Archetype = Archetype,
             MaxAcceptableDamage = MaxAcceptableDamage,
             GroupSize = GroupSize,
             LoadTime = LoadTime

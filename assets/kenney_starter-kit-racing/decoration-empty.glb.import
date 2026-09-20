@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dffh13ujx0tmi"
-path="res://.godot/imported/decoration-empty.glb-271acf6e8411fe3bd86095b85f2508e0.scn"
+path="res://.godot/imported/decoration-empty.glb-ec50ef4688f26e5f41f58e73a3ff777f.scn"
 
 [deps]
 
-source_file="res://models/decoration-empty.glb"
-dest_files=["res://.godot/imported/decoration-empty.glb-271acf6e8411fe3bd86095b85f2508e0.scn"]
+source_file="res://assets/kenney_starter-kit-racing/decoration-empty.glb"
+dest_files=["res://.godot/imported/decoration-empty.glb-ec50ef4688f26e5f41f58e73a3ff777f.scn"]
 
 [params]
 

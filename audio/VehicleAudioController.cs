@@ -23,6 +23,14 @@ public partial class VehicleAudioController : Node3D
         PlayEngineStart();
     }
 
+    public override void _ExitTree()
+    {
+        SetProcess(false);
+        if (_idlePlayer != null) { _idlePlayer.Stop(); _idlePlayer.Stream = null; }
+        if (_drivePlayer != null) { _drivePlayer.Stop(); _drivePlayer.Stream = null; }
+        if (_skidPlayer != null) { _skidPlayer.Stop(); _skidPlayer.Stream = null; }
+    }
+
     public override void _Process(double delta)
     {
         using var perf = PerfProbe.Measure(PerfHotspot.VehicleAudioProcess);
@@ -39,8 +47,12 @@ public partial class VehicleAudioController : Node3D
 
         Vector3 localVelocity = _kart.GlobalTransform.Basis.Inverse() * _kart.LinearVelocity;
         float lateralSlip = Mathf.Abs(localVelocity.X);
-        float skidIntensity = speed > 5.0f ? Mathf.Clamp((lateralSlip - 2.0f) / 7.0f, 0.0f, 1.0f) : 0.0f;
-        float skidTarget = Mathf.Lerp(-60.0f, -7.0f, skidIntensity);
+        float skidIntensity = speed > 4.0f ? Mathf.Clamp((lateralSlip - 1.8f) / 6.0f, 0.0f, 1.0f) : 0.0f;
+        if (_kart.DriftAmount > 0.15f && speed > 4.0f)
+            skidIntensity = Mathf.Max(skidIntensity, _kart.DriftAmount * 0.9f);
+        if (speed > 5.0f && _kart.BrakeInputActive)
+            skidIntensity = Mathf.Max(skidIntensity, 0.7f);
+        float skidTarget = Mathf.Lerp(-60.0f, -6.0f, skidIntensity);
 
         float blend = 1.0f - Mathf.Exp(-8.0f * dt);
         _idlePlayer.VolumeDb = Mathf.Lerp(_idlePlayer.VolumeDb, idleTarget, blend);
