@@ -13,6 +13,7 @@ public partial class EndlessRoadPickup : Area3D
 
     private Node3D _visual;
     private bool _collected;
+    private float _pulseTime;
 
     public bool IsAvailable => !_collected && IsInsideTree();
 
@@ -50,8 +51,23 @@ public partial class EndlessRoadPickup : Area3D
             _ => new Color(0.15f, 0.75f, 1.0f)
         };
         var mat = new StandardMaterial3D { AlbedoColor = color, EmissionEnabled = true, Emission = color * 0.7f, Transparency = BaseMaterial3D.TransparencyEnum.Alpha };
-        _visual.AddChild(new MeshInstance3D { Name = "PickupMesh", Mesh = new BoxMesh { Size = new Vector3(1.0f, 1.0f, 1.0f) }, MaterialOverride = mat, Position = new Vector3(0, 0.7f, 0) });
-        _visual.AddChild(new OmniLight3D { Name = "PickupLight", LightColor = color, LightEnergy = 0.6f, OmniRange = 6.0f, Position = new Vector3(0, 0.9f, 0) });
+        _visual.AddChild(new MeshInstance3D
+        {
+            Name = "PickupMesh",
+            Mesh = new BoxMesh { Size = new Vector3(1.0f, 1.0f, 1.0f) },
+            MaterialOverride = mat,
+            Position = new Vector3(0, 0.7f, 0),
+            Rotation = new Vector3(0.48f, 0.0f, 0.48f)
+        });
+        _visual.AddChild(new OmniLight3D
+        {
+            Name = "PickupLight",
+            LightColor = color,
+            LightEnergy = 0.45f,
+            OmniRange = 4.0f,
+            ShadowEnabled = false,
+            Position = new Vector3(0, 0.9f, 0)
+        });
         string label = Kind switch { PickupKind.Repair => "REPAIR", PickupKind.Score => "SCORE", _ => "BOOST" };
         _visual.AddChild(new Label3D { Name = "PickupLabel", Text = label, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true, FontSize = 18, Modulate = color, Position = new Vector3(0, 1.9f, 0) });
     }
@@ -59,7 +75,11 @@ public partial class EndlessRoadPickup : Area3D
     public override void _Process(double delta)
     {
         if (_visual != null && !_collected)
+        {
+            _pulseTime += (float)delta;
             _visual.RotateY((float)delta * 1.6f);
+            _visual.Position = new Vector3(0.0f, Mathf.Sin(_pulseTime * 3.0f) * 0.1f, 0.0f);
+        }
     }
 
     private void OnBodyEntered(Node body)

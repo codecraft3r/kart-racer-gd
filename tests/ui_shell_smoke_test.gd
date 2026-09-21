@@ -142,7 +142,10 @@ func _cleanup() -> void:
 	if current_scene == scene_to_free:
 		current_scene = null
 	scene_to_free.queue_free()
-	for _index in 8:
+	# Audio playbacks are released by the audio server over several frames after the streams are
+	# stopped and nulled. A short settle lets the runner see them as leaked resources, so wait
+	# long enough for teardown to finish before quitting.
+	for _index in 20:
 		await process_frame
 	if probe != null:
 		probe.call("CollectManagedResources")

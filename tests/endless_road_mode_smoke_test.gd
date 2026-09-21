@@ -83,15 +83,26 @@ func _cleanup(scene_root: Node, mode: Node) -> void:
 		director.call("Deactivate")
 	if mode != null and mode.has_method("ResetRun"):
 		mode.call("ResetRun")
+	# Hardened audio teardown, matching the other smoke tests: stop and release every player
+	# before freeing the manager, then drain the managed finalizer waves. Without this, audio
+	# playbacks can still be alive at exit and the runner reports leaked resources.
+	var probe_script: Script = load("res://tests/harness/HarnessProbe.cs")
+	var probe := probe_script.new() as Node if probe_script != null else null
+	if probe != null:
+		get_root().add_child(probe)
+		probe.call("ReleaseAudioManagerResources")
 	var audio_manager := get_root().get_node_or_null("AudioManager") as Node
 	if audio_manager != null:
-		audio_manager.queue_free()
+		audio_manager.free()
 	var scene_to_free := scene_root
 	if current_scene == scene_to_free:
 		current_scene = null
 	scene_to_free.queue_free()
-	for _index in 8:
+	for _index in 20:
 		await process_frame
+	if probe != null:
+		probe.call("CollectManagedResources")
+		probe.free()
 
 func _wait_ms(ms: int) -> void:
 	var start := Time.get_ticks_msec()

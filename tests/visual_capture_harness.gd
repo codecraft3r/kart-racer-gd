@@ -391,6 +391,7 @@ func _stage_boarding(shell: Node, kart: RigidBody3D, scene_root: Node) -> bool:
 	if _probe == null or not _probe.has_method("ArrangePassenger") or not bool(_probe.call("ArrangePassenger", _scene, true)): return false
 	await _physics_ticks(2)
 	var state := _probe_observation(); var loaded := bool(state.get("has_passenger", false)) and str(state.get("passenger_state", "")) == "boarding" and float(state.get("boarding_progress", 0.0)) > 0.0 and float(state.get("boarding_progress", 0.0)) < 1.0
+	if loaded: _hold_arranged_state(scene_root)
 	_add_assertion("boarding_passenger_loaded", loaded, state); return loaded
 
 func _stage_dropoff(shell: Node, kart: RigidBody3D, camera: Camera3D, scene_root: Node) -> bool:
@@ -408,7 +409,18 @@ func _stage_dropoff(shell: Node, kart: RigidBody3D, camera: Camera3D, scene_root
 	if arranged and taxi != null and taxi.has_method("GetPlayerDestination"):
 		var destination: Vector3 = taxi.call("GetPlayerDestination", 1)
 		arranged = destination != Vector3.ZERO and kart.global_position.distance_to(destination) <= 1.5
+	if arranged: _hold_arranged_state(scene_root)
 	_add_assertion("dropoff_state_observed", arranged, state); return arranged
+
+# A fixture capture is taken several frames after its state is arranged, and the final
+# observation runs after that. Boarding progress and the drop-off settle both keep counting in
+# that window, so on fast frames the arranged state completes and is replaced by a delivered
+# passenger, which fails requested_state_observed. Freeze the mode so the arranged state holds.
+func _hold_arranged_state(scene_root: Node) -> void:
+	var taxi := scene_root.get_node_or_null("Modes/TaxiMode")
+	if taxi == null: return
+	taxi.set_process(false)
+	taxi.set_physics_process(false)
 
 func _stage_repair(shell: Node, kart: RigidBody3D, scene_root: Node) -> bool:
 	if _setup_mode == "journey":
@@ -581,7 +593,12 @@ func _apply_camera_preset(camera: Camera3D, kart: RigidBody3D, preset: String) -
 	match preset:
 		"chase": camera.global_position = kp - forward * 5.8 + up * 2.3; camera.look_at(kp + up * 0.9, up); camera.fov = 68.0
 		"hood": camera.global_position = kp + forward * 0.95 + up * 0.75; camera.look_at(kp + forward * 18.0 + up * 0.65, up); camera.fov = 80.0
-		"cockpit": camera.global_position = kp + forward * 0.1 + up * 0.92; camera.look_at(kp + forward * 15.0 + up * 0.8, up); camera.fov = 75.0
+		"cockpit":
+			# A driver's-seat preset sits inside the cab, so the kart's own body mesh filled the
+			# whole frame and the capture reviewed nothing. Hide the kart's visual container so
+			# this preset shows the road ahead, which is what it exists to inspect.
+			if vis != null: vis.visible = false
+			camera.global_position = kp + forward * 0.1 + up * 0.92; camera.look_at(kp + forward * 15.0 + up * 0.8, up); camera.fov = 75.0
 		"birds_eye", "top_down": camera.global_position = kp + up * 35.0; camera.look_at(kp, forward); camera.fov = 55.0
 		"orbit", "turntable", "beauty": camera.global_position = kp + right * 4.2 - forward * 4.2 + up * 1.8; camera.look_at(kp + up * 0.6, up); camera.fov = 50.0
 		"front", "head_on": camera.global_position = kp + forward * 5.2 + up * 0.9; camera.look_at(kp + up * 0.5, up); camera.fov = 60.0
@@ -726,7 +743,10 @@ func _teardown_and_quit() -> void:
 	_stop_audio_players(get_root())
 	var audio_manager := get_root().get_node_or_null("AudioManager")
 	if audio_manager != null: audio_manager.queue_free()
-	for _frame in 8: await process_frame
+	# Audio playbacks are released by the audio server over several frames after the streams are
+	# stopped and nulled. A short settle lets the runner see them as leaked resources, so wait
+	# long enough for teardown to finish before quitting.
+	for _frame in 20: await process_frame
 	var cleanup_complete := not is_instance_valid(_scene_to_check) and not is_instance_valid(audio_manager)
 	var result := {"schema_version": RESULT_SCHEMA_VERSION, "run_id": _run_id, "state": _state if _suite.is_empty() else _suite, "status": "passed" if _exit_code == 0 and _errors.is_empty() else "failed", "errors": _errors, "assertions": _assertions, "artifacts": _artifacts, "observations": _observations, "cleanup_complete": cleanup_complete, "seed": _seed, "setup_mode": _setup_mode, "duration_ms": (Time.get_ticks_usec() - _started_usec) / 1000.0}
 	result["resolution"] = {"width": _resolution.x, "height": _resolution.y}

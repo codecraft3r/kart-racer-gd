@@ -64,6 +64,19 @@ theme_override_font_sizes/font_size = 14
 text = "KM/H"
 horizontal_alignment = 1
 
+[node name="StateLabel" type="Label" parent="UIRoot/HUDContainer/Speedometer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.82)
+theme_override_font_sizes/font_size = 16
+text = "CRUISE"
+horizontal_alignment = 1
+
+[node name="DriftBar" type="ProgressBar" parent="UIRoot/HUDContainer/Speedometer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(140, 10)
+layout_mode = 2
+max_value = 1.8
+show_percentage = false
+
 [node name="Timer" type="PanelContainer" parent="UIRoot/HUDContainer"]
 layout_mode = 1
 anchors_preset = 1
@@ -74,6 +87,46 @@ offset_top = 20.0
 offset_right = -20.0
 offset_bottom = 80.0
 grow_horizontal = 0
+
+[node name="BoostPanel" type="PanelContainer" parent="UIRoot/HUDContainer"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -205.0
+offset_right = -20.0
+offset_bottom = -130.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="MarginContainer" type="MarginContainer" parent="UIRoot/HUDContainer/BoostPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 15
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 15
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UIRoot/HUDContainer/BoostPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="BoostCaption" type="Label" parent="UIRoot/HUDContainer/BoostPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.7)
+theme_override_font_sizes/font_size = 14
+text = "BOOST"
+horizontal_alignment = 1
+
+[node name="BoostBar" type="ProgressBar" parent="UIRoot/HUDContainer/BoostPanel/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(140, 10)
+layout_mode = 2
+max_value = 1.0
+value = 1.0
+show_percentage = false
 
 [node name="MarginContainer" type="MarginContainer" parent="UIRoot/HUDContainer/Timer"]
 layout_mode = 2
@@ -109,7 +162,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="PauseMenu" type="PanelContainer" parent="UIRoot/PauseOverlay/CenterContainer"]
-custom_minimum_size = Vector2(250, 0)
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 
 [node name="MarginContainer" type="MarginContainer" parent="UIRoot/PauseOverlay/CenterContainer/PauseMenu"]
@@ -126,18 +179,32 @@ alignment = 1
 
 [node name="PauseTitle" type="Label" parent="UIRoot/PauseOverlay/CenterContainer/PauseMenu/MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.941176, 1, 1)
 theme_override_font_sizes/font_size = 28
 text = "PAUSED"
 horizontal_alignment = 1
 
 [node name="ResumeButton" type="Button" parent="UIRoot/PauseOverlay/CenterContainer/PauseMenu/MarginContainer/VBoxContainer"]
+focus_neighbor_top = NodePath("../QuitButton")
+focus_neighbor_bottom = NodePath("../RestartButton")
 layout_mode = 2
 text = "RESUME"
 
 [node name="RestartButton" type="Button" parent="UIRoot/PauseOverlay/CenterContainer/PauseMenu/MarginContainer/VBoxContainer"]
+focus_neighbor_top = NodePath("../ResumeButton")
+focus_neighbor_bottom = NodePath("../QuitButton")
 layout_mode = 2
 text = "RESTART"
 
 [node name="QuitButton" type="Button" parent="UIRoot/PauseOverlay/CenterContainer/PauseMenu/MarginContainer/VBoxContainer"]
+focus_neighbor_top = NodePath("../RestartButton")
+focus_neighbor_bottom = NodePath("../ResumeButton")
 layout_mode = 2
 text = "QUIT"
+
+[node name="PauseHint" type="Label" parent="UIRoot/PauseOverlay/CenterContainer/PauseMenu/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.55)
+theme_override_font_sizes/font_size = 13
+text = "ESC / START TOGGLES PAUSE"
+horizontal_alignment = 1

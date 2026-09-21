@@ -22,7 +22,19 @@ public partial class EndlessRoadSettings : Resource
     [Export] public float OffroadDamagePerSecond = 8.0f;
     [Export] public float BoostMaxCharge = 1.0f;
     [Export] public float BoostConsumePerSecond = 0.55f;
-    [Export] public float BoostRechargePerSecond = 0.18f;
+    /// <summary>
+    /// A trickle, not a strategy. Burnout's boost is earned by driving dangerously, so the
+    /// passive rate only keeps a stranded player from being permanently locked out.
+    /// </summary>
+    [Export] public float BoostRechargePerSecond = 0.02f;
+    // Boost drains at BoostConsumePerSecond, so the payouts are sized for a driver who keeps
+    // chaining danger: near misses, drifts and drafting together should roughly sustain the
+    // bar, and a takedown should be worth more than half of it. Payouts below this made boost
+    // strictly harder to get than the passive trickle they replaced.
+    [Export] public float BoostAwardNearMiss = 0.25f;
+    [Export] public float BoostAwardDrift = 0.12f;
+    [Export] public float BoostAwardDraft = 0.10f;
+    [Export] public float BoostAwardTakedown = 0.60f;
     [Export] public float BoostSpeedFactor = 1.35f;
     [Export] public float BoostAccelerationFactor = 1.6f;
     [Export] public float ChainWindowSeconds = 3.5f;

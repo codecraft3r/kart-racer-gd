@@ -19,9 +19,27 @@ public partial class EndlessRoadRival : RigidBody3D
     private Kart _target;
     private float _stateTimer;
     private float _ramCooldown;
+    private float _takedownCooldown;
     private int _lane = 2;
     private MeshInstance3D _telegraphMesh;
     private RandomNumberGenerator _rng = new();
+
+    /// <summary>
+    /// The player must be genuinely faster than the rival to wreck it, so matched-speed trading
+    /// of paint stays a failed ram. Boost is what closes the gap, which is the Burnout loop:
+    /// earn boost by driving dangerously, then spend it to hunt rivals.
+    /// </summary>
+    private const float PlayerTakedownSpeed = 14.0f;
+    private const float PlayerTakedownSpeedMargin = 2.0f;
+
+    /// <summary>
+    /// A rival wrecked by its own pack. Rivals that commit to a ram run well above the pack's
+    /// shadowing speed, so the fast one ploughs through the slow one. Only the slower rival is
+    /// wrecked, which stops a pair from wrecking each other on the same contact.
+    /// </summary>
+    private const float RivalTakedownSpeedMargin = 3.0f;
+    private const int RivalTakedownScore = 200;
+    private const float RivalTakedownBoostShare = 0.4f;
 
     public override void _Ready()
     {
@@ -78,6 +96,7 @@ public partial class EndlessRoadRival : RigidBody3D
 
         float dt = (float)delta;
         _ramCooldown = Mathf.Max(0.0f, _ramCooldown - dt);
+        _takedownCooldown = Mathf.Max(0.0f, _takedownCooldown - dt);
         _stateTimer -= dt;
 
         Vector3 toTarget = _target.GlobalPosition - GlobalPosition;
@@ -179,6 +198,17 @@ public partial class EndlessRoadRival : RigidBody3D
     {
         if (body is Kart kart && kart == _target)
         {
+            // The player slammed us. A real speed advantage wrecks the rival outright; that is
+            // the signature Burnout takedown, and it is the payoff for spending earned boost.
+            float playerSpeed = kart.LinearVelocity.Length();
+            float rivalSpeed = LinearVelocity.Length();
+            if (State != RivalState.Disabled && _takedownCooldown <= 0.0f &&
+                playerSpeed >= PlayerTakedownSpeed && playerSpeed > rivalSpeed + PlayerTakedownSpeedMargin)
+            {
+                AwardTakedown();
+                return;
+            }
+
             // Failed ram — player gets a takedown window if rival hits barrier next.
             EndlessRoadMode.Instance?.AddScore(120);
             _ramCooldown = 3.0f;
@@ -187,11 +217,58 @@ public partial class EndlessRoadRival : RigidBody3D
         }
         else if (body is StaticBody3D && State == RivalState.Ram && IsObstacle(body))
         {
-            // Rival ate a wall on its own ram — big takedown.
-            EndlessRoadMode.Instance?.AddScore(450);
-            AudioManager.Instance?.PlayLocal(AudioManager.Cue.CollisionHeavy, -1.0f, 0.95f);
-            Transition(RivalState.Disabled, 3.5f);
-            ApplyCentralImpulse(new Vector3((float)GD.RandRange(-1, 1), 0.6f, -1) * 260.0f);
+            // Rival ate a wall on its own ram — the player gets the takedown.
+            AwardTakedown();
         }
+        else if (body is EndlessRoadRival other)
+        {
+            // Pack-on-pack carnage. The player still gets paid, because herding the pack into
+            // itself is the point, but less than a takedown they landed themselves.
+            if (State != RivalState.Disabled && other.State != RivalState.Disabled &&
+                _takedownCooldown <= 0.0f &&
+                LinearVelocity.Length() + RivalTakedownSpeedMargin < other.LinearVelocity.Length())
+            {
+                AwardRivalTakedown();
+            }
+        }
+    }
+
+    private void AwardRivalTakedown()
+    {
+        var mode = EndlessRoadMode.Instance;
+        if (mode != null)
+        {
+            mode.AddScore(RivalTakedownScore);
+            mode.AddBoost(mode.Settings.BoostAwardTakedown * RivalTakedownBoostShare);
+        }
+        AudioManager.Instance?.PlayLocal(AudioManager.Cue.CollisionHeavy, -4.0f, 1.05f);
+        RetroNeonCabShell.Instance?.TriggerFloatingCash("RIVAL WRECKED!", new Color(1.0f, 0.62f, 0.12f));
+
+        _takedownCooldown = 3.0f;
+        Transition(RivalState.Disabled, 3.0f);
+        ApplyCentralImpulse(new Vector3((float)GD.RandRange(-1, 1), 0.6f, -1) * 200.0f);
+    }
+
+    /// <summary>
+    /// Big score, a chunk of earned boost, and a camera kick so the moment lands. The rival is
+    /// disabled and shoved, so a takedown reads as a wreck rather than a bump.
+    /// </summary>
+    private void AwardTakedown()
+    {
+        var mode = EndlessRoadMode.Instance;
+        if (mode != null)
+        {
+            mode.AddScore(450);
+            mode.AddBoost(mode.Settings.BoostAwardTakedown);
+        }
+        AudioManager.Instance?.PlayLocal(AudioManager.Cue.CollisionHeavy, -1.0f, 0.95f);
+        RetroNeonCabShell.Instance?.TriggerFloatingCash("TAKEDOWN! +BOOST", new Color(1.0f, 0.35f, 0.05f));
+        if (GetViewport()?.GetCamera3D() is TrackCamera takedownCamera)
+            takedownCamera.AddTrauma(0.7f);
+
+        _ramCooldown = 4.5f;
+        _takedownCooldown = 3.0f;
+        Transition(RivalState.Disabled, 3.5f);
+        ApplyCentralImpulse(new Vector3((float)GD.RandRange(-1, 1), 0.6f, -1) * 260.0f);
     }
 }

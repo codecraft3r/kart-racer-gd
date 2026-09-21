@@ -13,6 +13,7 @@ public partial class EndlessRoadHazard : Area3D
     [Export] public HazardKind Kind = HazardKind.OilSlick;
 
     private MeshInstance3D _mesh;
+    private Label3D _label;
 
     public void Configure(HazardKind kind)
     {
@@ -33,7 +34,7 @@ public partial class EndlessRoadHazard : Area3D
     private void BuildVisual()
     {
         foreach (Node c in GetChildren())
-            if (c.Name == "HazardMesh" || c.Name == "HazardCol" || c.Name == "HazardLight")
+            if (c.Name == "HazardMesh" || c.Name == "HazardCol" || c.Name == "HazardLight" || c.Name == "HazardLabel")
                 c.QueueFree();
         Vector3 size;
         Color color;
@@ -45,21 +46,39 @@ public partial class EndlessRoadHazard : Area3D
             case HazardKind.Ramp:
                 size = new Vector3(2.6f, 0.55f, 4.0f); color = new Color(0.95f, 0.88f, 0.25f); y = 0.28f; break;
             default:
-                size = new Vector3(2.4f, 0.06f, 4.5f); color = new Color(0.08f, 0.08f, 0.09f); y = 0.04f; break;
+                size = new Vector3(2.4f, 0.06f, 4.5f); color = new Color(0.12f, 0.08f, 0.2f); y = 0.04f; break;
         }
         _mesh = new MeshInstance3D { Name = "HazardMesh", Mesh = new BoxMesh { Size = size }, Position = new Vector3(0, y, 0) };
         _mesh.MaterialOverride = new StandardMaterial3D
         {
             AlbedoColor = color,
-            EmissionEnabled = Kind != HazardKind.OilSlick,
-            Emission = color * 0.55f,
+            EmissionEnabled = true,
+            Emission = color * (Kind == HazardKind.OilSlick ? 0.18f : 0.55f),
             Roughness = Kind == HazardKind.OilSlick ? 0.25f : 0.75f,
             Metallic = Kind == HazardKind.OilSlick ? 0.35f : 0.05f
         };
         AddChild(_mesh);
         AddChild(new CollisionShape3D { Name = "HazardCol", Shape = new BoxShape3D { Size = size }, Position = new Vector3(0, y, 0) });
         if (Kind == HazardKind.FireStrip)
-            AddChild(new OmniLight3D { Name = "HazardLight", LightColor = color, LightEnergy = 0.9f, OmniRange = 7.0f, Position = new Vector3(0, 0.7f, 0) });
+            AddChild(new OmniLight3D { Name = "HazardLight", LightColor = color, LightEnergy = 0.7f, OmniRange = 5.0f, ShadowEnabled = false, Position = new Vector3(0, 0.7f, 0) });
+
+        string text = Kind switch
+        {
+            HazardKind.FireStrip => "FIRE",
+            HazardKind.Ramp => "JUMP",
+            _ => "OIL"
+        };
+        _label = new Label3D
+        {
+            Name = "HazardLabel",
+            Text = text,
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            NoDepthTest = false,
+            FontSize = 14,
+            Modulate = color,
+            Position = new Vector3(0.0f, Kind == HazardKind.Ramp ? 1.0f : 0.52f, 0.0f)
+        };
+        AddChild(_label);
     }
 
     private void OnBodyEntered(Node body)

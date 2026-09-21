@@ -147,7 +147,10 @@ func _finish() -> void:
 	probe_to_free = null
 	# Give queued children, streamer chunks, and audio players several idle turns to
 	# release before the supervisor sees the success line and closes the process.
-	await _wait_frames(8)
+	# Audio playbacks are released by the audio server over several frames after the streams are
+	# stopped and nulled. A short settle lets the runner see them as leaked resources, so wait
+	# long enough for teardown to finish before quitting.
+	await _wait_frames(20)
 	var collector_script: Script = load("res://tests/harness/HarnessProbe.cs")
 	var collector := collector_script.new() as Node if collector_script != null else null
 	if collector != null:

@@ -16,6 +16,7 @@ public partial class EndlessRoadStreamer : Node3D
     [Export] public Node3D RoadRoot;
 
     private readonly List<EndlessRoadChunk> _activeChunks = new();
+    private readonly List<EndlessRoadChunk> _chunkPool = new();
     private readonly Dictionary<int, EndlessRoadChunk> _chunksByIndex = new();
     private int _firstIndex;
     private float _playerZ;
@@ -40,6 +41,17 @@ public partial class EndlessRoadStreamer : Node3D
     {
         if (Instance == this)
             Instance = null;
+
+        foreach (EndlessRoadChunk chunk in _chunkPool)
+        {
+            if (chunk != null && IsInstanceValid(chunk))
+            {
+                chunk.ReleaseGeneratedContent();
+                chunk.QueueFree();
+            }
+        }
+
+        _chunkPool.Clear();
     }
 
     public void Initialize(int seed)
@@ -77,8 +89,14 @@ public partial class EndlessRoadStreamer : Node3D
             int removeCount = firstDesired - _firstIndex;
             for (int i = 0; i < removeCount && _activeChunks.Count > 0; i++)
             {
-                if (_activeChunks[0] != null && IsInstanceValid(_activeChunks[0]))
-                    _activeChunks[0].QueueFree();
+                EndlessRoadChunk chunk = _activeChunks[0];
+                if (chunk != null && IsInstanceValid(chunk))
+                {
+                    chunk.Visible = false;
+                    chunk.ProcessMode = ProcessModeEnum.Disabled;
+                    chunk.GetParent()?.RemoveChild(chunk);
+                    _chunkPool.Add(chunk);
+                }
 
                 _chunksByIndex.Remove(_firstIndex);
                 _activeChunks.RemoveAt(0);
@@ -97,13 +115,30 @@ public partial class EndlessRoadStreamer : Node3D
         {
             var chunk = _activeChunks[i];
             if (chunk != null && IsInstanceValid(chunk))
+            {
+                chunk.ReleaseGeneratedContent();
                 chunk.QueueFree();
+            }
+        }
+
+        // Clear is also called immediately before the director queues this streamer for
+        // deletion. Detached pooled nodes would outlive that owner and trigger ObjectDB
+        // leak diagnostics, so only stream-boundary removals are pooled.
+        foreach (EndlessRoadChunk chunk in _chunkPool)
+        {
+            if (chunk != null && IsInstanceValid(chunk))
+            {
+                chunk.ReleaseGeneratedContent();
+                chunk.QueueFree();
+            }
         }
 
         _activeChunks.Clear();
+        _chunkPool.Clear();
         _chunksByIndex.Clear();
         _firstIndex = 0;
         _playerZ = 0.0f;
+        EndlessRoadChunk.ReleaseSharedGeometry();
     }
 
     public float GetChunkCenterZ(int index)
@@ -129,7 +164,12 @@ public partial class EndlessRoadStreamer : Node3D
             return;
 
         EndlessRoadChunk chunk;
-        if (ChunkScene != null)
+        if (_chunkPool.Count > 0)
+        {
+            chunk = _chunkPool[_chunkPool.Count - 1];
+            _chunkPool.RemoveAt(_chunkPool.Count - 1);
+        }
+        else if (ChunkScene != null)
         {
             chunk = ChunkScene.Instantiate<EndlessRoadChunk>();
         }
@@ -141,6 +181,8 @@ public partial class EndlessRoadStreamer : Node3D
         chunk.ChunkIndex = index;
         chunk.Initialize(Settings, _runSeed);
         chunk.Position = new Vector3(0.0f, 0.0f, index * Settings.ChunkLength);
+        chunk.Visible = true;
+        chunk.ProcessMode = ProcessModeEnum.Inherit;
 
         if (RoadRoot != null)
             RoadRoot.AddChild(chunk);
