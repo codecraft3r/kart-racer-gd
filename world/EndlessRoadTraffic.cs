@@ -22,6 +22,7 @@ public partial class EndlessRoadTraffic : AnimatableBody3D
 
     private MeshInstance3D _mesh;
     private MeshInstance3D _trim;
+    private MeshInstance3D _wreckSignature;
     private CollisionShape3D _col;
 
     public void Configure(TrafficKind kind, int lane, float speed, Color color, Vector3 size)
@@ -49,7 +50,17 @@ public partial class EndlessRoadTraffic : AnimatableBody3D
                 _trim.Mesh = new BoxMesh { Size = trimSize };
 
             _trim.Position = TrimOffset(kind, size);
+            _trim.MaterialOverride = MakeTrimMaterial(kind);
         }
+
+        EnsureWreckSignature(size);
+        Vector3 wreckTilt = kind == TrafficKind.Wreck
+            ? new Vector3(0.0f, Lane % 2 == 0 ? -0.12f : 0.12f, Lane % 2 == 0 ? 0.05f : -0.05f)
+            : Vector3.Zero;
+        _mesh.Rotation = wreckTilt;
+        _trim.Rotation = wreckTilt;
+        if (_wreckSignature != null)
+            _wreckSignature.Rotation = wreckTilt;
 
         SetPhysicsProcess(SpeedMps > 0.0f);
     }
@@ -93,6 +104,40 @@ public partial class EndlessRoadTraffic : AnimatableBody3D
             MaterialOverride = MakeTrimMaterial(Kind)
         };
         AddChild(_trim);
+        EnsureWreckSignature(size);
+    }
+
+    private void EnsureWreckSignature(Vector3 size)
+    {
+        if (Kind != TrafficKind.Wreck)
+        {
+            if (_wreckSignature != null)
+                _wreckSignature.Visible = false;
+            return;
+        }
+
+        if (_wreckSignature == null)
+        {
+            _wreckSignature = new MeshInstance3D
+            {
+                Name = "WreckSignature",
+                MaterialOverride = new StandardMaterial3D
+                {
+                    AlbedoColor = new Color(0.95f, 0.12f, 0.04f),
+                    EmissionEnabled = true,
+                    Emission = new Color(1.0f, 0.04f, 0.01f) * 0.9f,
+                    Roughness = 0.4f
+                }
+            };
+            AddChild(_wreckSignature);
+        }
+
+        _wreckSignature.Mesh = new BoxMesh
+        {
+            Size = new Vector3(size.X * 0.62f, size.Y * 0.11f, size.Z * 0.08f)
+        };
+        _wreckSignature.Position = new Vector3(0.0f, size.Y * 0.66f, size.Z * 0.18f);
+        _wreckSignature.Visible = true;
     }
 
     private static Vector3 TrimSize(TrafficKind kind, Vector3 size)
@@ -101,8 +146,8 @@ public partial class EndlessRoadTraffic : AnimatableBody3D
         {
             TrafficKind.Barricade => new Vector3(size.X * 0.86f, size.Y * 0.22f, size.Z * 1.06f),
             TrafficKind.Debris => new Vector3(size.X * 0.62f, size.Y * 0.5f, size.Z * 0.5f),
-            TrafficKind.Wreck => new Vector3(size.X * 0.76f, size.Y * 0.46f, size.Z * 0.54f),
-            _ => new Vector3(size.X * 0.74f, size.Y * 0.5f, size.Z * 0.46f)
+            TrafficKind.Wreck => new Vector3(size.X * 0.82f, size.Y * 0.42f, size.Z * 0.58f),
+            _ => new Vector3(size.X * 0.78f, size.Y * 0.52f, size.Z * 0.5f)
         };
     }
 
@@ -127,7 +172,13 @@ public partial class EndlessRoadTraffic : AnimatableBody3D
                 Emission = new Color(1.0f, 0.45f, 0.05f) * 0.9f,
                 Roughness = 0.5f
             },
-            TrafficKind.Wreck => new StandardMaterial3D { AlbedoColor = new Color(0.16f, 0.16f, 0.18f), Roughness = 0.92f },
+            TrafficKind.Wreck => new StandardMaterial3D
+            {
+                AlbedoColor = new Color(0.2f, 0.12f, 0.15f),
+                EmissionEnabled = true,
+                Emission = new Color(0.45f, 0.02f, 0.03f) * 0.35f,
+                Roughness = 0.92f
+            },
             TrafficKind.Debris => new StandardMaterial3D { AlbedoColor = new Color(0.29f, 0.21f, 0.14f), Roughness = 0.95f },
             _ => new StandardMaterial3D { AlbedoColor = new Color(0.13f, 0.15f, 0.2f), Roughness = 0.35f, Metallic = 0.25f }
         };

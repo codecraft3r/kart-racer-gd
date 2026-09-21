@@ -98,7 +98,10 @@ func _run() -> void:
 	if audio != null:
 		audio.free()
 	audio = null
-	for _index in 8:
+	# Audio playbacks are released by the audio server over several frames after the streams are
+	# stopped and nulled. A short settle lets the runner see them as leaked resources, so wait
+	# long enough for teardown to finish before quitting.
+	for _index in 20:
 		await process_frame
 	if probe != null:
 		probe.call("CollectManagedResources")

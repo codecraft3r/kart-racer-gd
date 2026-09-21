@@ -250,6 +250,20 @@ public partial class EndlessRoadMode : Node
         PublishRuntimeEvents();
     }
 
+    /// <summary>
+    /// Burnout-style boost economy: boost is paid out by dangerous driving (near-miss, drift,
+    /// drafting, takedown) rather than regenerating on a timer. The HUD has always advertised
+    /// "draft &amp; near-miss to recharge"; this is what makes that true.
+    /// </summary>
+    public void AddBoost(float amount)
+    {
+        if (amount <= 0.0f)
+            return;
+
+        Boost = Mathf.Min(Settings.BoostMaxCharge, Boost + amount);
+        PublishRuntimeEvents();
+    }
+
     public void ActivateBoost()
     {
         if (State != RunState.Running || Boost <= 0.0f || _boostActive)

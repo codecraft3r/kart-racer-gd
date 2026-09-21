@@ -49,6 +49,11 @@ public partial class TrackBuilder : Node3D
     private readonly List<Transform3D> _lightPoleBatch = new();
     private readonly List<Transform3D> _lightHeadBatch = new();
     private readonly List<Transform3D> _lightHeadAltBatch = new();
+    private readonly List<Transform3D> _roadBatch = new();
+    private readonly List<Transform3D> _intersectionBatch = new();
+    private readonly Dictionary<(ulong meshId, ulong materialId), SceneMeshBatch> _sceneMeshBatches = new();
+    private readonly List<MultiMeshInstance3D> _instancedBatchNodes = new();
+    private readonly List<MeshInstance3D> _layoutProbeMeshes = new();
     private float[] _verticalStreetCenters = Array.Empty<float>();
     private float[] _horizontalStreetCenters = Array.Empty<float>();
     private float[] _verticalStreetWidths = Array.Empty<float>();
@@ -62,6 +67,33 @@ public partial class TrackBuilder : Node3D
     private readonly HashSet<(int col, int row)> _repairShopSlots = new();
     private readonly List<Footprint> _repairShopFootprints = new();
     private bool _buildingCapacityWarningEmitted;
+
+    private readonly struct SceneMeshTransform
+    {
+        public readonly Mesh Mesh;
+        public readonly Material Material;
+        public readonly Transform3D Transform;
+
+        public SceneMeshTransform(Mesh mesh, Material material, Transform3D transform)
+        {
+            Mesh = mesh;
+            Material = material;
+            Transform = transform;
+        }
+    }
+
+    private sealed class SceneMeshBatch
+    {
+        public readonly Mesh Mesh;
+        public readonly Material Material;
+        public readonly List<Transform3D> Transforms = new();
+
+        public SceneMeshBatch(Mesh mesh, Material material)
+        {
+            Mesh = mesh;
+            Material = material;
+        }
+    }
 
     /// <summary>
     /// A horizontal, axis-aligned footprint in TrackBuilder-local space. Road
@@ -113,9 +145,42 @@ public partial class TrackBuilder : Node3D
     public IReadOnlyList<Vector3> IntersectionPositions => _intersectionPositions;
     public IReadOnlyList<RepairShop> RepairShops => _repairShops;
 
+    /// <summary>
+    /// Endless Road starts at the same origin as the taxi depot. Keep the depot's large neon
+    /// pad and gateway out of that presentation so it does not read as a broken foreground
+    /// road slab or a giant pillar clipping into the chase camera.
+    /// </summary>
+    public void SetEndlessPresentation(bool active)
+    {
+        Node3D depot = GetNodeOrNull<Node3D>("TaxiDepot");
+        if (depot != null)
+            depot.Visible = !active;
+    }
+
 
     public override void _ExitTree()
     {
+        foreach (MultiMeshInstance3D batchNode in _instancedBatchNodes)
+        {
+            if (!GodotObject.IsInstanceValid(batchNode))
+                continue;
+
+            batchNode.Multimesh = null;
+            batchNode.MaterialOverride = null;
+        }
+        _instancedBatchNodes.Clear();
+
+        foreach (MeshInstance3D probeMesh in _layoutProbeMeshes)
+        {
+            if (!GodotObject.IsInstanceValid(probeMesh))
+                continue;
+
+            probeMesh.Mesh = null;
+            probeMesh.MaterialOverride = null;
+        }
+        _layoutProbeMeshes.Clear();
+        _sceneMeshBatches.Clear();
+
         if (Instance == this)
             Instance = null;
     }
@@ -156,6 +221,7 @@ public partial class TrackBuilder : Node3D
         GenerateRepairShops();
         PlaceBuildings();
         PlaceDecorations();
+        FlushSceneMeshBatches();
         GenerateNeonLandmarks();
     }
 
@@ -277,30 +343,38 @@ public partial class TrackBuilder : Node3D
 
         for (int row = 0; row <= rows; row++)
         {
-            var roadMesh = new BoxMesh { Size = new Vector3(CityWidth(), 0.04f, HorizontalStreetWidth(row)) };
+            Vector3 size = new(CityWidth(), 0.04f, HorizontalStreetWidth(row));
+            Vector3 position = new(CityCenterX(), 0.025f, HorizontalStreetCoordinate(row));
+            _roadBatch.Add(CreateScaledUnitBoxTransform(size, position));
+
             var road = new MeshInstance3D
             {
-                Mesh = roadMesh,
+                Mesh = new BoxMesh { Size = size },
                 MaterialOverride = _roadMaterial,
-                Position = new Vector3(CityCenterX(), 0.025f, HorizontalStreetCoordinate(row))
+                Position = position,
+                Visible = false,
+                Name = $"RoadSegmentHorizontal{row:000}"
             };
-
             AddChild(road);
-            road.Name = $"RoadSegmentHorizontal{row:000}";
+            _layoutProbeMeshes.Add(road);
         }
 
         for (int column = 0; column <= columns; column++)
         {
-            var roadMesh = new BoxMesh { Size = new Vector3(VerticalStreetWidth(column), 0.045f, CityDepth()) };
+            Vector3 size = new(VerticalStreetWidth(column), 0.045f, CityDepth());
+            Vector3 position = new(VerticalStreetCoordinate(column), 0.03f, CityCenterZ());
+            _roadBatch.Add(CreateScaledUnitBoxTransform(size, position));
+
             var road = new MeshInstance3D
             {
-                Mesh = roadMesh,
+                Mesh = new BoxMesh { Size = size },
                 MaterialOverride = _roadMaterial,
-                Position = new Vector3(VerticalStreetCoordinate(column), 0.03f, CityCenterZ())
+                Position = position,
+                Visible = false,
+                Name = $"RoadSegmentVertical{column:000}"
             };
-
             AddChild(road);
-            road.Name = $"RoadSegmentVertical{column:000}";
+            _layoutProbeMeshes.Add(road);
         }
     }
 
@@ -315,16 +389,19 @@ public partial class TrackBuilder : Node3D
             for (int row = 0; row <= rows; row++)
             {
                 Vector3 pos = new Vector3(VerticalStreetCoordinate(column), 0.06f, HorizontalStreetCoordinate(row));
-                var intersectionMesh = new BoxMesh { Size = new Vector3(VerticalStreetWidth(column) * 1.08f, 0.055f, HorizontalStreetWidth(row) * 1.08f) };
+                Vector3 size = new(VerticalStreetWidth(column) * 1.08f, 0.055f, HorizontalStreetWidth(row) * 1.08f);
+                _intersectionBatch.Add(CreateScaledUnitBoxTransform(size, pos));
+
                 var intersection = new MeshInstance3D
                 {
-                    Mesh = intersectionMesh,
+                    Mesh = new BoxMesh { Size = size },
                     MaterialOverride = _intersectionMaterial,
-                    Position = pos
+                    Position = pos,
+                    Visible = false,
+                    Name = $"Intersection{column:00}_{row:00}"
                 };
-
                 AddChild(intersection);
-                intersection.Name = $"Intersection{column:00}_{row:00}";
+                _layoutProbeMeshes.Add(intersection);
                 _intersectionPositions.Add(pos);
             }
         }
@@ -820,6 +897,8 @@ public partial class TrackBuilder : Node3D
     /// </summary>
     private void FlushInstancedBatches()
     {
+        AddInstancedBatch("RoadSurfaceBatch", _roadBatch, _roadMaterial);
+        AddInstancedBatch("CityIntersectionBatch", _intersectionBatch, _intersectionMaterial);
         AddInstancedBatch("LaneMarkerBatch", _laneMarkerBatch, _laneMarkerMaterial);
         AddInstancedBatch("CurbMarkerWhiteBatch", _curbWhiteBatch, _curbWhiteMaterial);
         AddInstancedBatch("CurbMarkerRedBatch", _curbRedBatch, _curbRedMaterial);
@@ -829,7 +908,7 @@ public partial class TrackBuilder : Node3D
         AddInstancedBatch("TrackLightHeadAltBatch", _lightHeadAltBatch, _lightHeadAltMaterial);
     }
 
-    private void AddInstancedBatch(string name, List<Transform3D> transforms, Material material)
+    private void AddInstancedBatch(string name, List<Transform3D> transforms, Material material, Mesh mesh = null)
     {
         if (transforms.Count == 0)
             return;
@@ -838,19 +917,82 @@ public partial class TrackBuilder : Node3D
         {
             TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
             InstanceCount = transforms.Count,
-            Mesh = new BoxMesh { Size = Vector3.One },
+            Mesh = mesh ?? new BoxMesh { Size = Vector3.One },
             CustomAabb = ComputeInstanceBounds(transforms)
         };
 
         for (int index = 0; index < transforms.Count; index++)
             multimesh.SetInstanceTransform(index, transforms[index]);
 
-        AddChild(new MultiMeshInstance3D
+        var batchNode = new MultiMeshInstance3D
         {
             Name = name,
             Multimesh = multimesh,
             MaterialOverride = material
-        });
+        };
+        AddChild(batchNode);
+        _instancedBatchNodes.Add(batchNode);
+    }
+
+    private void FlushSceneMeshBatches()
+    {
+        int batchIndex = 0;
+        foreach (SceneMeshBatch batch in _sceneMeshBatches.Values)
+        {
+            AddSceneMeshBatch($"CityMeshBatch{batchIndex++:000}", batch);
+        }
+
+        _sceneMeshBatches.Clear();
+    }
+
+    private void AddSceneMeshBatch(string name, SceneMeshBatch batch)
+    {
+        if (batch.Transforms.Count == 0)
+            return;
+
+        var multimesh = new MultiMesh
+        {
+            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+            InstanceCount = batch.Transforms.Count,
+            Mesh = batch.Mesh,
+            CustomAabb = ComputeMeshInstanceBounds(batch.Mesh, batch.Transforms)
+        };
+
+        for (int index = 0; index < batch.Transforms.Count; index++)
+            multimesh.SetInstanceTransform(index, batch.Transforms[index]);
+
+        var batchNode = new MultiMeshInstance3D
+        {
+            Name = name,
+            Multimesh = multimesh,
+            MaterialOverride = batch.Material
+        };
+        AddChild(batchNode);
+        _instancedBatchNodes.Add(batchNode);
+    }
+
+    private static Transform3D CreateScaledUnitBoxTransform(Vector3 size, Vector3 position) =>
+        new(new Basis(Vector3.Right * size.X, Vector3.Up * size.Y, Vector3.Back * size.Z), position);
+
+    private static Aabb ComputeMeshInstanceBounds(Mesh mesh, List<Transform3D> transforms)
+    {
+        Aabb meshBounds = mesh.GetAabb();
+        bool started = false;
+        Aabb bounds = default;
+
+        foreach (Transform3D transform in transforms)
+        {
+            Aabb transformedBounds = TransformAabb(transform, meshBounds);
+            if (started)
+                bounds = bounds.Merge(transformedBounds);
+            else
+            {
+                bounds = transformedBounds;
+                started = true;
+            }
+        }
+
+        return started ? bounds : new Aabb(Vector3.Zero, Vector3.One);
     }
 
     /// <summary>
@@ -1073,8 +1215,19 @@ public partial class TrackBuilder : Node3D
             return false;
         }
 
-        AddChild(building);
-        building.Name = $"BuildingBlock{lot.Column:00}_{lot.Row:00}_{lot.Slot:00}_{buildingIndex:000}";
+        if (TryCollectSceneMeshTransforms(building, out List<SceneMeshTransform> visualMeshes))
+        {
+            AddSceneMeshTransforms(visualMeshes);
+            StripBatchedSceneMeshes(building);
+            AddChild(building);
+            building.Name = $"BuildingBlock{lot.Column:00}_{lot.Row:00}_{lot.Slot:00}_{buildingIndex:000}";
+        }
+        else
+        {
+            AddChild(building);
+            building.Name = $"BuildingBlock{lot.Column:00}_{lot.Row:00}_{lot.Slot:00}_{buildingIndex:000}";
+        }
+
         AddBuildingCollision(bounds, buildingIndex);
         return true;
     }
@@ -1138,9 +1291,102 @@ public partial class TrackBuilder : Node3D
             );
             deco.Rotation = new Vector3(0.0f, OrthogonalRotation() + _rng.RandfRange(-0.12f, 0.12f), 0.0f);
             ScaleAndGroundNode(deco, RandomRangeOrdered(DecorationFootprintMin, DecorationFootprintMax));
-            AddChild(deco);
-            deco.Name = $"Decoration{i:000}";
+            if (TryCollectSceneMeshTransforms(deco, out List<SceneMeshTransform> visualMeshes))
+            {
+                AddSceneMeshTransforms(visualMeshes);
+                StripBatchedSceneMeshes(deco);
+                AddChild(deco);
+                deco.Name = $"Decoration{i:000}";
+            }
+            else
+            {
+                AddChild(deco);
+                deco.Name = $"Decoration{i:000}";
+            }
         }
+    }
+
+    private static void StripBatchedSceneMeshes(Node node)
+    {
+        foreach (Node child in node.GetChildren())
+        {
+            if (child is MeshInstance3D)
+                child.Free();
+            else
+                StripBatchedSceneMeshes(child);
+        }
+    }
+
+    private void AddSceneMeshTransforms(List<SceneMeshTransform> visualMeshes)
+    {
+        foreach (SceneMeshTransform visualMesh in visualMeshes)
+        {
+            ulong meshId = visualMesh.Mesh.GetInstanceId();
+            ulong materialId = visualMesh.Material?.GetInstanceId() ?? 0UL;
+            var key = (meshId, materialId);
+
+            if (!_sceneMeshBatches.TryGetValue(key, out SceneMeshBatch batch))
+            {
+                batch = new SceneMeshBatch(visualMesh.Mesh, visualMesh.Material);
+                _sceneMeshBatches.Add(key, batch);
+            }
+
+            batch.Transforms.Add(visualMesh.Transform);
+        }
+    }
+
+    private static bool TryCollectSceneMeshTransforms(Node3D root, out List<SceneMeshTransform> visualMeshes)
+    {
+        visualMeshes = new List<SceneMeshTransform>();
+        bool hasMesh = false;
+        bool canBatch = CollectSceneMeshTransforms(root, Transform3D.Identity, true, visualMeshes, ref hasMesh);
+        return canBatch && hasMesh;
+    }
+
+    private static bool CollectSceneMeshTransforms(
+        Node node,
+        Transform3D parentTransform,
+        bool parentVisible,
+        List<SceneMeshTransform> visualMeshes,
+        ref bool hasMesh)
+    {
+        Transform3D localTransform = parentTransform;
+        bool visible = parentVisible;
+        if (node is Node3D node3D)
+        {
+            localTransform = parentTransform * node3D.Transform;
+            visible &= node3D.Visible;
+        }
+
+        if (node is MeshInstance3D meshInstance)
+        {
+            if (!visible)
+                return true;
+
+            hasMesh = true;
+            if (meshInstance.Mesh == null || meshInstance.MaterialOverlay != null)
+                return false;
+
+            for (int surface = 0; surface < meshInstance.Mesh.GetSurfaceCount(); surface++)
+            {
+                if (meshInstance.GetSurfaceOverrideMaterial(surface) != null)
+                    return false;
+            }
+
+            visualMeshes.Add(new SceneMeshTransform(meshInstance.Mesh, meshInstance.MaterialOverride, localTransform));
+        }
+        else if (node is GeometryInstance3D)
+        {
+            return false;
+        }
+
+        foreach (Node child in node.GetChildren())
+        {
+            if (!CollectSceneMeshTransforms(child, localTransform, visible, visualMeshes, ref hasMesh))
+                return false;
+        }
+
+        return true;
     }
 
     private void BuildCityLayout()

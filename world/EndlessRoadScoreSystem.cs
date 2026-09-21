@@ -58,6 +58,7 @@ public partial class EndlessRoadScoreSystem : Node
             {
                 _driftAwardTimer -= DriftAwardIntervalSeconds;
                 mode.AddScore(DriftPointsPerAward);
+                mode.AddBoost(mode.Settings.BoostAwardDrift);
             }
         }
         else
@@ -100,7 +101,12 @@ public partial class EndlessRoadScoreSystem : Node
             _draftTimer += dt;
             if (_draftTimer > 0.9f)
             {
-                EndlessRoadMode.Instance?.AddScore(18);
+                var mode = EndlessRoadMode.Instance;
+                if (mode != null)
+                {
+                    mode.AddScore(18);
+                    mode.AddBoost(mode.Settings.BoostAwardDraft);
+                }
                 _draftTimer = 0.45f;
             }
         }
@@ -116,6 +122,9 @@ public partial class EndlessRoadScoreSystem : Node
         float speed = _kart.LinearVelocity.Length();
         if (speed < 12.0f) return;
 
+        var mode = EndlessRoadMode.Instance;
+        if (mode == null) return;
+
         // Look sideways for a close lateral pass.
         var space = GetViewport()?.GetWorld3D()?.DirectSpaceState;
         if (space == null) return;
@@ -129,21 +138,28 @@ public partial class EndlessRoadScoreSystem : Node
             _nearMissQuery.CollideWithAreas = false;
             _nearMissQuery.CollideWithBodies = true;
             _nearMissQuery.Exclude = _kartExclude;
-            var hits = space.IntersectShape(_nearMissQuery, 4);
-            if (hits.Count > 0 && IsTrafficOrRival(hits[0]["collider"].As<Node>()))
+            // The road, shoulders, and barriers are bodies inside the same sphere, and the
+            // result order is not sorted, so scan every overlap. Checking only the first hit
+            // meant a near miss usually resolved to the road surface and never scored.
+            foreach (var hit in space.IntersectShape(_nearMissQuery, 8))
             {
+                Node collider = hit["collider"].As<Node>();
+                if (!IsTrafficOrRival(collider))
+                    continue;
+
                 // Require forward motion to count as a pass.
-                Vector3 otherPos = hits[0]["collider"].As<Node>() is Node3D n ? n.GlobalPosition : to;
+                Vector3 otherPos = collider is Node3D n ? n.GlobalPosition : to;
                 float lateral = Mathf.Abs((otherPos - pos).Dot(right));
-                if (lateral >= 0.35f && lateral <= 2.2f)
-                {
-                    _nearMissCooldown = 0.55f;
-                    EndlessRoadMode.Instance?.AddScore(95);
-                    AudioManager.Instance?.PlayLocal(AudioManager.Cue.CollisionLight, -8.0f, 1.35f);
-                    RetroNeonCabShell.Instance?.TriggerFloatingCash("+95 NEAR MISS!", new Color(0.0f, 0.94f, 1.0f));
-                    RetroNeonCabShell.Instance?.TriggerPassengerSpeech("CLOSE ONE!", new Color(1.0f, 0.9f, 0.2f));
-                    break;
-                }
+                if (lateral < 0.35f || lateral > 2.2f)
+                    continue;
+
+                _nearMissCooldown = 0.55f;
+                mode.AddScore(95);
+                mode.AddBoost(mode.Settings.BoostAwardNearMiss);
+                AudioManager.Instance?.PlayLocal(AudioManager.Cue.CollisionLight, -8.0f, 1.35f);
+                RetroNeonCabShell.Instance?.TriggerFloatingCash("+95 NEAR MISS! +BOOST", new Color(0.0f, 0.94f, 1.0f));
+                RetroNeonCabShell.Instance?.TriggerPassengerSpeech("CLOSE ONE!", new Color(1.0f, 0.9f, 0.2f));
+                return;
             }
         }
     }

@@ -6,23 +6,35 @@ public partial class CompassArrow : Node3D
     private MeshInstance3D _meshInstance;
     private float _timeAccumulator = 0.0f;
 
+    // The arrow hugs the roof of the cab. It used to be a 2 m opaque cone sitting 2.6 m up,
+    // and even a 0.72 m cone at 2 m reads as a screen-filling slab because the chase camera
+    // sits only ~5.8 m behind it. Keep it small, low, and translucent.
+    private const float HoverHeight = 1.5f;
+    private const float BobAmplitude = 0.07f;
+    private const float BobSpeed = 4.5f;
+    private const float HideWithinMeters = 7.0f;
+    private const float FullOpacityMeters = 28.0f;
+
     public override void _Ready()
     {
-        // 1. Create arrow visual programmatically
+        // 1. Create arrow visual programmatically: a slim hologram chevron, not a solid cone.
         var arrowMesh = new CylinderMesh
         {
             TopRadius = 0.0f,      // Cone tip pointing forward
-            BottomRadius = 0.5f,
-            Height = 2.0f,
+            BottomRadius = 0.17f,
+            Height = 0.46f,
             RadialSegments = 6
         };
 
         var arrowMaterial = new StandardMaterial3D
         {
-            AlbedoColor = new Color(0.0f, 0.95f, 1.0f), // Glowing neon cyan
+            AlbedoColor = new Color(0.0f, 0.95f, 1.0f, 0.42f), // Glowing neon cyan
             EmissionEnabled = true,
-            Emission = new Color(0.0f, 0.95f, 1.0f) * 1.2f,
-            Roughness = 0.2f
+            Emission = new Color(0.0f, 0.95f, 1.0f) * 1.4f,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+            NoDepthTest = false
         };
 
         _meshInstance = new MeshInstance3D
@@ -32,12 +44,12 @@ public partial class CompassArrow : Node3D
             MaterialOverride = arrowMaterial,
             // Cylinder stands vertical by default, rotate it so the tip points forward (-Z)
             Rotation = new Vector3(-Mathf.Pi / 2.0f, 0.0f, 0.0f),
-            Position = new Vector3(0.0f, 0.0f, -0.5f) // Offset so pivot is at the tail
+            Position = new Vector3(0.0f, 0.0f, -0.23f) // Offset so pivot is at the tail
         };
         AddChild(_meshInstance);
 
         // Position above the kart
-        Position = new Vector3(0.0f, 2.6f, 0.0f);
+        Position = new Vector3(0.0f, HoverHeight, 0.0f);
         Visible = false;
     }
 
@@ -63,8 +75,8 @@ public partial class CompassArrow : Node3D
         _timeAccumulator += (float)delta;
 
         // 1. Hover/floating animation
-        float hoverOffset = Mathf.Sin(_timeAccumulator * 4.5f) * 0.15f;
-        Position = new Vector3(0.0f, 2.6f + hoverOffset, 0.0f);
+        float hoverOffset = Mathf.Sin(_timeAccumulator * BobSpeed) * BobAmplitude;
+        Position = new Vector3(0.0f, HoverHeight + hoverOffset, 0.0f);
 
         Vector3 targetPos = Vector3.Zero;
         Color arrowColor = new Color(0.0f, 0.95f, 1.0f); // Default Cyan
@@ -113,14 +125,27 @@ public partial class CompassArrow : Node3D
             }
         }
 
-        if (Visible && GlobalPosition.DistanceSquaredTo(targetPos) > 0.2f)
+        if (!Visible)
+            return;
+
+        // Fade the cue out as the objective arrives so it never sits on top of the pickup or
+        // drop-off marker it is pointing at.
+        float distance = GlobalPosition.DistanceTo(targetPos);
+        if (distance <= HideWithinMeters)
+        {
+            Visible = false;
+            return;
+        }
+
+        float alpha = Mathf.Lerp(0.16f, 0.44f, Mathf.Clamp((distance - HideWithinMeters) / (FullOpacityMeters - HideWithinMeters), 0.0f, 1.0f));
+        if (GlobalPosition.DistanceSquaredTo(targetPos) > 0.2f)
         {
             LookAt(targetPos, Vector3.Up);
 
             var material = _meshInstance?.MaterialOverride as StandardMaterial3D;
             if (material != null)
             {
-                material.AlbedoColor = arrowColor;
+                material.AlbedoColor = new Color(arrowColor.R, arrowColor.G, arrowColor.B, alpha);
                 material.Emission = arrowColor * 1.2f;
             }
         }

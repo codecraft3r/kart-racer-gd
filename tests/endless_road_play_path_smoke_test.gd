@@ -79,7 +79,10 @@ func _cleanup(scene_root: Node, shell: Node, mode: Node) -> void:
 		current_scene = null
 	var scene_to_free := scene_root
 	scene_to_free.queue_free()
-	await _wait_frames(8)
+	# Audio playbacks are released by the audio server over several frames after the streams are
+	# stopped and nulled. A short settle lets the runner see them as leaked resources, so wait
+	# long enough for teardown to finish before quitting.
+	await _wait_frames(20)
 
 func _wait_frames(count: int) -> void:
 	for _index in count:

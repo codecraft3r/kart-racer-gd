@@ -157,6 +157,7 @@ public partial class RetroNeonCabShell : CanvasLayer
 
     private ShellScreen _currentScreen = ShellScreen.Main;
     private ShellScreen _previousScreen = ShellScreen.Main;
+    private readonly List<System.Action> _modalViewportSyncs = new();
     private int _pixelationFactor;
     private float _masterVolume = 80.0f;
     private bool _audioEnabled = true;
@@ -212,6 +213,7 @@ public partial class RetroNeonCabShell : CanvasLayer
             CallDeferred(_pendingStartEndless ? nameof(StartEndlessRoad) : nameof(StartRun));
 
         GetViewport().SizeChanged += UpdateCrtTransform;
+        GetViewport().SizeChanged += SyncModalViewports;
     }
 
     public override void _ExitTree()
@@ -220,7 +222,12 @@ public partial class RetroNeonCabShell : CanvasLayer
             Instance = null;
 
         if (IsInstanceValid(GetViewport()))
+        {
             GetViewport().SizeChanged -= UpdateCrtTransform;
+            GetViewport().SizeChanged -= SyncModalViewports;
+        }
+
+        _modalViewportSyncs.Clear();
 
         if (GetTree() != null)
             GetTree().Paused = false;
@@ -322,6 +329,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         _driftMeters = 0.0;
         _modeEventsWired = false;
         WireModeEvents();
+        TrackBuilder.Instance?.SetEndlessPresentation(false);
         _endlessRoadActive = false;
         if (_objectiveLabel != null && TaxiMode.Instance != null)
             _objectiveLabel.Text = $"SHIFT 1  //  QUOTA {TaxiMode.Instance.WinningCashTarget}";
@@ -479,6 +487,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         _endlessResultsShown = false;
         _modeEventsWired = false;
         WireModeEvents();
+        TrackBuilder.Instance?.SetEndlessPresentation(true);
         UpdateGameplayStats(GetKartSpeedMetersPerSecond());
         ShowScreen(ShellScreen.Gameplay);
         AnnounceNewUnlocks();
@@ -630,6 +639,7 @@ public partial class RetroNeonCabShell : CanvasLayer
             EndlessRoadDirector.Instance?.Deactivate();
             _endlessRoadActive = false;
         }
+        TrackBuilder.Instance?.SetEndlessPresentation(false);
         if (IsNetworked())
             MultiplayerManager.Instance?.Disconnect();
         else
@@ -1530,25 +1540,21 @@ public partial class RetroNeonCabShell : CanvasLayer
         Label title = MakeLabel("CAB CREW", _fontBody, 42, Hex("ff007f"), HorizontalAlignment.Center);
         stack.AddChild(title);
 
-        ScrollContainer scroll = new()
-        {
-            Name = "CreditsScroll",
-            CustomMinimumSize = new Vector2(0, 230)
-        };
         VBoxContainer crew = new()
         {
             Name = "CreditsList",
             Alignment = BoxContainer.AlignmentMode.Center
         };
         crew.AddThemeConstantOverride("separation", 12);
-        scroll.AddChild(crew);
         AddCredit(crew, "GAME DIRECTOR", "Pixel Taxi Driver");
         AddCredit(crew, "UI DESIGNER", "Synthwave Artist");
         AddCredit(crew, "MUSIC & SYNTH", "Original PAIN TAXI soundtrack");
         AddCredit(crew, "SOUND EFFECTS", "Kenney • rubberduck • OpenGameArt contributors");
         AddCredit(crew, "TIRE SKID", "audible-edge (Tom Haigh), CC BY 3.0");
         AddCredit(crew, "SPECIAL THANKS", "Based on Retro 80's Mood Board Assets");
-        stack.AddChild(WrapDarkBox("CreditsScrollBox", scroll));
+        // The crew list sits directly in the panel: the panel is already the scroll viewport,
+        // and a nested scroller clipped the list and added a stray horizontal bar.
+        stack.AddChild(WrapDarkBox("CreditsListBox", crew));
 
         Button back = MakePixelButton("BACK TO RUNS", false, 360.0f, 52.0f);
         back.Name = "BackToRunsButton";
@@ -2881,17 +2887,20 @@ public partial class RetroNeonCabShell : CanvasLayer
         };
         safeArea.AddChild(viewportCenter);
 
+        // A ScrollContainer reports no content size, and containers skip hidden children, so a
+        // parent-driven viewport can stay degenerate. Size it explicitly instead: the design
+        // height is a floor, the panel's own content raises it, and the visible canvas caps it
+        // so a long form scrolls rather than running off the screen.
         ScrollContainer scroll = new()
         {
             Name = $"{name}Scroll",
-            // CenterContainer allocates its child's minimum size. Scroll containers
-            // otherwise report no content height, collapsing this viewport to zero.
             CustomMinimumSize = new Vector2(width, height),
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
         viewportCenter.AddChild(scroll);
+        StyleModalScrollbar(scroll);
 
         CenterContainer panelCenter = new()
         {
@@ -2903,6 +2912,24 @@ public partial class RetroNeonCabShell : CanvasLayer
 
         PanelContainer panel = MakePanel(name, width, height);
         panelCenter.AddChild(panel);
+
+        void SyncViewport()
+        {
+            Vector2 content = panel.GetCombinedMinimumSize();
+            float canvasHeight = GetViewport()?.GetVisibleRect().Size.Y ?? height + 64.0f;
+            float available = Mathf.Max(canvasHeight - 64.0f, height);
+            Vector2 target = new(Mathf.Max(width, content.X), Mathf.Clamp(content.Y, height, available));
+            if (scroll.CustomMinimumSize != target)
+                scroll.CustomMinimumSize = target;
+            if (panelCenter.CustomMinimumSize != target)
+                panelCenter.CustomMinimumSize = target;
+        }
+
+        // The panel is populated after this returns, and its pit-stop rows toggle at runtime,
+        // so track the content minimum instead of trusting a one-shot design height.
+        panel.MinimumSizeChanged += SyncViewport;
+        _modalViewportSyncs.Add(SyncViewport);
+        Callable.From(SyncViewport).CallDeferred();
         return panel;
     }
 
@@ -3042,6 +3069,17 @@ public partial class RetroNeonCabShell : CanvasLayer
     {
         Control control = FindFirstFocusable(parent);
         control?.GrabFocus();
+    }
+
+    /// <summary>
+    /// Re-fits every modal viewport after a canvas resize. Subscribed as an instance method so
+    /// the shell can unsubscribe in <see cref="_ExitTree"/>; a capturing lambda on the viewport
+    /// signal would outlive the shell and keep freed panels alive.
+    /// </summary>
+    private void SyncModalViewports()
+    {
+        foreach (System.Action sync in _modalViewportSyncs)
+            sync();
     }
 
     private void ConfigureScreenFocus(Control screen)
@@ -3201,6 +3239,42 @@ public partial class RetroNeonCabShell : CanvasLayer
             8 => "8x (CHUNKY)",
             _ => $"{factor}x"
         };
+    }
+
+    /// <summary>
+    /// A long modal (the settings form) legitimately scrolls, and the stock scrollbar is a
+    /// plain grey bar that reads as a layout bug next to the pixel/neon chrome. Theme it.
+    /// </summary>
+    private void StyleModalScrollbar(ScrollContainer scroll)
+    {
+        VScrollBar bar = scroll.GetVScrollBar();
+        if (bar == null)
+            return;
+
+        bar.CustomMinimumSize = new Vector2(6.0f, 0.0f);
+        bar.AddThemeStyleboxOverride("scroll", MakeScrollTrackStyle());
+        bar.AddThemeStyleboxOverride("scroll_focus", MakeScrollTrackStyle());
+        bar.AddThemeStyleboxOverride("grabber", MakeScrollGrabberStyle(Hex("6e5d89")));
+        bar.AddThemeStyleboxOverride("grabber_highlight", MakeScrollGrabberStyle(Hex("35e7f2")));
+        bar.AddThemeStyleboxOverride("grabber_pressed", MakeScrollGrabberStyle(Hex("ff007f")));
+    }
+
+    private static StyleBoxFlat MakeScrollTrackStyle()
+    {
+        StyleBoxFlat style = new() { BgColor = new Color(0, 0, 0, 0.42f) };
+        style.SetBorderWidthAll(0);
+        style.SetCornerRadiusAll(0);
+        style.SetContentMarginAll(0);
+        return style;
+    }
+
+    private static StyleBoxFlat MakeScrollGrabberStyle(Color color)
+    {
+        StyleBoxFlat style = new() { BgColor = color };
+        style.SetBorderWidthAll(0);
+        style.SetCornerRadiusAll(0);
+        style.SetContentMarginAll(0);
+        return style;
     }
 
     private static Color Hex(string hex)

@@ -16,6 +16,7 @@ public partial class EndlessRoadChunk : Node3D
     private EndlessRoadSettings _settings;
     private RandomNumberGenerator _rng;
     private StaticBody3D _roadBody;
+    private bool _generated;
 
     private float ChunkLength => _settings?.ChunkLength ?? 80.0f;
 
@@ -28,6 +29,9 @@ public partial class EndlessRoadChunk : Node3D
     public void Initialize(EndlessRoadSettings settings, int runSeed)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        if (_generated)
+            ClearGeneratedNodes();
+
         // Derive a per-chunk RNG so layout is deterministic for a given (runSeed, ChunkIndex)
         // no matter when the chunk is streamed in. The cast keeps negative seeds usable.
         var chunkRng = new RandomNumberGenerator();
@@ -36,6 +40,33 @@ public partial class EndlessRoadChunk : Node3D
         RoadWidth = _settings.LaneCount * _settings.LaneWidth;
         GenerateRoadMesh();
         PopulateChunk();
+        _generated = true;
+    }
+
+    /// <summary>
+    /// Clears only generated children so the streamer can reuse a detached chunk without
+    /// allocating a new road tree at every stream boundary.
+    /// </summary>
+    private void ClearGeneratedNodes()
+    {
+        foreach (Node child in GetChildren())
+            child.Free();
+
+        _roadBody = null;
+    }
+
+    public void ReleaseGeneratedContent()
+    {
+        if (!_generated)
+            return;
+
+        ClearGeneratedNodes();
+        _generated = false;
+    }
+
+    public static void ReleaseSharedGeometry()
+    {
+        _sharedGeometry = null;
     }
 
     /// <summary>
@@ -51,7 +82,6 @@ public partial class EndlessRoadChunk : Node3D
         public float LaneWidth;
         public BoxShape3D RoadShape;
         public BoxMesh RoadMesh;
-        public BoxMesh LaneMarkerMesh;
         public BoxMesh ShoulderMesh;
         public BoxMesh BarrierMesh;
         public BoxShape3D BarrierShape;
@@ -59,6 +89,8 @@ public partial class EndlessRoadChunk : Node3D
         public StandardMaterial3D LaneMarkerMaterial;
         public StandardMaterial3D ShoulderMaterial;
         public StandardMaterial3D BarrierMaterial;
+        public StandardMaterial3D RoadsidePostMaterial;
+        public StandardMaterial3D RoadsideReflectorMaterial;
     }
 
     private static ChunkGeometry _sharedGeometry;
@@ -91,7 +123,6 @@ public partial class EndlessRoadChunk : Node3D
                 LaneWidth = _settings.LaneWidth,
                 RoadShape = new BoxShape3D { Size = new Vector3(roadWidth, 0.5f, chunkLength) },
                 RoadMesh = new BoxMesh { Size = new Vector3(roadWidth, 0.05f, chunkLength) },
-                LaneMarkerMesh = new BoxMesh { Size = new Vector3(0.18f, 0.02f, chunkLength) },
                 ShoulderMesh = new BoxMesh { Size = new Vector3(shoulderWidth, 0.05f, chunkLength) },
                 BarrierMesh = new BoxMesh { Size = new Vector3(barrierWidth, barrierHeight, chunkLength) },
                 BarrierShape = new BoxShape3D { Size = new Vector3(barrierWidth, barrierHeight, chunkLength) },
@@ -118,6 +149,22 @@ public partial class EndlessRoadChunk : Node3D
                 {
                     AlbedoColor = new Color(0.85f, 0.08f, 0.2f),
                     Roughness = 0.75f,
+                    Metallic = 0.1f
+                },
+                RoadsidePostMaterial = new StandardMaterial3D
+                {
+                    AlbedoColor = new Color(0.04f, 0.34f, 0.48f),
+                    EmissionEnabled = true,
+                    Emission = new Color(0.02f, 0.28f, 0.55f) * 0.75f,
+                    Roughness = 0.62f,
+                    Metallic = 0.2f
+                },
+                RoadsideReflectorMaterial = new StandardMaterial3D
+                {
+                    AlbedoColor = new Color(1.0f, 0.62f, 0.08f),
+                    EmissionEnabled = true,
+                    Emission = new Color(1.0f, 0.34f, 0.03f) * 0.8f,
+                    Roughness = 0.5f,
                     Metallic = 0.1f
                 }
             };
@@ -146,19 +193,27 @@ public partial class EndlessRoadChunk : Node3D
         GenerateLaneMarkers(geometry);
         GenerateShoulders(geometry);
         GenerateBarriers(geometry);
+        GenerateRoadFurniture(geometry);
     }
 
     private void GenerateLaneMarkers(ChunkGeometry geometry)
     {
+        var transforms = new List<Transform3D>();
+        const float dashLength = 3.4f;
+        const float dashGap = 4.6f;
+
         for (int lane = 1; lane < _settings.LaneCount; lane++)
         {
             float x = -RoadWidth * 0.5f + lane * _settings.LaneWidth;
-            var marker = new MeshInstance3D { Name = $"LaneMarker{lane}" };
-            marker.Mesh = geometry.LaneMarkerMesh;
-            marker.Position = new Vector3(x, 0.02f, _settings.ChunkLength * 0.5f);
-            marker.MaterialOverride = geometry.LaneMarkerMaterial;
-            AddChild(marker);
+            for (float z = dashLength * 0.5f; z < _settings.ChunkLength; z += dashLength + dashGap)
+            {
+                transforms.Add(new Transform3D(
+                    Basis.FromScale(new Vector3(0.18f, 0.02f, dashLength)),
+                    new Vector3(x, 0.02f, z)));
+            }
         }
+
+        AddInstancedBatch("LaneMarkerBatch", transforms, geometry.LaneMarkerMaterial, geometry.RoadWidth);
     }
 
     private void GenerateShoulders(ChunkGeometry geometry)
@@ -201,6 +256,73 @@ public partial class EndlessRoadChunk : Node3D
         var rbBody = new StaticBody3D { Name = "RightBarrierBody", Position = right.Position };
         rbBody.AddChild(new CollisionShape3D { Shape = geometry.BarrierShape });
         AddChild(rbBody);
+    }
+
+    /// <summary>
+    /// Small, repeated roadside references make forward motion legible in peripheral vision.
+    /// They are submitted as two MultiMeshes per chunk, so the visual density does not create
+    /// one node or draw call per post.
+    /// </summary>
+    private void GenerateRoadFurniture(ChunkGeometry geometry)
+    {
+        var postTransforms = new List<Transform3D>();
+        var reflectorTransforms = new List<Transform3D>();
+        float halfRoad = RoadWidth * 0.5f;
+        const float shoulderWidth = 1.25f;
+        const float postSpacing = 12.0f;
+
+        for (float z = 6.0f; z < _settings.ChunkLength; z += postSpacing)
+        {
+            float phase = Mathf.PosMod(ChunkIndex, 2) == 0 ? 1.0f : -1.0f;
+            float postHeight = Mathf.IsEqualApprox(Mathf.PosMod(z, postSpacing * 2.0f), 6.0f) ? 1.55f : 1.2f;
+            float leftX = -halfRoad - shoulderWidth * 0.55f;
+            float rightX = halfRoad + shoulderWidth * 0.55f;
+
+            postTransforms.Add(new Transform3D(
+                Basis.FromScale(new Vector3(0.12f, postHeight, 0.12f)),
+                new Vector3(leftX, postHeight * 0.5f, z)));
+            postTransforms.Add(new Transform3D(
+                Basis.FromScale(new Vector3(0.12f, postHeight, 0.12f)),
+                new Vector3(rightX, postHeight * 0.5f, z)));
+
+            float reflectorY = postHeight * 0.72f;
+            reflectorTransforms.Add(new Transform3D(
+                Basis.FromScale(new Vector3(0.5f, 0.12f, 0.08f)),
+                new Vector3(leftX + phase * 0.02f, reflectorY, z)));
+            reflectorTransforms.Add(new Transform3D(
+                Basis.FromScale(new Vector3(0.5f, 0.12f, 0.08f)),
+                new Vector3(rightX - phase * 0.02f, reflectorY, z)));
+        }
+
+        AddInstancedBatch("RoadsidePostBatch", postTransforms, geometry.RoadsidePostMaterial, RoadWidth + 4.0f);
+        AddInstancedBatch("RoadsideReflectorBatch", reflectorTransforms, geometry.RoadsideReflectorMaterial, RoadWidth + 4.0f);
+    }
+
+    private void AddInstancedBatch(string name, List<Transform3D> transforms, Material material, float width)
+    {
+        if (transforms.Count == 0)
+            return;
+
+        var multimesh = new MultiMesh
+        {
+            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+            InstanceCount = transforms.Count,
+            Mesh = new BoxMesh { Size = Vector3.One },
+            CustomAabb = new Aabb(
+                new Vector3(-width * 0.5f - 2.0f, -0.1f, -1.0f),
+                new Vector3(width + 4.0f, 2.2f, _settings.ChunkLength + 2.0f))
+        };
+
+        for (int index = 0; index < transforms.Count; index++)
+            multimesh.SetInstanceTransform(index, transforms[index]);
+
+        AddChild(new MultiMeshInstance3D
+        {
+            Name = name,
+            Multimesh = multimesh,
+            MaterialOverride = material,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
+        });
     }
 
 

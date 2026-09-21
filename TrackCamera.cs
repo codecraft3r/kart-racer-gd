@@ -39,6 +39,10 @@ public partial class TrackCamera : Camera3D
     private bool _hasSnapped;
     private float _trauma;
     private float _shakeTime;
+    // Reused across frames so the single obstruction ray does not allocate
+    // a query object or an RID exclusion array per frame.
+    private PhysicsRayQueryParameters3D _obstructionQuery;
+    private readonly Godot.Collections.Array<Rid> _obstructionExclude = new();
 
     public Node3D TargetVehicle => _targetVehicle;
 
@@ -63,6 +67,16 @@ public partial class TrackCamera : Camera3D
         _visualContainer = _targetVehicle.GetNodeOrNull<Node3D>("VisualContainer");
         _targetBody = _targetVehicle as RigidBody3D;
         _hasSnapped = false;
+        if (_obstructionQuery == null)
+        {
+            _obstructionQuery = PhysicsRayQueryParameters3D.Create(Vector3.Zero, Vector3.Zero);
+            _obstructionQuery.CollideWithAreas = false;
+            _obstructionQuery.CollideWithBodies = true;
+            _obstructionQuery.Exclude = _obstructionExclude;
+        }
+        _obstructionExclude.Clear();
+        if (_targetBody != null)
+            _obstructionExclude.Add(_targetBody.GetRid());
 
         if (_visualContainer == null)
             GD.PushWarning("TrackCamera expects the target vehicle to contain a VisualContainer child.");
@@ -103,12 +117,22 @@ public partial class TrackCamera : Camera3D
         float height = BaseHeight + SpeedLift * speedT;
         Vector3 targetPosition = _visualContainer.GlobalPosition + Vector3.Up * height - chaseForward * distance - right * slipT * DriftCameraOffset;
         Vector3 obstructionAnchor = _visualContainer.GlobalPosition + Vector3.Up * (height * 0.7f);
-        var query = PhysicsRayQueryParameters3D.Create(obstructionAnchor, targetPosition);
-        query.CollideWithAreas = false;
-        query.CollideWithBodies = true;
-        if (_targetBody != null)
-            query.Exclude = new Godot.Collections.Array<Rid> { _targetBody.GetRid() };
-        var obstruction = GetWorld3D().DirectSpaceState.IntersectRay(query);
+        if (_obstructionQuery == null)
+        {
+            _obstructionQuery = PhysicsRayQueryParameters3D.Create(obstructionAnchor, targetPosition);
+            _obstructionQuery.CollideWithAreas = false;
+            _obstructionQuery.CollideWithBodies = true;
+            _obstructionQuery.Exclude = _obstructionExclude;
+            _obstructionExclude.Clear();
+            if (_targetBody != null)
+                _obstructionExclude.Add(_targetBody.GetRid());
+        }
+        else
+        {
+            _obstructionQuery.From = obstructionAnchor;
+            _obstructionQuery.To = targetPosition;
+        }
+        var obstruction = GetWorld3D().DirectSpaceState.IntersectRay(_obstructionQuery);
         if (obstruction.Count > 0)
         {
             Vector3 point = obstruction["position"].AsVector3();
@@ -119,16 +143,27 @@ public partial class TrackCamera : Camera3D
 
         Vector3 lookTarget = _visualContainer.GlobalPosition + Vector3.Up * LookHeight + chaseForward * LookAheadDistance * Mathf.Lerp(0.35f, 1.0f, speedT);
         Transform3D targetTransform = new Transform3D(Basis.Identity, smoothPosition).LookingAt(lookTarget, Vector3.Up);
-        float rollRadians = Mathf.DegToRad(Mathf.Clamp(-lateralSpeed * RollResponse, -MaxRollDegrees, MaxRollDegrees));
+        // Reduced motion keeps the horizon stable: drift lean is a comfort
+        // risk even though it is not a trauma shake, so hold roll at zero.
+        float rollRadians = AccessibilitySettings.ReducedMotion
+            ? 0.0f
+            : Mathf.DegToRad(Mathf.Clamp(-lateralSpeed * RollResponse, -MaxRollDegrees, MaxRollDegrees));
         Basis targetBasis = targetTransform.Basis.Rotated(targetTransform.Basis.Z.Normalized(), rollRadians).Orthonormalized();
 
-        _trauma = Mathf.Max(0.0f, _trauma - ShakeDecay * dt);
-        _shakeTime += dt * 28.0f;
-        float shake = _trauma * _trauma;
-        Vector3 shakeOffset = right * (Mathf.Sin(_shakeTime * 1.7f) * MaxShakeOffset * shake) +
-            Vector3.Up * (Mathf.Sin(_shakeTime * 2.3f) * MaxShakeOffset * 0.65f * shake);
-        float shakeRoll = Mathf.DegToRad(Mathf.Sin(_shakeTime * 1.3f) * MaxShakeRollDegrees * shake);
-        targetBasis = targetBasis.Rotated(targetBasis.Z.Normalized(), shakeRoll).Orthonormalized();
+        if (AccessibilitySettings.ReducedMotion)
+            _trauma = 0.0f;
+        else
+            _trauma = Mathf.Max(0.0f, _trauma - ShakeDecay * dt);
+        Vector3 shakeOffset = Vector3.Zero;
+        if (_trauma > 0.0f)
+        {
+            _shakeTime += dt * 28.0f;
+            float shake = _trauma * _trauma;
+            shakeOffset = right * (Mathf.Sin(_shakeTime * 1.7f) * MaxShakeOffset * shake) +
+                Vector3.Up * (Mathf.Sin(_shakeTime * 2.3f) * MaxShakeOffset * 0.65f * shake);
+            float shakeRoll = Mathf.DegToRad(Mathf.Sin(_shakeTime * 1.3f) * MaxShakeRollDegrees * shake);
+            targetBasis = targetBasis.Rotated(targetBasis.Z.Normalized(), shakeRoll).Orthonormalized();
+        }
 
         GlobalTransform = new Transform3D(
             _hasSnapped ? GlobalTransform.Basis.Orthonormalized().Slerp(targetBasis, lookBlend).Orthonormalized() : targetBasis,
