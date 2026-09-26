@@ -9,7 +9,7 @@ This folder contains the free sound-effects pass and the first mastered Suno sou
 - `vehicles/` — startup, looping engine layers, tire skid, impacts, and destruction.
 - `ambience/` — city traffic, neon/cyber bed, industrial loops, and a staged rain loop.
 - `weapons/` — staged arcade weapon, rocket, explosion, and pickup cues for the weapon system.
-- `music/game/` — normalized, Godot-ready Vorbis soundtrack variants. Lossless masters and untouched source renders live in the Godot-ignored `audio_masters/` folder.
+- `music/game/` — normalized, Godot-ready Vorbis soundtrack variants. Lossless masters and untouched source renders live in the Godot-ignored `audio_masters/` folder. `PTX_01`–`PTX_04` came from batch 01; `PTX_05`–`PTX_12` plus the two `PTX_RADIO_*` song pairs came from the user-supplied batch-02 zips. The `PTX_RADIO_*` songs have vocals and are opt-in radio content, not part of the instrumental gameplay rotation.
 - `licenses/` — source license texts.
 - `audio_asset_manifest.csv` — source, creator, license, and local-file tracking.
 
