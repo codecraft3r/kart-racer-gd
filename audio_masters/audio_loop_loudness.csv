@@ -1,0 +1,66 @@
+local_path,duration_seconds,sample_rate,channels,codec,integrated_lufs,true_peak_dbtp,loop_mode,loop_notes
+assets/audio/ambience/city_traffic.ogg,59.592,44100,1,vorbis,-22.59,-1.85,runtime_loop_forward,AudioManager.LoadLoop sets Loop=true for the ambience bed; bed material is continuous so wrap-around is inaudible.
+assets/audio/ambience/construction.ogg,14.52,48000,2,vorbis,-19.94,-6.84,runtime_loop_forward,AudioManager.LoadLoop sets Loop=true for the ambience bed; bed material is continuous so wrap-around is inaudible.
+assets/audio/ambience/industrial_machine.ogg,10.652,48000,2,vorbis,-25.64,-9.16,runtime_loop_forward,AudioManager.LoadLoop sets Loop=true for the ambience bed; bed material is continuous so wrap-around is inaudible.
+assets/audio/ambience/neon_city.ogg,29.304,22050,1,vorbis,-24.85,-9.67,runtime_loop_forward,AudioManager.LoadLoop sets Loop=true for the ambience bed; bed material is continuous so wrap-around is inaudible.
+assets/audio/ambience/rain.ogg,88.612,37453,2,vorbis,-29.56,-10.76,runtime_loop_forward,AudioManager.LoadLoop sets Loop=true for the ambience bed; bed material is continuous so wrap-around is inaudible.
+assets/audio/gameplay/boarding_tick.ogg,0.032,44100,2,vorbis,-inf,-1.78,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/gameplay/cash.ogg,0.23,44100,2,vorbis,-inf,-0.81,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/gameplay/countdown_go.ogg,0.444,44100,1,vorbis,-13.85,-1.58,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/gameplay/countdown_tick.ogg,0.549,44100,1,vorbis,-10.65,-0.06,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/gameplay/fare_complete.ogg,0.575,44100,1,vorbis,-12.15,-0.88,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/gameplay/match_lose.ogg,0.408,44100,2,vorbis,-12.15,-5.88,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/gameplay/match_win.ogg,0.604,44100,2,vorbis,-10.28,-4.67,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/gameplay/passenger_bailout.ogg,0.784,44100,1,vorbis,-11.47,-0.63,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/gameplay/passenger_board.ogg,0.753,48000,2,vorbis,-17.67,-1.14,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/gameplay/pickup_enter.ogg,0.731,44100,1,vorbis,-14.34,-1.65,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/gameplay/respawn.ogg,0.392,44100,2,vorbis,-inf,-0.79,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/gameplay/warning.ogg,0.522,44100,1,vorbis,-9.05,-0.84,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/music/game/PTX_01_MeterGlow_A.ogg,20.84,48000,2,vorbis,-16.03,-4.75,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_01_MeterGlow_B.ogg,30.0,48000,2,vorbis,-16.00,-3.80,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_02_DispatchAfterDark_A.ogg,94.92,48000,2,vorbis,-16.01,-4.28,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_02_DispatchAfterDark_B.ogg,9.88,48000,2,vorbis,-15.98,-3.19,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_03_FlagfallFever_A.ogg,34.88,48000,2,vorbis,-16.07,-6.03,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_03_FlagfallFever_B.ogg,39.76,48000,2,vorbis,-16.11,-5.02,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_04_RushHourRiot_A.ogg,147.88,48000,2,vorbis,-16.06,-5.10,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_04_RushHourRiot_B.ogg,177.6,48000,2,vorbis,-16.08,-4.82,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_05_FoundryFreeway_A.ogg,163.608,48000,2,vorbis,-16.10,-3.56,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_05_FoundryFreeway_B.ogg,162.048,48000,2,vorbis,-16.10,-3.47,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_06_WetAsphalt_A.ogg,151.968,48000,2,vorbis,-16.05,-3.13,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_06_WetAsphalt_B.ogg,178.512,48000,2,vorbis,-16.07,-3.75,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_07_FareEvasion_A.ogg,126.768,48000,2,vorbis,-16.02,-3.45,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_07_FareEvasion_B.ogg,173.232,48000,2,vorbis,-16.03,-3.63,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_08_RedlineReceipt_A.ogg,174.072,48000,2,vorbis,-16.01,-4.28,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_08_RedlineReceipt_B.ogg,86.712,48000,2,vorbis,-16.05,-4.07,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_09_LastFareOut_A.ogg,172.08,48000,2,vorbis,-16.08,-2.98,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_09_LastFareOut_B.ogg,158.448,48000,2,vorbis,-16.05,-3.38,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_10_ChromeAndCoffee_A.ogg,229.992,48000,2,vorbis,-16.00,-2.93,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_10_ChromeAndCoffee_B.ogg,178.032,48000,2,vorbis,-15.99,-3.22,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_11_PaidInFull_A.ogg,62.448,48000,2,vorbis,-16.09,-3.56,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_11_PaidInFull_B.ogg,54.0,48000,2,vorbis,-16.09,-4.90,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_12_MeterExpired_A.ogg,163.992,48000,2,vorbis,-15.97,-4.12,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_12_MeterExpired_B.ogg,183.552,48000,2,vorbis,-15.98,-4.03,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_RADIO_15_ExactChange_A.ogg,191.448,48000,2,vorbis,-16.04,-3.71,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_RADIO_15_ExactChange_B.ogg,188.232,48000,2,vorbis,-16.02,-3.43,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_RADIO_16_DontCloseYet_A.ogg,282.792,48000,2,vorbis,-16.06,-3.08,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/music/game/PTX_RADIO_16_DontCloseYet_B.ogg,307.44,48000,2,vorbis,-16.07,-2.85,runtime_loop_forward,AudioManager.PlayMusic sets AudioStreamOggVorbis.Loop=true and crossfades 1.2 s between MusicA/MusicB; no baked loop point.
+assets/audio/ui/back.ogg,0.35,44100,2,vorbis,-inf,-1.80,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/ui/confirm.ogg,0.086,44100,2,vorbis,-inf,-0.71,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/ui/hover.ogg,0.057,44100,2,vorbis,-inf,-1.75,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/ui/toggle.ogg,0.333,44100,2,vorbis,-inf,-0.17,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/vehicles/collision_heavy_01.ogg,0.168,44100,2,vorbis,-inf,-0.91,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/vehicles/collision_heavy_02.ogg,0.359,44100,2,vorbis,-inf,-1.09,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/vehicles/collision_heavy_03.ogg,0.117,44100,2,vorbis,-inf,-1.18,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/vehicles/collision_light.ogg,0.584,44100,2,vorbis,-14.85,3.73,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/vehicles/collision_medium_01.ogg,0.272,44100,2,vorbis,-inf,-1.16,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/vehicles/collision_medium_02.ogg,0.143,44100,2,vorbis,-inf,-1.21,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/vehicles/collision_medium_03.ogg,0.119,44100,2,vorbis,-inf,-1.09,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/vehicles/destroyed.ogg,1.48,44100,2,vorbis,-24.62,-1.14,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/vehicles/engine_drive.wav,0.719,44100,1,pcm_s16le,-15.87,-6.19,runtime_loop_forward,"VehicleAudioController drive layer; source is an already loop-cut engine cycle, LoopMode=Forward over the whole file."
+assets/audio/vehicles/engine_idle.wav,0.864,44100,1,pcm_s16le,-13.70,-2.87,runtime_loop_forward,"VehicleAudioController idle layer; source is an already loop-cut engine cycle, LoopMode=Forward over the whole file."
+assets/audio/vehicles/engine_start.wav,1.647,44100,2,pcm_s16le,-18.45,-8.06,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/vehicles/tire_skid.wav,3.0,96000,1,pcm_s24le,-12.11,-1.65,runtime_loop_forward,"Skid layer looped while lateral slip is high; volume-driven, not retriggered."
+assets/audio/weapons/assault_fire.ogg,0.984,44100,1,vorbis,-17.02,-0.82,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/weapons/explosion_arcade.ogg,1.475,44100,1,vorbis,-19.31,-0.75,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/weapons/pickup.ogg,0.522,44100,1,vorbis,-11.65,-0.13,one_shot,Fired as a pooled one-shot; no loop flag applied.
+assets/audio/weapons/rocket_launch.ogg,0.496,44100,2,vorbis,-14.15,-1.24,one_shot,Fired as a pooled one-shot; no loop flag applied.

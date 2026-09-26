@@ -9,7 +9,9 @@ public partial class AudioManager : Node
         Menu,
         Lobby,
         Gameplay,
-        Results
+        Results,
+        RadioExactChange,
+        RadioDontCloseYet
     }
 
     public enum Cue
@@ -190,7 +192,17 @@ public partial class AudioManager : Node
                     false,
                     "res://assets/audio/music/game/PTX_04_RushHourRiot_B.ogg");
                 break;
+            case MusicContext.RadioExactChange:
+                PlayMusic("res://assets/audio/music/game/PTX_RADIO_15_ExactChange_A.ogg", true);
+                break;
+            case MusicContext.RadioDontCloseYet:
+                PlayMusic("res://assets/audio/music/game/PTX_RADIO_16_DontCloseYet_A.ogg", true);
+                break;
             case MusicContext.Results:
+                // Victory bed; the defeat path re-selects RadioDontCloseYet after
+                // the Results select in ShowScreen.
+                PlayMusic("res://assets/audio/music/game/PTX_11_PaidInFull_A.ogg", true);
+                break;
             case MusicContext.Menu:
             default:
                 PlayMusic("res://assets/audio/music/game/PTX_01_MeterGlow_B.ogg", true);

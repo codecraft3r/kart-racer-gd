@@ -2503,6 +2503,16 @@ public partial class RetroNeonCabShell : CanvasLayer
             AudioManager.Instance?.PlayLocal(AudioManager.Cue.CollisionHeavy, -4.0f, 0.85f);
 
         ShowScreen(ShellScreen.Results);
+        // Results music follows the outcome: victory track on a cleared shift,
+        // defeat bed otherwise. Reset the context first so the Results select
+        // in ShowScreen is not skipped as a same-context no-op.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.SetMusicContext(AudioManager.MusicContext.Menu);
+            AudioManager.Instance.SetMusicContext(shiftCleared
+                ? AudioManager.MusicContext.Results
+                : AudioManager.MusicContext.RadioDontCloseYet);
+        }
     }
 
     private void RefreshPitStoreButtons()
