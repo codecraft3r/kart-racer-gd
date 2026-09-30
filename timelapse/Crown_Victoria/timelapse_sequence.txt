@@ -1,0 +1,3 @@
+crown_game_yellow.png | Crown Victoria integrated in Godot, taxi yellow, roof sign on
+crown_game_midnight.png | Paint customization: midnight blue
+crown_game_ivory.png | Paint customization: ivory

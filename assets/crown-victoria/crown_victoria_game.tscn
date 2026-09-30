@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/crown-victoria/taxi_lod0_imported.scn" id="1_vehicle"]
+
+[node name="CrownVictoria" type="Node3D"]
+
+[node name="VehicleVisual" type="Node3D" parent="."]
+rotation = Vector3(0, 3.14159265, 0)
+scale = Vector3(0.52, 0.52, 0.52)
+
+[node name="TaxiLOD0" parent="VehicleVisual" instance=ExtResource("1_vehicle")]

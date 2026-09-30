@@ -119,6 +119,7 @@ public partial class RocketProjectile : Node3D
                         float falloff = Mathf.Clamp(1.0f - (dist / BlastRadius), 0.2f, 1.0f);
                         int damage = Mathf.RoundToInt(BaseDamage * falloff);
 
+                        kart.ApplyCrownImpact(explosionPos, 12.0f + 10.0f * falloff);
                         GameManager.Instance?.ApplyVehicleDamage(kart.OwnerPeerId, damage);
 
                         Vector3 impulseDir = (kart.GlobalPosition - explosionPos).Normalized();

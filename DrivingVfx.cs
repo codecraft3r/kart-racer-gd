@@ -22,6 +22,7 @@ public partial class DrivingVfx : Node3D
     private bool? _lastBraking;
     private float _sparkTimer;
     private bool _lightBudgetApplied;
+    private bool? _lastCrownVictoria;
 
     public override void _Ready()
     {
@@ -201,6 +202,16 @@ public partial class DrivingVfx : Node3D
         ApplyLightBudget();
         using var perf = PerfProbe.Measure(PerfHotspot.DrivingVfxProcess);
         if (_kart == null || !GodotObject.IsInstanceValid(_kart)) return;
+
+        bool crownVictoria = _kart.VehicleOption == 5;
+        if (_lastCrownVictoria != crownVictoria)
+        {
+            _lastCrownVictoria = crownVictoria;
+            foreach (MeshInstance3D lamp in _headLamps) lamp.Visible = !crownVictoria;
+            foreach (MeshInstance3D lamp in _brakeLamps) lamp.Visible = !crownVictoria;
+            _headlightSpot.Position = crownVictoria ? new Vector3(0, 0.38f, 1.21f) : new Vector3(0, 0.42f, 1.40f);
+            _underglow.Visible = !crownVictoria && !_kart.IsAI;
+        }
 
         float dt = (float)delta;
         float speed = _kart.LinearVelocity.Length();

@@ -22,7 +22,8 @@ public static class VehicleUnlocks
         new("EARN $2,500 IN A RUN", 2500, 0),
         new("DRIVE 1,500 m ENDLESS", 0, 1500),
         new("DRIVE 4,000 m ENDLESS", 0, 4000),
-        new("EARN $25,000 IN A RUN", 25000, 0)
+        new("EARN $25,000 IN A RUN", 25000, 0),
+        new("CROWN VICTORIA", 0, 0)
     };
 
     public static int Count => Requirements.Length;

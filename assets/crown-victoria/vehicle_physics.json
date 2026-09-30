@@ -1,0 +1,1354 @@
+{
+  "asset": "Crown Victoria Taxi \u2014 game asset",
+  "source_author": "MAC2001",
+  "license": "CC BY 3.0",
+  "units": "metres",
+  "length_m": 5.38,
+  "axes": {
+    "blender": {
+      "front": "+Y",
+      "up": "+Z",
+      "left": "-X"
+    },
+    "gltf": {
+      "front": "-Z",
+      "up": "+Y",
+      "left": "-X"
+    }
+  },
+  "source_evaluated_triangles": 625490,
+  "lod_triangles": {
+    "0": 16388,
+    "1": 7499,
+    "2": 2915
+  },
+  "render_materials": 2,
+  "damage_channels": [
+    "Dent_Front",
+    "Dent_Rear",
+    "Dent_Left",
+    "Dent_Right",
+    "Dent_Roof"
+  ],
+  "parts": {
+    "Door_FL": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        -0.7660157680511475,
+        0.9620440602302551,
+        0.8480606079101562
+      ],
+      "rest_position_gltf_m": [
+        -0.7660157680511475,
+        0.8480606079101562,
+        -0.9620440602302551
+      ],
+      "mass_kg_estimate": 32,
+      "break_impulse_Ns_tunable": 900,
+      "damage_keys": [
+        "Dent_Front",
+        "Dent_Left",
+        "Dent_Roof"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.2180810570716858,
+          -1.235998511314392,
+          -0.5758015513420105
+        ],
+        [
+          0.2180810570716858,
+          0.02499997615814209,
+          0.5758014917373657
+        ]
+      ],
+      "triangles": {
+        "0": 1100,
+        "1": 506,
+        "2": 198
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        -0.605499267578125,
+        -2.9802322387695312e-08
+      ]
+    },
+    "Door_FR": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        0.7660157680511475,
+        0.9620441198348999,
+        0.8478890061378479
+      ],
+      "rest_position_gltf_m": [
+        0.7660157680511475,
+        0.8478890061378479,
+        -0.9620441198348999
+      ],
+      "mass_kg_estimate": 32,
+      "break_impulse_Ns_tunable": 900,
+      "damage_keys": [
+        "Dent_Front",
+        "Dent_Right",
+        "Dent_Roof"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.21808111667633057,
+          -1.2360585927963257,
+          -0.5755907893180847
+        ],
+        [
+          0.21808111667633057,
+          0.02499997615814209,
+          0.5755907893180847
+        ]
+      ],
+      "triangles": {
+        "0": 1100,
+        "1": 506,
+        "2": 198
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        -0.6055293083190918,
+        0.0
+      ]
+    },
+    "BodyCore": {
+      "parent_part_id": null,
+      "rest_position_blender_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rest_position_gltf_m": [
+        0.0,
+        0.0,
+        -0.0
+      ],
+      "mass_kg_estimate": 1450,
+      "break_impulse_Ns_tunable": 0,
+      "damage_keys": [
+        "Dent_Front",
+        "Dent_Rear",
+        "Dent_Left",
+        "Dent_Right",
+        "Dent_Roof"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.9804568290710449,
+          -2.5514886379241943,
+          0.19657936692237854
+        ],
+        [
+          0.9804568290710449,
+          2.56803560256958,
+          1.4587599039077759
+        ]
+      ],
+      "triangles": {
+        "0": 2600,
+        "1": 1193,
+        "2": 467
+      }
+    },
+    "Wheel_FR": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        0.8170686960220337,
+        1.5894713401794434,
+        0.32221028208732605
+      ],
+      "rest_position_gltf_m": [
+        0.8170686960220337,
+        0.32221028208732605,
+        -1.5894713401794434
+      ],
+      "mass_kg_estimate": 22,
+      "break_impulse_Ns_tunable": 2200,
+      "damage_keys": [],
+      "bounds_local_blender_m": [
+        [
+          -0.11037880182266235,
+          -0.32128262519836426,
+          -0.3209337890148163
+        ],
+        [
+          0.11037880182266235,
+          0.32128262519836426,
+          0.3209337890148163
+        ]
+      ],
+      "triangles": {
+        "0": 799,
+        "1": 367,
+        "2": 143
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "Wheel_FL": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        -0.8170839548110962,
+        1.59006667137146,
+        0.32142215967178345
+      ],
+      "rest_position_gltf_m": [
+        -0.8170839548110962,
+        0.32142215967178345,
+        -1.59006667137146
+      ],
+      "mass_kg_estimate": 22,
+      "break_impulse_Ns_tunable": 2200,
+      "damage_keys": [],
+      "bounds_local_blender_m": [
+        [
+          -0.11042630672454834,
+          -0.32061851024627686,
+          -0.3206767737865448
+        ],
+        [
+          0.11042636632919312,
+          0.3206183910369873,
+          0.3206768035888672
+        ]
+      ],
+      "triangles": {
+        "0": 799,
+        "1": 366,
+        "2": 143
+      },
+      "center_of_mass_local_m_estimate": [
+        2.9802322387695312e-08,
+        -5.960464477539063e-08,
+        1.4901161193847656e-08
+      ]
+    },
+    "Wheel_RR": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        0.816970944404602,
+        -1.331168532371521,
+        0.3211337924003601
+      ],
+      "rest_position_gltf_m": [
+        0.816970944404602,
+        0.3211337924003601,
+        1.331168532371521
+      ],
+      "mass_kg_estimate": 22,
+      "break_impulse_Ns_tunable": 2200,
+      "damage_keys": [],
+      "bounds_local_blender_m": [
+        [
+          -0.11055374145507812,
+          -0.32054710388183594,
+          -0.321196049451828
+        ],
+        [
+          0.11055368185043335,
+          0.32054710388183594,
+          0.3211960792541504
+        ]
+      ],
+      "triangles": {
+        "0": 799,
+        "1": 366,
+        "2": 142
+      },
+      "center_of_mass_local_m_estimate": [
+        -2.9802322387695312e-08,
+        0.0,
+        1.4901161193847656e-08
+      ]
+    },
+    "Wheel_RL": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        -0.8171086311340332,
+        -1.331488847732544,
+        0.32169830799102783
+      ],
+      "rest_position_gltf_m": [
+        -0.8171086311340332,
+        0.32169830799102783,
+        1.331488847732544
+      ],
+      "mass_kg_estimate": 22,
+      "break_impulse_Ns_tunable": 2200,
+      "damage_keys": [],
+      "bounds_local_blender_m": [
+        [
+          -0.11052197217941284,
+          -0.3203696012496948,
+          -0.3209461271762848
+        ],
+        [
+          0.11052197217941284,
+          0.3203694820404053,
+          0.3209460973739624
+        ]
+      ],
+      "triangles": {
+        "0": 799,
+        "1": 366,
+        "2": 143
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        -5.960464477539063e-08,
+        -1.4901161193847656e-08
+      ]
+    },
+    "Grille": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        0.0,
+        2.4332387447357178,
+        0.7165215015411377
+      ],
+      "rest_position_gltf_m": [
+        0.0,
+        0.7165215015411377,
+        -2.4332387447357178
+      ],
+      "mass_kg_estimate": 2.5,
+      "break_impulse_Ns_tunable": 140,
+      "damage_keys": [
+        "Dent_Front"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.7467114925384521,
+          -0.14706635475158691,
+          -0.13393181562423706
+        ],
+        [
+          0.7467114925384521,
+          0.14706635475158691,
+          0.13393175601959229
+        ]
+      ],
+      "triangles": {
+        "0": 350,
+        "1": 161,
+        "2": 62
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        0.0,
+        -2.9802322387695312e-08
+      ]
+    },
+    "Trunk": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        0.0,
+        -1.6114277839660645,
+        0.9463354349136353
+      ],
+      "rest_position_gltf_m": [
+        0.0,
+        0.9463354349136353,
+        1.6114277839660645
+      ],
+      "mass_kg_estimate": 14,
+      "break_impulse_Ns_tunable": 500,
+      "damage_keys": [
+        "Dent_Rear",
+        "Dent_Left",
+        "Dent_Right"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.7744052410125732,
+          -0.9324522018432617,
+          -0.08271247148513794
+        ],
+        [
+          0.7744052410125732,
+          0.02499997615814209,
+          0.08271241188049316
+        ]
+      ],
+      "triangles": {
+        "0": 750,
+        "1": 342,
+        "2": 134
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        -0.4537261128425598,
+        -2.9802322387695312e-08
+      ]
+    },
+    "Bumper_Rear": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        0.0,
+        -2.1429600715637207,
+        0.6049106121063232
+      ],
+      "rest_position_gltf_m": [
+        0.0,
+        0.6049106121063232,
+        2.1429600715637207
+      ],
+      "mass_kg_estimate": 12,
+      "break_impulse_Ns_tunable": 350,
+      "damage_keys": [
+        "Dent_Rear",
+        "Dent_Left",
+        "Dent_Right"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.9712387919425964,
+          -0.5450451374053955,
+          -0.35502761602401733
+        ],
+        [
+          0.9712387919425964,
+          0.5450451374053955,
+          0.35502755641937256
+        ]
+      ],
+      "triangles": {
+        "0": 900,
+        "1": 412,
+        "2": 160
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        0.0,
+        -2.9802322387695312e-08
+      ]
+    },
+    "Bumper_Front": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        0.0,
+        2.317782163619995,
+        0.42852920293807983
+      ],
+      "rest_position_gltf_m": [
+        0.0,
+        0.42852920293807983,
+        -2.317782163619995
+      ],
+      "mass_kg_estimate": 12,
+      "break_impulse_Ns_tunable": 350,
+      "damage_keys": [
+        "Dent_Front",
+        "Dent_Left",
+        "Dent_Right"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.9184749722480774,
+          -0.3691331148147583,
+          -0.1866028755903244
+        ],
+        [
+          0.9184749722480774,
+          0.36913299560546875,
+          0.1866028904914856
+        ]
+      ],
+      "triangles": {
+        "0": 896,
+        "1": 410,
+        "2": 160
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        -5.960464477539063e-08,
+        7.450580596923828e-09
+      ]
+    },
+    "Door_RL": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        -0.7647448182106018,
+        -0.17664702236652374,
+        0.8479883670806885
+      ],
+      "rest_position_gltf_m": [
+        -0.7647448182106018,
+        0.8479883670806885,
+        0.17664702236652374
+      ],
+      "mass_kg_estimate": 32,
+      "break_impulse_Ns_tunable": 900,
+      "damage_keys": [
+        "Dent_Rear",
+        "Dent_Left",
+        "Dent_Roof"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.21720921993255615,
+          -1.0238310098648071,
+          -0.5756933689117432
+        ],
+        [
+          0.21720921993255615,
+          0.025000005960464478,
+          0.5756933689117432
+        ]
+      ],
+      "triangles": {
+        "0": 900,
+        "1": 414,
+        "2": 162
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        -0.4994155168533325,
+        0.0
+      ]
+    },
+    "Door_RR": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        0.7649408578872681,
+        -0.17664718627929688,
+        0.8480207324028015
+      ],
+      "rest_position_gltf_m": [
+        0.7649408578872681,
+        0.8480207324028015,
+        0.17664718627929688
+      ],
+      "mass_kg_estimate": 32,
+      "break_impulse_Ns_tunable": 900,
+      "damage_keys": [
+        "Dent_Rear",
+        "Dent_Right",
+        "Dent_Roof"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.21701115369796753,
+          -1.0237723588943481,
+          -0.5757043361663818
+        ],
+        [
+          0.2170112133026123,
+          0.025000005960464478,
+          0.5757042765617371
+        ]
+      ],
+      "triangles": {
+        "0": 900,
+        "1": 414,
+        "2": 162
+      },
+      "center_of_mass_local_m_estimate": [
+        2.9802322387695312e-08,
+        -0.499386191368103,
+        -2.9802322387695312e-08
+      ]
+    },
+    "Glass_FL": {
+      "parent_part_id": "Door_FL",
+      "rest_position_blender_m": [
+        -0.7391851544380188,
+        0.18689319491386414,
+        1.1631919145584106
+      ],
+      "rest_position_gltf_m": [
+        -0.7391851544380188,
+        1.1631919145584106,
+        -0.18689319491386414
+      ],
+      "mass_kg_estimate": 0.8,
+      "break_impulse_Ns_tunable": 65,
+      "damage_keys": [
+        "Dent_Left",
+        "Dent_Roof"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.13021987676620483,
+          -0.4013879597187042,
+          -0.21884143352508545
+        ],
+        [
+          0.13021987676620483,
+          0.4013879597187042,
+          0.21884143352508545
+        ]
+      ],
+      "triangles": {
+        "0": 120,
+        "1": 54,
+        "2": 20
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "Glass_FR": {
+      "parent_part_id": "Door_FR",
+      "rest_position_blender_m": [
+        0.7391822338104248,
+        0.1868930160999298,
+        1.1631925106048584
+      ],
+      "rest_position_gltf_m": [
+        0.7391822338104248,
+        1.1631925106048584,
+        -0.1868930160999298
+      ],
+      "mass_kg_estimate": 0.8,
+      "break_impulse_Ns_tunable": 65,
+      "damage_keys": [
+        "Dent_Right",
+        "Dent_Roof"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.1302170753479004,
+          -0.40138790011405945,
+          -0.21884095668792725
+        ],
+        [
+          0.13021701574325562,
+          0.40138790011405945,
+          0.2188408374786377
+        ]
+      ],
+      "triangles": {
+        "0": 119,
+        "1": 53,
+        "2": 21
+      },
+      "center_of_mass_local_m_estimate": [
+        -2.9802322387695312e-08,
+        0.0,
+        -5.960464477539063e-08
+      ]
+    },
+    "Mirror_L": {
+      "parent_part_id": "Door_FL",
+      "rest_position_blender_m": [
+        -0.9154106378555298,
+        0.6977157592773438,
+        1.0471386909484863
+      ],
+      "rest_position_gltf_m": [
+        -0.9154106378555298,
+        1.0471386909484863,
+        -0.6977157592773438
+      ],
+      "mass_kg_estimate": 1,
+      "break_impulse_Ns_tunable": 90,
+      "damage_keys": [
+        "Dent_Front",
+        "Dent_Left"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.16068923473358154,
+          -0.13799691200256348,
+          -0.10488545894622803
+        ],
+        [
+          0.16068917512893677,
+          0.1379968523979187,
+          0.10488545894622803
+        ]
+      ],
+      "triangles": {
+        "0": 159,
+        "1": 72,
+        "2": 28
+      },
+      "center_of_mass_local_m_estimate": [
+        -2.9802322387695312e-08,
+        -2.9802322387695312e-08,
+        0.0
+      ]
+    },
+    "Mirror_R": {
+      "parent_part_id": "Door_FR",
+      "rest_position_blender_m": [
+        0.9162829518318176,
+        0.6971787810325623,
+        1.047148585319519
+      ],
+      "rest_position_gltf_m": [
+        0.9162829518318176,
+        1.047148585319519,
+        -0.6971787810325623
+      ],
+      "mass_kg_estimate": 1,
+      "break_impulse_Ns_tunable": 90,
+      "damage_keys": [
+        "Dent_Front",
+        "Dent_Right"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.16156142950057983,
+          -0.13746023178100586,
+          -0.10487556457519531
+        ],
+        [
+          0.16156142950057983,
+          0.13746023178100586,
+          0.10487556457519531
+        ]
+      ],
+      "triangles": {
+        "0": 160,
+        "1": 73,
+        "2": 27
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "Glass_RL": {
+      "parent_part_id": "Door_RL",
+      "rest_position_blender_m": [
+        -0.7401728630065918,
+        -0.6840155124664307,
+        1.1669890880584717
+      ],
+      "rest_position_gltf_m": [
+        -0.7401728630065918,
+        1.1669890880584717,
+        0.6840155124664307
+      ],
+      "mass_kg_estimate": 0.8,
+      "break_impulse_Ns_tunable": 65,
+      "damage_keys": [
+        "Dent_Rear",
+        "Dent_Left",
+        "Dent_Roof"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.1287308931350708,
+          -0.4099245071411133,
+          -0.21239125728607178
+        ],
+        [
+          0.12873095273971558,
+          0.4099245071411133,
+          0.21239125728607178
+        ]
+      ],
+      "triangles": {
+        "0": 112,
+        "1": 51,
+        "2": 19
+      },
+      "center_of_mass_local_m_estimate": [
+        2.9802322387695312e-08,
+        0.0,
+        0.0
+      ]
+    },
+    "Glass_RR": {
+      "parent_part_id": "Door_RR",
+      "rest_position_blender_m": [
+        0.7401727437973022,
+        -0.684015691280365,
+        1.1669890880584717
+      ],
+      "rest_position_gltf_m": [
+        0.7401727437973022,
+        1.1669890880584717,
+        0.684015691280365
+      ],
+      "mass_kg_estimate": 0.8,
+      "break_impulse_Ns_tunable": 65,
+      "damage_keys": [
+        "Dent_Rear",
+        "Dent_Right",
+        "Dent_Roof"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.12873095273971558,
+          -0.40992456674575806,
+          -0.21239125728607178
+        ],
+        [
+          0.1287308931350708,
+          0.40992456674575806,
+          0.21239125728607178
+        ]
+      ],
+      "triangles": {
+        "0": 112,
+        "1": 51,
+        "2": 19
+      },
+      "center_of_mass_local_m_estimate": [
+        -2.9802322387695312e-08,
+        0.0,
+        0.0
+      ]
+    },
+    "Glass_Rear": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        0.0,
+        -1.4729677438735962,
+        1.1889472007751465
+      ],
+      "rest_position_gltf_m": [
+        0.0,
+        1.1889472007751465,
+        1.4729677438735962
+      ],
+      "mass_kg_estimate": 1.8,
+      "break_impulse_Ns_tunable": 65,
+      "damage_keys": [
+        "Dent_Rear",
+        "Dent_Left",
+        "Dent_Right",
+        "Dent_Roof"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.7728575468063354,
+          -0.270094633102417,
+          -0.19430863857269287
+        ],
+        [
+          0.7728575468063354,
+          0.270094633102417,
+          0.19430851936340332
+        ]
+      ],
+      "triangles": {
+        "0": 178,
+        "1": 80,
+        "2": 32
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        0.0,
+        -5.960464477539063e-08
+      ]
+    },
+    "RoofSign": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        0.0,
+        -0.43264466524124146,
+        1.5958012342453003
+      ],
+      "rest_position_gltf_m": [
+        0.0,
+        1.5958012342453003,
+        0.43264466524124146
+      ],
+      "mass_kg_estimate": 6,
+      "break_impulse_Ns_tunable": 140,
+      "damage_keys": [
+        "Dent_Rear",
+        "Dent_Roof"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.1837949901819229,
+          -0.6128100752830505,
+          -0.1591196060180664
+        ],
+        [
+          0.1837949901819229,
+          0.6128100752830505,
+          0.1591196060180664
+        ]
+      ],
+      "triangles": {
+        "0": 599,
+        "1": 275,
+        "2": 107
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "Taillight_L": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        -0.7095168828964233,
+        -2.4094319343566895,
+        0.8211108446121216
+      ],
+      "rest_position_gltf_m": [
+        -0.7095168828964233,
+        0.8211108446121216,
+        2.4094319343566895
+      ],
+      "mass_kg_estimate": 2.5,
+      "break_impulse_Ns_tunable": 140,
+      "damage_keys": [
+        "Dent_Rear"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.15545964241027832,
+          -0.10717487335205078,
+          -0.12374502420425415
+        ],
+        [
+          0.15545958280563354,
+          0.10717487335205078,
+          0.12374502420425415
+        ]
+      ],
+      "triangles": {
+        "0": 239,
+        "1": 109,
+        "2": 43
+      },
+      "center_of_mass_local_m_estimate": [
+        -2.9802322387695312e-08,
+        0.0,
+        0.0
+      ]
+    },
+    "Taillight_R": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        0.7094523906707764,
+        -2.409268379211426,
+        0.8213670253753662
+      ],
+      "rest_position_gltf_m": [
+        0.7094523906707764,
+        0.8213670253753662,
+        2.409268379211426
+      ],
+      "mass_kg_estimate": 2.5,
+      "break_impulse_Ns_tunable": 140,
+      "damage_keys": [
+        "Dent_Rear"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.1554695963859558,
+          -0.10701751708984375,
+          -0.1239631175994873
+        ],
+        [
+          0.1554695963859558,
+          0.10701727867126465,
+          0.12396305799484253
+        ]
+      ],
+      "triangles": {
+        "0": 240,
+        "1": 109,
+        "2": 43
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        -1.1920928955078125e-07,
+        -2.9802322387695312e-08
+      ]
+    },
+    "Headlight_L": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        -0.655279278755188,
+        2.2988224029541016,
+        0.6900603771209717
+      ],
+      "rest_position_gltf_m": [
+        -0.655279278755188,
+        0.6900603771209717,
+        -2.2988224029541016
+      ],
+      "mass_kg_estimate": 2.5,
+      "break_impulse_Ns_tunable": 140,
+      "damage_keys": [
+        "Dent_Front",
+        "Dent_Left"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.24165844917297363,
+          -0.22799015045166016,
+          -0.0768694281578064
+        ],
+        [
+          0.2416585087776184,
+          0.22798991203308105,
+          0.07686948776245117
+        ]
+      ],
+      "triangles": {
+        "0": 240,
+        "1": 109,
+        "2": 42
+      },
+      "center_of_mass_local_m_estimate": [
+        2.9802322387695312e-08,
+        -1.1920928955078125e-07,
+        2.9802322387695312e-08
+      ]
+    },
+    "Headlight_R": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        0.655276358127594,
+        2.29910945892334,
+        0.6900337934494019
+      ],
+      "rest_position_gltf_m": [
+        0.655276358127594,
+        0.6900337934494019,
+        -2.29910945892334
+      ],
+      "mass_kg_estimate": 2.5,
+      "break_impulse_Ns_tunable": 140,
+      "damage_keys": [
+        "Dent_Front",
+        "Dent_Right"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.24166175723075867,
+          -0.22827553749084473,
+          -0.0769888162612915
+        ],
+        [
+          0.24166172742843628,
+          0.22827529907226562,
+          0.07698875665664673
+        ]
+      ],
+      "triangles": {
+        "0": 240,
+        "1": 110,
+        "2": 43
+      },
+      "center_of_mass_local_m_estimate": [
+        -1.4901161193847656e-08,
+        -1.1920928955078125e-07,
+        -2.9802322387695312e-08
+      ]
+    },
+    "Glass_Windshield": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        5.960464477539063e-08,
+        0.68025803565979,
+        1.182920217514038
+      ],
+      "rest_position_gltf_m": [
+        5.960464477539063e-08,
+        1.182920217514038,
+        -0.68025803565979
+      ],
+      "mass_kg_estimate": 1.8,
+      "break_impulse_Ns_tunable": 65,
+      "damage_keys": [
+        "Dent_Front",
+        "Dent_Left",
+        "Dent_Right",
+        "Dent_Roof"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.8184828758239746,
+          -0.38054221868515015,
+          -0.2239600419998169
+        ],
+        [
+          0.8184828758239746,
+          0.38054215908050537,
+          0.22395992279052734
+        ]
+      ],
+      "triangles": {
+        "0": 178,
+        "1": 78,
+        "2": 32
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        -2.9802322387695312e-08,
+        -5.960464477539063e-08
+      ]
+    },
+    "Hood": {
+      "parent_part_id": "BodyCore",
+      "rest_position_blender_m": [
+        0.0,
+        0.9998070001602173,
+        0.8948964476585388
+      ],
+      "rest_position_gltf_m": [
+        0.0,
+        0.8948964476585388,
+        -0.9998070001602173
+      ],
+      "mass_kg_estimate": 18,
+      "break_impulse_Ns_tunable": 500,
+      "damage_keys": [
+        "Dent_Front",
+        "Dent_Left",
+        "Dent_Right"
+      ],
+      "bounds_local_blender_m": [
+        [
+          -0.7977480888366699,
+          -0.02499997615814209,
+          -0.1042436957359314
+        ],
+        [
+          0.7977480888366699,
+          1.3560150861740112,
+          0.1042436957359314
+        ]
+      ],
+      "triangles": {
+        "0": 1000,
+        "1": 458,
+        "2": 180
+      },
+      "center_of_mass_local_m_estimate": [
+        0.0,
+        0.6655075550079346,
+        0.0
+      ]
+    }
+  },
+  "collision_hulls": 30,
+  "collision_triangles": 1590,
+  "glass_debris_pieces": 60,
+  "glass_debris_triangles": 3200,
+  "estimated_total_mass_kg": 1749.2999999999997,
+  "tuning_note": "Masses, impulse thresholds and LOD distances are starting estimates, not vehicle crash measurements.",
+  "runtime_contract": {
+    "part_lookup": "Read node.extras.part_id; do not depend on Blender-generated names.",
+    "inactive_parts": "Keep all attached parts kinematic with their debris colliders disabled.",
+    "detach": "Preserve world transform, remove parent/joint, enable one hull rigid body, inherit vehicle velocities, then apply the hit impulse.",
+    "dent": "Set matching morph names on every surviving mesh of the current LOD. Reapply damage weights after a LOD switch.",
+    "glass": "Hide the impacted pane and emit its debris pieces, limiting active debris to 16-24 bodies.",
+    "lod": "Typical starting distances: LOD0 < 12m; LOD1 12-35m; LOD2 beyond 35m. Prefer screen size and profile on target hardware.",
+    "traffic": "Use the merged intact-only traffic GLB for distant undamaged vehicles; switch back to part hierarchy on damage."
+  },
+  "physics_demo": {
+    "method": "Blender Bullet solver stepped through frames 1-90, 4 substeps/frame, 30 iterations.",
+    "collision_layer_note": "Demo part categories use separate layers to suppress initial panel overlaps; all parts collide with the floor and ram. Game debris should enable ordinary collision layers on release.",
+    "breakable_fixed_joints": 26,
+    "samples": [
+      {
+        "frame": 6,
+        "separation_distance_m": {
+          "Door_FL": 2.8373329163046996e-05,
+          "Door_FR": 2.6418477080840155e-05,
+          "Wheel_FR": 5.189029374884401e-05,
+          "Wheel_FL": 0.0005526913348062532,
+          "Wheel_RR": 0.0006635194009170096,
+          "Wheel_RL": 5.746422565667289e-05,
+          "Grille": 5.367548304635788e-07,
+          "Trunk": 4.700833522609964e-05,
+          "Bumper_Rear": 3.055332056168385e-07,
+          "Bumper_Front": 2.394640846536904e-07,
+          "Door_RL": 2.2274938396316558e-05,
+          "Door_RR": 1.9471479100834428e-05,
+          "Glass_FL": 3.8566971688665575e-05,
+          "Glass_FR": 5.3274925254704165e-05,
+          "Mirror_L": 3.188820642724014e-05,
+          "Mirror_R": 3.0187266497851846e-05,
+          "Glass_RL": 4.382789961391641e-05,
+          "Glass_RR": 3.8747466272261666e-05,
+          "Glass_Rear": 1.665616108922819e-05,
+          "RoofSign": 1.621640917906917e-05,
+          "Taillight_L": 1.7467034114948375e-05,
+          "Taillight_R": 1.637175871728825e-05,
+          "Headlight_L": 1.692499707433621e-05,
+          "Headlight_R": 1.4812211448416764e-05,
+          "Glass_Windshield": 1.5974611454373133e-05,
+          "Hood": 6.649805505797967e-05
+        }
+      },
+      {
+        "frame": 10,
+        "separation_distance_m": {
+          "Door_FL": 1.2953729499331308e-05,
+          "Door_FR": 1.1130798367557897e-05,
+          "Wheel_FR": 2.3938301533193397e-05,
+          "Wheel_FL": 0.00013263458623417415,
+          "Wheel_RR": 0.0006465909145442213,
+          "Wheel_RL": 0.0005747370416086497,
+          "Grille": 0.46221811717137956,
+          "Trunk": 8.875827037729817e-05,
+          "Bumper_Rear": 5.570861430251551e-07,
+          "Bumper_Front": 0.5970543752808478,
+          "Door_RL": 2.514159314583316e-05,
+          "Door_RR": 1.990493966495777e-05,
+          "Glass_FL": 1.9038179808041672e-05,
+          "Glass_FR": 2.572339251880656e-05,
+          "Mirror_L": 1.2692290929990925e-05,
+          "Mirror_R": 1.1962133958497864e-05,
+          "Glass_RL": 5.122439262590355e-05,
+          "Glass_RR": 4.2993669426996203e-05,
+          "Glass_Rear": 2.8202139575311197e-05,
+          "RoofSign": 1.883413064684139e-05,
+          "Taillight_L": 5.504194463722729e-05,
+          "Taillight_R": 6.0544743727007593e-05,
+          "Headlight_L": 0.007692146251540799,
+          "Headlight_R": 0.0073940932816071205,
+          "Glass_Windshield": 3.100886532475073e-05,
+          "Hood": 0.2695584574311573
+        }
+      },
+      {
+        "frame": 25,
+        "separation_distance_m": {
+          "Door_FL": 0.00012471129622613193,
+          "Door_FR": 0.0001996350781127908,
+          "Wheel_FR": 0.0008395202073650611,
+          "Wheel_FL": 0.0012258819809164655,
+          "Wheel_RR": 0.00339340295978883,
+          "Wheel_RL": 0.002378911323371257,
+          "Grille": 7.083410095431185,
+          "Trunk": 0.00034642933065404894,
+          "Bumper_Rear": 2.171407265184697e-05,
+          "Bumper_Front": 3.4063515921241856,
+          "Door_RL": 0.00012895549957813864,
+          "Door_RR": 0.00013116343034296887,
+          "Glass_FL": 0.00017314504582787484,
+          "Glass_FR": 0.0003713244800407002,
+          "Mirror_L": 0.00016555772441935812,
+          "Mirror_R": 0.00024745477562129075,
+          "Glass_RL": 0.0002822590272611934,
+          "Glass_RR": 0.00029111931801016784,
+          "Glass_Rear": 0.00013504948664651366,
+          "RoofSign": 0.00012392037726230144,
+          "Taillight_L": 0.00014662535450797736,
+          "Taillight_R": 0.0001826802628474489,
+          "Headlight_L": 0.015099069623406975,
+          "Headlight_R": 0.015229901712043012,
+          "Glass_Windshield": 0.00011713453738065708,
+          "Hood": 6.035319778779283
+        }
+      },
+      {
+        "frame": 45,
+        "separation_distance_m": {
+          "Door_FL": 2.7931708948016206e-05,
+          "Door_FR": 2.3634275128784627e-05,
+          "Wheel_FR": 1.872336092426369e-05,
+          "Wheel_FL": 0.0005355736542321159,
+          "Wheel_RR": 0.0006631618376022697,
+          "Wheel_RL": 3.734291943165375e-05,
+          "Grille": 14.416890493857403,
+          "Trunk": 4.80745251886549e-05,
+          "Bumper_Rear": 2.384206476878837e-07,
+          "Bumper_Front": 3.59936022385783,
+          "Door_RL": 2.2295722698568103e-05,
+          "Door_RR": 1.9046015813086602e-05,
+          "Glass_FL": 3.826294393966613e-05,
+          "Glass_FR": 4.95935023986889e-05,
+          "Mirror_L": 3.1565654209008716e-05,
+          "Mirror_R": 2.690897221617811e-05,
+          "Glass_RL": 4.409023703463508e-05,
+          "Glass_RR": 3.8057554020204e-05,
+          "Glass_Rear": 1.6933142885018283e-05,
+          "RoofSign": 1.6254252586924447e-05,
+          "Taillight_L": 1.896432562990504e-05,
+          "Taillight_R": 1.726457564563938e-05,
+          "Headlight_L": 0.7453734430952251,
+          "Headlight_R": 1.3101036178027115e-05,
+          "Glass_Windshield": 1.5224253882383273e-05,
+          "Hood": 11.986281754575112
+        }
+      },
+      {
+        "frame": 75,
+        "separation_distance_m": {
+          "Door_FL": 2.796285383252755e-05,
+          "Door_FR": 2.3659853335782094e-05,
+          "Wheel_FR": 1.8451368489241473e-05,
+          "Wheel_FL": 0.0005356903508524972,
+          "Wheel_RR": 0.0006631278718637696,
+          "Wheel_RL": 3.7484572198968534e-05,
+          "Grille": 18.79260709925923,
+          "Trunk": 4.8135986793248804e-05,
+          "Bumper_Rear": 2.458731632512329e-07,
+          "Bumper_Front": 3.07159450798204,
+          "Door_RL": 2.2295404006133858e-05,
+          "Door_RR": 1.910561318321862e-05,
+          "Glass_FL": 3.83575021650802e-05,
+          "Glass_FR": 4.9646912360517714e-05,
+          "Mirror_L": 3.179219226327533e-05,
+          "Mirror_R": 2.702589226114313e-05,
+          "Glass_RL": 4.4131594563514634e-05,
+          "Glass_RR": 3.807528659378272e-05,
+          "Glass_Rear": 1.699290275680557e-05,
+          "RoofSign": 1.6252507175959074e-05,
+          "Taillight_L": 1.9057181213793954e-05,
+          "Taillight_R": 1.7332247705890138e-05,
+          "Headlight_L": 0.7464326168862957,
+          "Headlight_R": 1.3105238764021743e-05,
+          "Glass_Windshield": 1.5341758526455457e-05,
+          "Hood": 14.639182606497886
+        }
+      },
+      {
+        "frame": 90,
+        "separation_distance_m": {
+          "Door_FL": 2.804810228239352e-05,
+          "Door_FR": 2.3751534793708206e-05,
+          "Wheel_FR": 1.855357337230382e-05,
+          "Wheel_FL": 0.000535731418114883,
+          "Wheel_RR": 0.0006631471693311477,
+          "Wheel_RL": 3.752863881055645e-05,
+          "Grille": 18.805201395521163,
+          "Trunk": 4.8198609142383136e-05,
+          "Bumper_Rear": 2.4578393072038335e-07,
+          "Bumper_Front": 3.071687821034758,
+          "Door_RL": 2.235881375651968e-05,
+          "Door_RR": 1.9136897121480098e-05,
+          "Glass_FL": 3.8460702423041764e-05,
+          "Glass_FR": 4.96601580663262e-05,
+          "Mirror_L": 3.1769555235557666e-05,
+          "Mirror_R": 2.703193855736887e-05,
+          "Glass_RL": 4.4284967504000904e-05,
+          "Glass_RR": 3.805708726195369e-05,
+          "Glass_Rear": 1.699303689998625e-05,
+          "RoofSign": 1.6365110574451545e-05,
+          "Taillight_L": 1.9056528719040875e-05,
+          "Taillight_R": 1.7383518633792555e-05,
+          "Headlight_L": 0.7463120046412216,
+          "Headlight_R": 1.3132793316566512e-05,
+          "Glass_Windshield": 1.5404982043833423e-05,
+          "Hood": 14.639238725843722
+        }
+      }
+    ],
+    "parts_separated_at_frame_90": [
+      "Grille",
+      "Bumper_Front",
+      "Headlight_L",
+      "Hood"
+    ]
+  },
+  "collision_note": "Four body boxes plus convex, closed debris hulls. Attached render parts have no independent active physics bodies in the runtime contract."
+}
