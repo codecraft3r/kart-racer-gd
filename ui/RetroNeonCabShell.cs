@@ -133,6 +133,9 @@ public partial class RetroNeonCabShell : CanvasLayer
     private Button _reducedMotionButton;
     private Button _dailyRunButton;
     private Label _vehicleLabel;
+    private Control _crownCustomization;
+    private Button _crownPaintButton;
+    private Button _crownRoofSignButton;
     private readonly Dictionary<int, Button> _pixelButtons = new();
 
     private FontFile _fontBody;
@@ -164,6 +167,9 @@ public partial class RetroNeonCabShell : CanvasLayer
     private bool _scanlinesEnabled = true;
     private bool _crtEnabled = true;
     private bool _reducedMotion;
+    private int _crownPaintIndex;
+    private bool _crownRoofSignVisible = true;
+    private int _selectedVehicleOption;
     private double _score;
     private double _driftMeters;
     private ulong _lastFareReceiptSeen;
@@ -550,6 +556,16 @@ public partial class RetroNeonCabShell : CanvasLayer
         _kart = kart;
         _hasKartInitialTransform = true;
         _kartInitialTransform = _kart.GlobalTransform;
+
+        if (_kart.IsLocalPlayer)
+        {
+            RunRecordManager.RunRecordData records = RunRecordManager.Load();
+            _selectedVehicleOption = GetUnlockedVehicleOption(_selectedVehicleOption, _kart.VehicleOptionCount, records);
+            _kart.SetCrownPaint(_crownPaintIndex);
+            _kart.SetCrownRoofSign(_crownRoofSignVisible);
+            _kart.SetVehicleOption(_selectedVehicleOption);
+            RefreshGarageLabel(records);
+        }
     }
 
     public void TogglePause()
@@ -899,8 +915,8 @@ public partial class RetroNeonCabShell : CanvasLayer
             CustomMinimumSize = new Vector2(600.0f, 0.0f),
             SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter
         };
-        // Menu content must fit the scroll viewport (about 626 px at 1080p) so no scrollbar
-        // appears; the six entries plus the garage row and version line sit just under it.
+        // Menu content fits the scroll viewport (about 626 px at 1080p); the garage
+        // customization row only expands when the Crown Victoria is selected.
         menuButtons.AddThemeConstantOverride("separation", 10);
         menuScroll.AddChild(menuButtons);
 
@@ -941,6 +957,25 @@ public partial class RetroNeonCabShell : CanvasLayer
         _vehicleSubtitleLabel = MakeLabel("[BALANCED ALL-ROUNDER]", _fontPixel, 12, Hex("35e7f2"), HorizontalAlignment.Center);
         _vehicleSubtitleLabel.Name = "VehicleSubtitleLabel";
         garageColumn.AddChild(_vehicleSubtitleLabel);
+
+        VBoxContainer crownCustomization = new() { Name = "CrownVictoriaCustomization", Alignment = BoxContainer.AlignmentMode.Center };
+        crownCustomization.AddThemeConstantOverride("separation", 4);
+        Label customizeLabel = MakeLabel("CROWN VICTORIA SETUP", _fontPixel, 10, Hex("8c89a0"), HorizontalAlignment.Center);
+        crownCustomization.AddChild(customizeLabel);
+        HBoxContainer crownControls = new() { Name = "CrownVictoriaControls", Alignment = BoxContainer.AlignmentMode.Center };
+        crownControls.AddThemeConstantOverride("separation", 6);
+        _crownPaintButton = MakePixelButton("PAINT", false, 204.0f, 34.0f);
+        _crownPaintButton.Name = "CrownPaintButton";
+        _crownPaintButton.Pressed += CycleCrownPaint;
+        crownControls.AddChild(_crownPaintButton);
+        _crownRoofSignButton = MakePixelButton("ROOF SIGN", false, 204.0f, 34.0f);
+        _crownRoofSignButton.Name = "CrownRoofSignButton";
+        _crownRoofSignButton.Pressed += ToggleCrownRoofSign;
+        crownControls.AddChild(_crownRoofSignButton);
+        crownCustomization.AddChild(crownControls);
+        _crownCustomization = crownCustomization;
+        garageColumn.AddChild(crownCustomization);
+        crownCustomization.Visible = false;
 
         menuButtons.AddChild(garageColumn);
 
@@ -983,7 +1018,9 @@ public partial class RetroNeonCabShell : CanvasLayer
                 continue;
 
             _kart.SetVehicleOption(candidate);
+            _selectedVehicleOption = candidate;
             RefreshGarageLabel(records);
+            SaveSettings();
             AudioManager.Instance?.PlayUiHover();
             return;
         }
@@ -1005,6 +1042,46 @@ public partial class RetroNeonCabShell : CanvasLayer
 
         if (_vehicleSubtitleLabel != null)
             _vehicleSubtitleLabel.Text = $"[{_kart.GetVehicleSubtitle()}]";
+
+        if (_crownCustomization != null)
+            _crownCustomization.Visible = _kart.VehicleOption == 5;
+        RefreshCrownCustomizationLabels();
+    }
+
+    private void CycleCrownPaint()
+    {
+        if (_kart == null || Kart.CrownPaintNames == null || Kart.CrownPaintNames.Length == 0)
+            return;
+
+        _crownPaintIndex = Mathf.PosMod(_crownPaintIndex + 1, Kart.CrownPaintNames.Length);
+        _kart.SetCrownPaint(_crownPaintIndex);
+        RefreshCrownCustomizationLabels();
+        SaveSettings();
+        AudioManager.Instance?.PlayUiHover();
+    }
+
+    private void ToggleCrownRoofSign()
+    {
+        if (_kart == null)
+            return;
+
+        _crownRoofSignVisible = !_crownRoofSignVisible;
+        _kart.SetCrownRoofSign(_crownRoofSignVisible);
+        RefreshCrownCustomizationLabels();
+        SaveSettings();
+        AudioManager.Instance?.PlayUiHover();
+    }
+
+    private void RefreshCrownCustomizationLabels()
+    {
+        if (_crownPaintButton != null && Kart.CrownPaintNames != null && Kart.CrownPaintNames.Length > 0)
+        {
+            _crownPaintIndex = Mathf.PosMod(_crownPaintIndex, Kart.CrownPaintNames.Length);
+            _crownPaintButton.Text = $"PAINT: {Kart.CrownPaintNames[_crownPaintIndex]}";
+        }
+
+        if (_crownRoofSignButton != null)
+            _crownRoofSignButton.Text = $"ROOF SIGN: {(_crownRoofSignVisible ? "ON" : "OFF")}";
     }
 
     /// <summary>
@@ -1551,6 +1628,7 @@ public partial class RetroNeonCabShell : CanvasLayer
         AddCredit(crew, "MUSIC & SYNTH", "Original PAIN TAXI soundtrack");
         AddCredit(crew, "SOUND EFFECTS", "Kenney • rubberduck • OpenGameArt contributors");
         AddCredit(crew, "TIRE SKID", "audible-edge (Tom Haigh), CC BY 3.0");
+        AddCredit(crew, "CROWN VICTORIA TAXI", "Crown Victoria Taxi 2.0 by MAC2001, CC BY 3.0");
         AddCredit(crew, "SPECIAL THANKS", "Based on Retro 80's Mood Board Assets");
         // The crew list sits directly in the panel: the panel is already the scroll viewport,
         // and a nested scroller clipped the list and added a stray horizontal bar.
@@ -2620,14 +2698,48 @@ public partial class RetroNeonCabShell : CanvasLayer
     private void LoadSettings()
     {
         var config = new ConfigFile();
-        if (config.Load(ResolvedSettingsPath) != Error.Ok)
-            return;
+        bool hasSavedSettings = config.Load(ResolvedSettingsPath) == Error.Ok;
+        if (hasSavedSettings)
+        {
+            _pixelationFactor = Mathf.Clamp(config.GetValue("video", "pixelation", DefaultPixelation).AsInt32(), 1, 16);
+            _scanlinesEnabled = config.GetValue("video", "scanlines", true).AsBool();
+            _crtEnabled = config.GetValue("video", "crt", true).AsBool();
+            _reducedMotion = config.GetValue("accessibility", "reduced_motion", false).AsBool();
+            _masterVolume = Mathf.Clamp(config.GetValue("audio", "master_volume", 80.0f).AsSingle(), 0.0f, 100.0f);
+        }
 
-        _pixelationFactor = Mathf.Clamp(config.GetValue("video", "pixelation", DefaultPixelation).AsInt32(), 1, 16);
-        _scanlinesEnabled = config.GetValue("video", "scanlines", true).AsBool();
-        _crtEnabled = config.GetValue("video", "crt", true).AsBool();
-        _reducedMotion = config.GetValue("accessibility", "reduced_motion", false).AsBool();
-        _masterVolume = Mathf.Clamp(config.GetValue("audio", "master_volume", 80.0f).AsSingle(), 0.0f, 100.0f);
+        int defaultPaint = _kart?.CrownPaintIndex ?? 0;
+        bool defaultRoofSign = _kart?.CrownRoofSignVisible ?? true;
+        _crownPaintIndex = config.GetValue("garage", "crown_paint", defaultPaint).AsInt32();
+        _crownRoofSignVisible = config.GetValue("garage", "crown_roof_sign", defaultRoofSign).AsBool();
+        _selectedVehicleOption = config.GetValue("garage", "vehicle_option", _kart?.VehicleOption ?? _selectedVehicleOption).AsInt32();
+        if (_kart != null)
+        {
+            _kart.SetCrownPaint(_crownPaintIndex);
+            _kart.SetCrownRoofSign(_crownRoofSignVisible);
+            _selectedVehicleOption = GetUnlockedVehicleOption(_selectedVehicleOption, _kart.VehicleOptionCount, RunRecordManager.Load());
+            _kart.SetVehicleOption(_selectedVehicleOption);
+        }
+    }
+
+    private static int GetUnlockedVehicleOption(int option, int optionCount, RunRecordManager.RunRecordData records)
+    {
+        if (optionCount <= 0)
+            return 0;
+
+        int clampedOption = Mathf.Clamp(option, 0, optionCount - 1);
+        if (VehicleUnlocks.IsUnlocked(clampedOption, records))
+            return clampedOption;
+
+        // A saved car may become unavailable if progression data is reset. Fall back to
+        // the first currently unlocked option so loading always leaves a drivable choice.
+        for (int candidate = 0; candidate < optionCount; candidate++)
+        {
+            if (VehicleUnlocks.IsUnlocked(candidate, records))
+                return candidate;
+        }
+
+        return 0;
     }
 
     /// <summary>
@@ -2747,6 +2859,12 @@ public partial class RetroNeonCabShell : CanvasLayer
         config.SetValue("video", "crt", _crtEnabled);
         config.SetValue("accessibility", "reduced_motion", _reducedMotion);
         config.SetValue("audio", "master_volume", _masterVolume);
+        config.SetValue("garage", "crown_paint", _crownPaintIndex);
+        config.SetValue("garage", "crown_roof_sign", _crownRoofSignVisible);
+        int vehicleOption = _kart != null && GodotObject.IsInstanceValid(_kart)
+            ? _kart.VehicleOption
+            : _selectedVehicleOption;
+        config.SetValue("garage", "vehicle_option", vehicleOption);
 
         Error error = config.Save(ResolvedSettingsPath);
         if (error != Error.Ok)

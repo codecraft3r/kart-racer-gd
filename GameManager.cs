@@ -322,17 +322,19 @@ public partial class GameManager : Node
 
         if (_playerKarts.TryGetValue(id, out Kart existingKart))
         {
-            RpcId(id, nameof(SpawnPlayerRpc), id, existingKart.GlobalPosition);
+            RpcId(id, nameof(SpawnPlayerRpc), id, existingKart.GlobalPosition,
+                existingKart.VehicleOption, existingKart.CrownPaintIndex, existingKart.CrownRoofSignVisible);
             return;
         }
 
-        Rpc(nameof(SpawnPlayerRpc), id, PickSpawnPosition());
+        Rpc(nameof(SpawnPlayerRpc), id, PickSpawnPosition(), 0, 0, true);
     }
 
     private void SendExistingPlayersTo(int targetPeerId)
     {
         foreach (KeyValuePair<int, Kart> entry in _playerKarts)
-            RpcId(targetPeerId, nameof(SpawnPlayerRpc), entry.Key, entry.Value.GlobalPosition);
+            RpcId(targetPeerId, nameof(SpawnPlayerRpc), entry.Key, entry.Value.GlobalPosition,
+                entry.Value.VehicleOption, entry.Value.CrownPaintIndex, entry.Value.CrownRoofSignVisible);
     }
 
     private Vector3 PickSpawnPosition()
@@ -345,7 +347,7 @@ public partial class GameManager : Node
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = true, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void SpawnPlayerRpc(int id, Vector3 position)
+    private void SpawnPlayerRpc(int id, Vector3 position, int vehicleOption, int crownPaint, bool crownRoofSign)
     {
         using var perf = PerfProbe.Measure(PerfHotspot.KartSceneSpawn);
         if (_playerKarts.ContainsKey(id))
@@ -359,6 +361,9 @@ public partial class GameManager : Node
         kart.Name = id.ToString();
         kart.OwnerPeerId = id;
         kart.Position = position;
+        kart.SetVehicleOption(vehicleOption);
+        kart.SetCrownPaint(crownPaint);
+        kart.SetCrownRoofSign(crownRoofSign);
         kart.SetMultiplayerAuthority(1);
 
         bool hasNetworkPeer = HasActiveNetworkPeer();

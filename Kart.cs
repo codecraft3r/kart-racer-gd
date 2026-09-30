@@ -35,16 +35,18 @@ public partial class Kart : RigidBody3D
         new VehicleArchetype("SPORT SEDAN", "DRIFT SPECIALIST", 30.5f, 25.5f, 3.8f, 1.35f, 1.0f),
         new VehicleArchetype("FUTURE RACER", "HYPER SPEED ROCKET", 34.0f, 29.0f, 3.2f, 1.1f, 1.25f),
         new VehicleArchetype("LUXURY SUV", "VIP CRUISER / HEAVY", 26.0f, 22.0f, 3.0f, 0.85f, 0.65f),
+        new VehicleArchetype("CROWN VICTORIA", "CLASSIC TAXI / STABLE", 27.0f, 21.0f, 3.15f, 0.88f, 0.72f),
     };
 
-    private static readonly string[] VehicleNames = { "NEON CAB", "CITY TAXI", "SPORT SEDAN", "FUTURE RACER", "LUXURY SUV" };
+    private static readonly string[] VehicleNames = { "NEON CAB", "CITY TAXI", "SPORT SEDAN", "FUTURE RACER", "LUXURY SUV", "CROWN VICTORIA" };
     private static readonly string[] VehiclePaths =
     {
         "",
         "res://assets/kenny_car-kit/taxi.glb",
         "res://assets/kenny_car-kit/sedan-sports.glb",
         "res://assets/kenny_car-kit/race-future.glb",
-        "res://assets/kenny_car-kit/suv-luxury.glb"
+        "res://assets/kenny_car-kit/suv-luxury.glb",
+        "res://assets/crown-victoria/crown_victoria_game.tscn"
     };
     private static readonly PackedScene[] VehicleSceneCache = new PackedScene[VehiclePaths.Length];
     private static Font _cachedSpeechFont;
@@ -105,6 +107,9 @@ public partial class Kart : RigidBody3D
     public float DriftCharge { get; private set; }
     public int PendingStyleTip { get; private set; }
     public int VehicleOption { get; private set; }
+    public static readonly string[] CrownPaintNames = { "TAXI YELLOW", "MIDNIGHT BLUE", "IVORY" };
+    public int CrownPaintIndex { get; private set; }
+    public bool CrownRoofSignVisible { get; private set; } = true;
     public int VehicleOptionCount => VehicleCount;
 
     public static int VehicleCount => VehicleNames.Length;
@@ -115,6 +120,8 @@ public partial class Kart : RigidBody3D
     private RayCast3D[] _groundRays;
     private Node3D _visualContainer;
     private Node _vehicleOptionVisual;
+    private CrownVictoriaVisual _crownVisual;
+    private bool _applyingNetworkAppearance;
 
     // Expose speed to the UI (converting m/s to km/h)
     public float CurrentSpeedKmh => LinearVelocity.Length() * 3.6f;
@@ -623,6 +630,7 @@ public partial class Kart : RigidBody3D
 
     public void ResetForRun(Transform3D spawnTransform)
     {
+        _crownVisual?.ResetDamage();
         GlobalTransform = spawnTransform;
         LinearVelocity = Vector3.Zero;
         AngularVelocity = Vector3.Zero;
@@ -951,6 +959,7 @@ public partial class Kart : RigidBody3D
                 if (camER != null)
                     camER.AddTrauma(severityER == ImpactSeverity.Crash ? 0.85f : severityER == ImpactSeverity.Bump ? 0.45f : 0.18f);
                 EndlessRoadMode.Instance.ApplyImpact(severityER);
+                ApplyCrownImpact(GlobalPosition - normalER * 0.8f, impactSpeedER);
                 CancelDriftReward();
             }
             return;
@@ -969,6 +978,7 @@ public partial class Kart : RigidBody3D
                 return;
             _collisionCooldowns[key] = now;
             ImpactSeverity severity = impactSpeed >= 13.0f ? ImpactSeverity.Crash : impactSpeed >= 6.0f ? ImpactSeverity.Bump : ImpactSeverity.Glance;
+            ApplyCrownImpact(GlobalPosition - normal * 0.8f, impactSpeed);
             if (now - _lastCollisionAudioMs >= 140)
             {
                 _lastCollisionAudioMs = now;
@@ -1034,6 +1044,66 @@ public partial class Kart : RigidBody3D
         ApplyVehicleStats();
         if (IsNodeReady())
             ApplyVehicleVisual();
+        PublishVehicleAppearance();
+    }
+
+    public void SetCrownPaint(int index)
+    {
+        CrownPaintIndex = Mathf.PosMod(index, CrownPaintNames.Length);
+        _crownVisual?.SetPaint(CrownPaintIndex);
+        PublishVehicleAppearance();
+    }
+
+    public void SetCrownRoofSign(bool visible)
+    {
+        CrownRoofSignVisible = visible;
+        _crownVisual?.SetRoofSignVisible(visible);
+        PublishVehicleAppearance();
+    }
+
+    private void PublishVehicleAppearance()
+    {
+        if (_applyingNetworkAppearance || !IsLocalPlayer || !IsInsideTree() ||
+            !Multiplayer.HasMultiplayerPeer() || Multiplayer.MultiplayerPeer is OfflineMultiplayerPeer)
+            return;
+        if (Multiplayer.IsServer())
+            Rpc(nameof(ApplyVehicleAppearanceRpc), VehicleOption, CrownPaintIndex, CrownRoofSignVisible);
+        else
+            RpcId(1, nameof(RequestVehicleAppearanceRpc), VehicleOption, CrownPaintIndex, CrownRoofSignVisible);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void RequestVehicleAppearanceRpc(int option, int paint, bool roofSign)
+    {
+        if (!Multiplayer.IsServer() || Multiplayer.GetRemoteSenderId() != OwnerPeerId)
+            return;
+        ApplyVehicleAppearanceRpc(option, paint, roofSign);
+        Rpc(nameof(ApplyVehicleAppearanceRpc), VehicleOption, CrownPaintIndex, CrownRoofSignVisible);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ApplyVehicleAppearanceRpc(int option, int paint, bool roofSign)
+    {
+        _applyingNetworkAppearance = true;
+        SetVehicleOption(option);
+        SetCrownPaint(paint);
+        SetCrownRoofSign(roofSign);
+        _applyingNetworkAppearance = false;
+    }
+
+    public void ApplyCrownImpact(Vector3 worldPoint, float impactSpeed)
+    {
+        if (_crownVisual == null || impactSpeed < 2.5f)
+            return;
+        _crownVisual.ApplyImpact(worldPoint, impactSpeed);
+        if (Multiplayer.HasMultiplayerPeer() && Multiplayer.IsServer())
+            Rpc(nameof(ApplyCrownImpactRpc), worldPoint, impactSpeed);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ApplyCrownImpactRpc(Vector3 worldPoint, float impactSpeed)
+    {
+        _crownVisual?.ApplyImpact(worldPoint, impactSpeed);
     }
 
     public string GetVehicleName() => VehicleName;
@@ -1052,6 +1122,7 @@ public partial class Kart : RigidBody3D
         {
             _vehicleOptionVisual.QueueFree();
             _vehicleOptionVisual = null;
+            _crownVisual = null;
         }
         if (VehicleOption == 0)
             return;
@@ -1075,10 +1146,19 @@ public partial class Kart : RigidBody3D
         _visualContainer.AddChild(optionVisual);
         if (optionVisual is Node3D optionMesh)
         {
-            // Kenney's vehicle kit is authored larger than this arcade kart chassis.
-            optionMesh.Scale = Vector3.One * 0.9f;
-            optionMesh.Position = new Vector3(0.0f, 0.06f, 0.0f);
-            optionMesh.RotationDegrees = new Vector3(0.0f, 180.0f, 0.0f);
+            if (VehicleOption == 5)
+            {
+                _crownVisual = new CrownVictoriaVisual { Name = "CrownVictoriaRuntime" };
+                optionMesh.AddChild(_crownVisual);
+                _crownVisual.Bind(this, optionMesh, CrownPaintIndex, CrownRoofSignVisible);
+            }
+            else
+            {
+                // Kenney's vehicle kit is authored larger than this arcade kart chassis.
+                optionMesh.Scale = Vector3.One * 0.9f;
+                optionMesh.Position = new Vector3(0.0f, 0.06f, 0.0f);
+                optionMesh.RotationDegrees = new Vector3(0.0f, 180.0f, 0.0f);
+            }
         }
         _vehicleOptionVisual = optionVisual;
     }
